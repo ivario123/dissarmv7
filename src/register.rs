@@ -27,6 +27,13 @@ macro_rules! reg {
 }
 reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP);
 
+impl TryFrom<u16> for Register {
+    type Error = ParseError;
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        (value as u8).try_into()
+    }
+}
+
 /// Register lists lifted from a bit vector to allow
 /// type level representations
 #[derive(Debug)]
@@ -39,7 +46,7 @@ impl TryFrom<u16> for RegisterList {
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         println!("Trying to use bitvector {value}");
         let mut regs = vec![];
-        for i in 0..16 {
+        for i in 0..16_u8 {
             if (value >> i) & 0b1 == 0b1 {
                 regs.push(i.try_into()?)
             }

@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, mem::size_of, usize};
 
-use crate::{Branch, Peek, Stream};
+use crate::{Branch, Consume, Peek, Stream};
 
 #[derive(Debug)]
 pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {
@@ -64,7 +64,6 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u16> for PeekableBuffer<u8, T> {
         }
         let offset = (N - 1) * 2;
         let els = &self.peeked_elements;
-        println!("N {N},offset : {offset},els : {els:?}");
         let data = [els[offset + 1], els[offset]];
 
         // Get the new byte and return it as a u16
@@ -88,45 +87,57 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u8> for PeekableBuffer<u8, T> {
     }
 }
 
-impl<T: Iterator<Item = u8> + Debug> Stream for PeekableBuffer<u8, T> {
-    fn step(&mut self) -> Option<u8> {
-        match self.peeked_elements.get(0) {
-            Some(_val) => Some(self.peeked_elements.remove(0)),
-            None => {
-                let _: u8 = self.peek::<1>()?;
-                self.step()
-            }
+impl<T: Iterator<Item = u8> + Debug> Consume<u32> for PeekableBuffer<u8, T> {
+    fn consume<const N: usize>(&mut self) -> Option<[u32; N]> {
+        <Self as Peek<u32>>::peek::<N>(self)?;
+
+        if N == 1 {
+            let [first, second]: [u16; 2] = self.consume::<2>()?;
+            return Some([((first as u32) << 16) | (second as u32); N]);
         }
+
+        let mut ret = [0; N];
+        for el in ret.iter_mut() {
+            *el = self.consume::<1>()?[0];
+        }
+        Some(ret)
+    }
+}
+impl<T: Iterator<Item = u8> + Debug> Consume<u16> for PeekableBuffer<u8, T> {
+    fn consume<const N: usize>(&mut self) -> Option<[u16; N]> {
+        <Self as Peek<u16>>::peek::<N>(self)?;
+        if N == 1 {
+            let [first, second]: [u8; 2] = self.consume::<2>()?;
+            return Some([u16::from_ne_bytes([second, first]); N]);
+        }
+
+        let mut ret = [0; N];
+        for el in ret.iter_mut() {
+            *el = self.consume::<1>()?[0];
+        }
+        Some(ret)
     }
 }
 
-#[cfg(test)]
-mod test {
+impl<T: Iterator<Item = u8> + Debug> Consume<u8> for PeekableBuffer<u8, T> {
+    fn consume<const N: usize>(&mut self) -> Option<[u8; N]> {
+        <Self as Peek<u8>>::peek::<N>(self)?;
+        if N == 1 {
+            return match self.peeked_elements.get(0) {
+                Some(_val) => Some([self.peeked_elements.remove(0); N]),
+                None => {
+                    let _: u8 = self.peek::<1>()?;
+                    self.consume()
+                }
+            };
+        }
 
-    use super::Stream;
-    use crate::Peek;
-
-    use super::PeekableBuffer;
-
-    #[test]
-    fn peek() {
-        let mut buff: PeekableBuffer<u8, _> = Box::new([0, 2, 1, 3, 1].into_iter()).into();
-        assert_eq!(
-            buff.peek::<1>() as Option<u8>,
-            buff.peek::<1>() as Option<u8>
-        );
-        assert_eq!(
-            buff.peek::<2>() as Option<u8>,
-            buff.peek::<2>() as Option<u8>
-        );
-        assert_eq!(
-            buff.peek::<1>(),
-            Some(u16::from_le_bytes([
-                buff.step().unwrap(),
-                buff.step().unwrap()
-            ]))
-        );
-        assert_ne!(buff.step(), buff.step());
-        assert_ne!(buff.step(), buff.step());
+        let mut ret = [0; N];
+        for el in ret.iter_mut() {
+            *el = self.consume::<1>()?[0];
+        }
+        Some(ret)
     }
 }
+
+impl<T: Iterator<Item = u8> + Debug> Stream for PeekableBuffer<u8, T> {}

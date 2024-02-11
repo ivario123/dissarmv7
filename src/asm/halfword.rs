@@ -15,7 +15,7 @@ use crate::{
 
 fn mask<const START: usize, const END: usize>(num: u16) -> u16 {
     let intermediate = num >> START;
-    let mask = ((1 << (END - START) as u16) as u16) - 1 as u16;
+    let mask = ((1 << (END - START + 1) as u16) as u16) - 1 as u16;
 
     let ret = intermediate & mask;
     println!(
@@ -56,22 +56,10 @@ macro_rules! instruction {
                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                 where
                     Self: Sized {
-                    // Use step instead of peek as we want to destroy this information
-
-                    let first_byte = match iter.step() {
-                        Some(b) => Ok(b),
-                        None => Err(ParseError::Invalid16Bit(
-                            stringify!($id)
-
-                        )
-                        ),
-                    }?;
-
-                    let second_byte = match iter.step() {
-                        Some(b) => Ok(b),
+                    let word: u16 = match iter.consume::<1>(){
+                        Some(buff) => Ok(buff[0]),
                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
                     }?;
-                    let word = u16::from_ne_bytes([second_byte,first_byte]) ;
                     $(
                         let $field_id:$type = instruction!(word $(as $representation)?; $start -> $end $($expr)?);
 
@@ -134,20 +122,14 @@ macro_rules! instruction {
                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                 where
                     Self: Sized {
-                    // Use step instead of peek as we want to destroy this information
-                    let first_byte = match iter.step() {
-                        Some(b) => Ok(b),
+                    // Consume a halfword from the buffer
+                    let word: u16 = match iter.consume::<1>(){
+                        Some(buff) => Ok(buff[0]),
                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
                     }?;
-
-                    let second_byte = match iter.step() {
-                        Some(b) => Ok(b),
-                        None => Err(ParseError::Invalid16Bit(stringify!($id))),
-                    }?;
-                    let word = u16::from_ne_bytes([second_byte,first_byte]) ;
+                    println!("Checking word {word:#018b}");
                     $(
                         let $field_id:$type = instruction!(word $(as $representation)?; $start -> $end $($expr)?);
-
                     )+
                     let ret = Self{
                         $(
@@ -168,91 +150,61 @@ pub trait HalfWord: Statement {}
 impl Parse for Box<dyn HalfWord> {
     type Target = Box<dyn HalfWord>;
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError> {
-        let current = match iter.peek::<1>() as Option<u8> {
-            Some(value) => value,
+        let word = iter.peek::<1>();
+        let opcode: u16 = mask::<10, 15>(match word {
+            Some(val) => val,
             None => return Err(ParseError::IncompleteProgram),
+        });
+        println!("Opcode: {opcode:#09b}");
+
+        match opcode {
+            0b010000 => return Ok(Box::new(A5_3::parse(iter)?)),
+            0b010001 => return Ok(Box::new(A5_4::parse(iter)?)),
+            _ => {}
         };
-        println!("First byte : {:#010b}", current);
-        // Opcode is only the first 8 bits of the instruction
-        let opcode = current >> 2;
-        let first_2 = current >> 6;
-        println!("opcode {:#08b}", opcode);
 
-        // A5.2 Arithmetic instructions
-        if first_2 == 0 {
-            println!("It should be A5_2");
-            let stmt: Box<dyn HalfWord> = Box::new(A5_2::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_2");
-        if opcode == 0b010000 {
-            let stmt: Box<dyn HalfWord> = Box::new(A5_3::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_3");
-        if opcode == 0b010001 {
-            println!(
-                "WHY AM I HERE {:b} == {:b} {:?}",
-                opcode,
-                0b010001,
-                opcode == 0b010001
-            );
-            let stmt: Box<dyn HalfWord> = Box::new(A5_4::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_4");
-        // Trippy decoding
-        println!("Masked {:b}", opcode & 0b111100);
-        println!("Conditions : ");
-        println!(
-            "\t {:b} == {:b} -> {} \n\t {:b} == {:b} -> {}\n\t {:b} == {:b} -> {}",
-            opcode & 0b111100,
-            0b010100,
-            (opcode & 0b111100 == 0b010100),
-            opcode & 0b111000,
-            0b011000,
-            (opcode & 0b111000 == 0b011000),
-            opcode & 0b1110000,
-            0b100000,
-            (opcode & 0b1110000 == 0b100000)
-        );
-        if (opcode >> 2 == 0b0101) || (opcode >> 3 == 0b011) || (opcode >> 3 == 0b100) {
-            println!("This should not be caught");
-            let stmt: Box<dyn HalfWord> = Box::new(A5_5::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_5");
-        if opcode & 0b111100 == 0b0101100 {
-            let stmt: Box<dyn HalfWord> = Box::new(A5_6::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_6");
-        if opcode & 0b111100 == 0b110100 {
-            let stmt: Box<dyn HalfWord> = Box::new(A5_8::parse(iter)?);
-            return Ok(stmt);
-        }
-        println!("Not A5_8");
+        match opcode >> 1 {
+            0b01001 => return Ok(Box::new(simply_defined::Ldr::parse(iter)?)),
+            0b10100 => return Ok(Box::new(simply_defined::Adr::parse(iter)?)),
+            0b10101 => return Ok(Box::new(simply_defined::Add::parse(iter)?)),
+            0b11000 => todo!("this might be tricky"),
+            0b11001 => todo!("this might also be tricky"),
+            0b11100 => return Ok(Box::new(simply_defined::B::parse(iter)?)),
+            _ => {}
+        };
 
-        if opcode >> 1 == 0b11100 {
-            return Ok(Box::new(simply_defined::B::parse(iter)?));
+        match opcode >> 2 {
+            0b0101 => return Ok(Box::new(A5_5::parse(iter)?)),
+            0b1011 => return Ok(Box::new(A5_6::parse(iter)?)),
+            0b1101 => return Ok(Box::new(A5_8::parse(iter)?)),
+            _ => {}
+        };
+
+        if opcode >> 3 == 0b011 || opcode >> 3 == 0b100 {
+            // TODO! table A5_5 seems to produce erroneus values
+            return Ok(Box::new(A5_5::parse(iter)?));
+        }
+
+        if opcode >> 4 == 0 {
+            return Ok(Box::new(A5_2::parse(iter)?));
         }
         Err(ParseError::Invalid16Bit("Half word"))
     }
 }
-pub mod misc {
-    use super::mask;
-    use crate::instruction;
-    use crate::prelude::*;
-    use crate::register::Register;
-    use crate::ParseError;
-    use paste::paste;
-    instruction!(
-        table Misc contains
-        Add : {
-            imm11 as u16:u16 : 0->2
-        }
-    );
-}
+
 impl Statement for Box<dyn HalfWord> {}
 
-// Look at https://stackoverflow.com/questions/3925075/how-to-extract-only-the-raw-contents-of-an-elf-section
+
+#[cfg(test)]
+mod test {
+    use super::mask;
+    #[test]
+    fn test_mask() {
+        assert!(mask::<0, 3>(0b11111) == mask::<0, 3>(0b01111));
+        assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b01110));
+        assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b00111));
+        assert!(mask::<1, 3>(0b11111) == mask::<1, 3>(0b11110));
+
+
+    }
+}

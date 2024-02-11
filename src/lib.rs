@@ -7,7 +7,10 @@ pub mod register;
 
 use std::{fmt::Debug, mem::size_of};
 
-use asm::{halfword::HalfWord, Statement};
+use asm::{
+    halfword::{self, HalfWord},
+    Statement,
+};
 
 use crate::asm::wholeword::{self, FullWord};
 
@@ -24,8 +27,18 @@ pub trait Branch {
     fn branch(&self) -> Self;
 }
 
-pub trait Stream: Peek<u32> + Peek<u16> + Peek<u8> + Debug {
-    fn step(&mut self) -> Option<u8>;
+pub trait Consume<T: Sized>: Sized + Peek<T> {
+    // Consumes `N` items of type `T` forward.
+    //
+    // If the value of `N` exceeds the remaining buffer then the function returns None
+    // and no items are consumed.
+    fn consume<const N: usize>(&mut self) -> Option<[T; N]>;
+}
+
+pub trait Stream: Consume<u32> + Consume<u16> + Consume<u8> + Debug {
+    fn step(&mut self) -> Option<u8> {
+        Some(self.consume::<1>()?[0])
+    }
 }
 
 #[derive(Debug)]
@@ -55,12 +68,30 @@ pub enum ParseError {
     IncompleteParser,
 
     /// Thrown when an invalid condition is requested
-    InvalidCondition
+    InvalidCondition,
+
+    /// Thrown when the parsing fails part way through parsing
+    PartiallyParsed(Box<Self>, Vec<Box<dyn Statement>>),
 }
 
 pub trait Parse {
     type Target;
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized;
+}
+pub trait ParseExact {
+    type Target;
+
+    fn parse_exact<T: Stream, const N: usize>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized;
+}
+
+pub trait ParseSingle {
+    type Target;
+
+    fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized;
 }
@@ -76,37 +107,103 @@ pub struct ASM {
     statements: Vec<Box<dyn Statement>>,
 }
 
+impl From<Vec<Box<dyn Statement>>> for ASM {
+    fn from(value: Vec<Box<dyn Statement>>) -> Self {
+        Self { statements: value }
+    }
+}
 impl Parse for ASM {
     type Target = ASM;
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
     where
         Self: Sized,
     {
-        println!("{:?}", iter);
         let mut stmts = Vec::new();
-        while let Some(halfword) = iter.peek::<1>() as Option<u16> {
-            if let Some(wholeword) = iter.peek::<1>() as Option<u32> {
-                println!("word : {:#034b}", wholeword)
-            }
-            println!("{:?}", iter);
-            println!("Checking 16 bit {:#08b}", halfword);
-
-            match halfword >> 11 {
-                0b11101 | 0b11110 | 0b11111 => {
-                    let stmt = Box::new(<Box<dyn FullWord>>::parse(iter)?);
-                }
-                _ => {
-                    // Either we have 2 half words or we have one whole word
-                    let stmt = Box::new(<Box<dyn HalfWord>>::parse(iter)?);
-                    stmts.push(stmt as Box<dyn Statement>);
-                }
-            }
+        while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
+            match <Box<dyn Statement>>::parse_single(iter) {
+                Ok(el) => stmts.push(el),
+                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
+            };
+            // match halfword >> 11 {
+            //     0b11101 | 0b11110 | 0b11111 => {
+            //         println!("Found a 32 bit instruction");
+            //         let stmt = Box::new(<Box<dyn FullWord>>::parse(iter)?);
+            //     }
+            //     _ => {
+            //         println!("Parsing a 16 bit instruction");
+            //         // Either we have 2 half words or we have one whole word
+            //         let stmt = Box::new(<Box<dyn HalfWord>>::parse(iter)?);
+            //         stmts.push(stmt as Box<dyn Statement>);
+            //     }
+            // }
         }
-        Ok(ASM { statements: stmts })
+        Ok(stmts.into())
+    }
+}
+impl ParseExact for ASM {
+    type Target = Self;
+    fn parse_exact<T: Stream, const N: usize>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        let mut stmts = Vec::new();
+        for _ in 0..N {
+            match <Box<dyn Statement>>::parse_single(iter) {
+                Ok(el) => stmts.push(el),
+                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
+            };
+            // let halfword: Option<u16> = iter.peek::<1>();
+            // if let None = halfword {
+            //     return Err(ParseError::PartiallyParsed(
+            //         Box::new(ParseError::IncompleteProgram),
+            //         stmts,
+            //     ));
+            // }
+            // let halfword = halfword.unwrap();
+            //
+            // match halfword >> 11 {
+            //     0b11101 | 0b11110 | 0b11111 => {
+            //         println!("Found a 32 bit instruction");
+            //         let stmt = Box::new(<Box<dyn FullWord>>::parse(iter)?);
+            //     }
+            //     _ => {
+            //         println!("Parsing a 16 bit instruction");
+            //         // Either we have 2 half words or we have one whole word
+            //         let stmt = Box::new(<Box<dyn HalfWord>>::parse(iter)?);
+            //         stmts.push(stmt as Box<dyn Statement>);
+            //     }
+            // }
+        }
+        Ok(stmts.into())
+    }
+}
+impl ParseSingle for Box<dyn Statement> {
+    type Target = Self;
+    fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        let halfword: Option<u16> = iter.peek::<1>();
+        if let None = halfword {
+            return Err(ParseError::IncompleteProgram);
+        }
+        let halfword = halfword.unwrap();
+
+        Ok(match halfword >> 11 {
+            0b11101 | 0b11110 | 0b11111 => {
+                println!("Found a 32 bit instruction");
+                Box::new(<Box<dyn FullWord>>::parse(iter)?)
+            }
+            _ => {
+                println!("Parsing a 16 bit instruction");
+                // Either we have 2 half words or we have one whole word
+                Box::new(<Box<dyn HalfWord>>::parse(iter)?)
+            }
+        })
     }
 }
 
 pub mod prelude {
-    pub use super::{Parse, Stream, ASM};
+    pub use super::{Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
 }

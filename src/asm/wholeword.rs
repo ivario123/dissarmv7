@@ -174,3 +174,5 @@ impl Parse for Box<dyn FullWord> {
         Err(ParseError::IncompleteProgram)
     }
 }
+
+impl Statement for Box<dyn FullWord> {}

@@ -15,10 +15,10 @@ instruction!(
         i as u8 :u8    : 1->1,
         im as u8 :u8   : 4->4
     },
-    Add : {
+    AddImmediateToSP : {
         imm7 as u8 :u8 : 0->6
     },
-    Sub : {
+    SubImmediateFromSp : {
         imm7 as u8 :u8 : 0->6
     },
     Cbz  : {
@@ -46,8 +46,8 @@ instruction!(
         imm5 as u8 : u8     : 3 ->  7
     },
     Push : {
-        register_list :RegisterList    : 0->7 try_into,
-        m as u8:u8                : 8->8
+        register_list :RegisterList     : 0->7 try_into,
+        m as u8:u8                      : 8->8
     },
     Rev : {
         rd as u8 : Register : 0 ->  2   try_into,
@@ -62,15 +62,15 @@ instruction!(
         rm as u8 : Register : 3 ->  5   try_into
     },
     Pop   : {
-        register_list : RegisterList : 0->7 try_into,
-        p as u8:u8             : 8->8
+        register_list : RegisterList: 0->7 try_into,
+        p as u8:u8                  : 8->8
     },
     Bkpt  : {
-        imm8 as u8 : u8          : 0->7
+        imm8 as u8 : u8             : 0->7
     },
     Itt   : {
-        opa as u8:Register     : 0->3 try_into,
-        opb as u8:Register     : 4->6 try_into
+        opa as u8:Register          : 0->3 try_into,
+        opb as u8:Register          : 4->6 try_into
     }
 );
 
@@ -94,11 +94,11 @@ impl Parse for A5_6 {
         if opcode == 0b0110011 {
             p!(Cps from iter);
         }
-        if opcode & 0b1111100 == 0 {
-            p!(Add from iter);
+        if opcode >> 2 == 0 {
+            p!(AddImmediateToSP from iter);
         }
         if opcode & 0b1111100 == 0b100 {
-            p!(Sub from iter);
+            p!(SubImmediateFromSp from iter);
         }
         if opcode & 0b1111000 == 0b1000 {
             p!(Cbz from iter);

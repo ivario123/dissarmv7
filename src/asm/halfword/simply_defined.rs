@@ -1,4 +1,4 @@
-use super::{mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::{
     asm::Statement,
     condition::Condition,
@@ -10,6 +10,7 @@ use crate::{
 use paste::paste;
 
 instruction!(
+    size u16;
     Ldr : {
         imm8 as u8 : u8       : 0->7,
         rt   as u8: Register : 8->10 try_into

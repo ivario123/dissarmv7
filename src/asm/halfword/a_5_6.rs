@@ -5,11 +5,11 @@ use crate::{
 };
 use paste::paste;
 
-use super::{mask, HalfWord};
+use super::{Mask, HalfWord};
 use crate::instruction;
 
 instruction!(
-    table A5_6 contains
+    size u16;  A5_6 contains
     Cps : {
         f as u8 :u8    : 0->0,
         i as u8 :u8    : 1->1,

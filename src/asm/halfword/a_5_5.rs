@@ -1,10 +1,10 @@
-use super::{mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, register::Register, Parse, ParseError, Stream};
 
 use paste::paste;
 
 instruction!(
-    table A5_5 contains
+    size u16;  A5_5 contains
     Str : {
         rt as u8 : Register : 0->2 try_into,
         rn as u8 : Register : 3->5 try_into,
@@ -96,8 +96,6 @@ macro_rules! match_iter {
                 counter += 1;
             )+
         };
-
-
     };
 }
 impl Parse for A5_5 {
@@ -106,17 +104,13 @@ impl Parse for A5_5 {
     where
         Self: Sized,
     {
-        let first_byte = match iter.peek::<1>() as Option<u8> {
+        let word = match iter.peek::<1>() as Option<u16> {
             Some(u) => Ok(u),
             None => Err(ParseError::IncompleteProgram),
-        }?
-        .to_le_bytes()[0];
-        println!("byte : {:#010b}", first_byte);
+        }?;
 
-        let op2 = first_byte & 0b1110;
-        let op1 = first_byte >> 4;
-        println!("opa : {:#06b}", op1);
-        println!("opb : {:#05b}", op2);
+        let op1 = word.mask::<12, 15>();
+        let op2 = word.mask::<9, 11>();
 
         if op1 == 0b0101 {
             match_iter!(

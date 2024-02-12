@@ -1,7 +1,7 @@
 use crate::{asm::Statement, register::Register, Parse, ParseError};
 use paste::paste;
 
-use super::{mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::instruction;
 macro_rules! instruction_5_3 {
     ($(
@@ -13,7 +13,7 @@ macro_rules! instruction_5_3 {
         }
     ),*) => {
         instruction!(
-            table A5_3 contains
+            size u16;  A5_3 contains
             $(
                 $id : {
                     $(

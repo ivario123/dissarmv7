@@ -1,10 +1,10 @@
-use super::{mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::{asm::Statement, condition::Condition, instruction, Parse, ParseError, Stream};
 
 use paste::paste;
 
 instruction!(
-    table A5_8 contains
+    size u16;  A5_8 contains
     B : {
         imm8 as u8 : u8 : 0->7,
         cond as u8 : Condition : 8->11 try_into

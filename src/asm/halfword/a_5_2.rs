@@ -1,11 +1,11 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use super::{mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, register::Register, Parse, ParseError};
 use paste::paste;
 
 instruction!(
-    table A5_2 contains
+    size u16; A5_2 contains
     // Logical left shift, might have to revisit the imm5 field later
     Lsl : {
         rd          : Register  : 0 -> 2 try_into,
@@ -80,9 +80,9 @@ impl Parse for A5_2 {
             Some(val) => Ok(val),
             None => Err(ParseError::IncompleteProgram),
         }?;
-        let opcode = mask::<9, 13>(word);
+        let opcode = word.mask::<9, 13>();
         match opcode >> 2 {
-            0 => return Ok(A5_2::Lsl(Lsl::parse(iter)?)),
+            0 => return Ok(Self::Lsl(Lsl::parse(iter)?)),
             1 => return Ok(Self::Lsr(Lsr::parse(iter)?)),
             2 => return Ok(Self::Asr(Asr::parse(iter)?)),
             4 => return Ok(Self::Mov(Mov::parse(iter)?)),

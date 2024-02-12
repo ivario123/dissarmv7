@@ -1,149 +1,14 @@
+pub mod A5_16;
+pub mod A5_17;
+
 use super::Statement;
-use crate::{Parse, ParseError};
+use crate::{asm::Mask, Parse, ParseError};
 
-// #[macro_export]
-// macro_rules! instruction {
-//     ($(
-//         $id:ident : {
-//             $(
-//                 $field_id:ident : $type:ty : $start:literal -> $end:literal $($expr:ident)?
-//
-//             ),*
-//         }
-//     ),*
-//     ) => {
-//         $(
-//             paste!{
-//                 #[doc = "Half word instruction " [<$id>] "\n\n"]
-//                 #[doc = "Contains the following fields:\n"]
-//                 $(
-//                     #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
-//                 )+
-//                 pub struct $id {
-//                     $(
-//                         #[doc = "bit " [<$start>] " to " [<$end>]]
-//                         pub $field_id:$type,
-//                     )+
-//                 }
-//             }
-//
-//
-//             impl Parse for $id{
-//                 type Target = Self;
-//                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
-//                 where
-//                     Self: Sized {
-//                     // Use step instead of peek as we want to destroy this information
-//
-//                     let first_byte = match iter.step() {
-//                         Some(b) => Ok(b),
-//                         None => Err(ParseError::Invalid16Bit(
-//                             stringify!($id)
-//
-//                         )
-//                         ),
-//                     }?;
-//
-//                     let second_byte = match iter.step() {
-//                         Some(b) => Ok(b),
-//                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
-//                     }?;
-//                     let word = (first_byte as u16) << 8 | (second_byte as u16);
-//                     $(
-//                         let $field_id:$type = instruction!(word as $type; $start -> $end $($expr)?);
-//
-//                     )+
-//                     Ok(Self{
-//                         $(
-//                             $field_id: $field_id,
-//                         )+
-//                     })
-//                 }
-//             }
-//         )+
-//     };
-//     (
-//         $word:ident as $type:ty; $start:literal -> $end:literal $($expr:ident)?
-//     ) => {
-//
-//             (mask::<$start,$end>($word) as u8)$(.$expr()?)?
-//         //$map_err(|e| crate::ParseError::InvalidField(format!("{:?}",e)))?
-//     };
-//     (
-//     table $table:ident contains
-//     $(
-//         $id:ident : {
-//             $(
-//                 $field_id:ident : $type:ty : $start:literal -> $end:literal $($expr:ident)?
-//
-//             ),*
-//         }
-//     ),*) => {
-//         paste!{
-//             pub enum $table{
-//                 $(
-//                     $id($id),
-//                 )+
-//             }
-//         }
-//         $(
-//             paste!{
-//                 #[doc = "Half word instruction " [<$id>] " from table " [<$table>] "\n\n"]
-//                 #[doc = "Contains the following fields:\n"]
-//                 $(
-//                     #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
-//                 )+
-//                 #[derive(Debug)]
-//                 pub struct $id {
-//                     $(
-//                         #[doc = "bit " [<$start>] " to " [<$end>]]
-//                         pub $field_id:$type,
-//                     )+
-//                 }
-//             }
-//
-//
-//             impl Parse for $id{
-//                 type Target = Self;
-//                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
-//                 where
-//                     Self: Sized {
-//                     // Use step instead of peek as we want to destroy this information
-//                     let first_byte = match iter.step() {
-//                         Some(b) => Ok(b),
-//                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
-//                     }?;
-//
-//                     let second_byte = match iter.step() {
-//                         Some(b) => Ok(b),
-//                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
-//                     }?;
-//                     let word = (first_byte as u16) << 8 | (second_byte as u16);
-//                     $(
-//                         let $field_id:$type = instruction!(word as $type; $start -> $end $($expr)?);
-//
-//                     )+
-//                     let ret = Self{
-//                         $(
-//                             $field_id: $field_id,
-//                         )+
-//                     };
-//                     println!("Parsed {:?}",ret);
-//                     Ok(ret)
-//                 }
-//             }
-//         )*
-//     }
-// }
 #[inline(always)]
-fn mask<const START: usize, const END: usize>(num: u16) -> u16 {
+fn mask_32<const START: usize, const END: usize>(num: u32) -> u32 {
     let intermediate = num >> START;
-    let mask = ((1 << (END - START) as u16) as u16) - 1 as u16;
-
+    let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
     let ret = intermediate & mask;
-    // println!(
-    //     "Masking {num:b} with mask {mask:b} from bit {START} to bit {END} resulting in {ret:b}"
-    // );
     ret
 }
 
@@ -162,14 +27,15 @@ impl Parse for Box<dyn FullWord> {
             Some(value) => Ok(value),
             None => Err(ParseError::Inclomplete32Bit),
         }?;
-        let op1 = mask::<10, 12>(first);
-        let op2 = mask::<3, 10>(first);
-        let op = mask::<14, 15>(second);
-        println!("first : {:#016b}", first);
-        println!("first : {:#016b}", second);
-        println!("op1 {:#02b}", op1);
-        println!("op2 {:#08b}", op2);
-        println!("op {:#01b}", op);
+        let op1 = first.mask::<10, 12>();
+        let op2 = first.mask::<3, 10>();
+        let op = second.mask::<14, 15>();
+        println!("first : {:#018b}", first);
+        println!("first : {:#018b}", second);
+        println!("op1 {:#04b}", op1);
+        println!("op2 {:#010b}", op2);
+        println!("op {:#03b}", op);
+        
 
         Err(ParseError::IncompleteProgram)
     }

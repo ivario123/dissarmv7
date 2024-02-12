@@ -8,26 +8,17 @@ pub mod a_5_6;
 pub mod a_5_8;
 pub mod simply_defined;
 
+use super::Mask;
 use crate::{
     asm::halfword::{a_5_2::A5_2, a_5_3::A5_3, a_5_4::A5_4, a_5_5::A5_5, a_5_6::A5_6, a_5_8::A5_8},
     Parse, ParseError, Statement,
 };
 
-fn mask<const START: usize, const END: usize>(num: u16) -> u16 {
-    let intermediate = num >> START;
-    let mask = ((1 << (END - START + 1) as u16) as u16) - 1 as u16;
-
-    let ret = intermediate & mask;
-    println!(
-        "Masking {num:b} with mask {mask:b} from bit {START} to bit {END} resulting in {ret:b}"
-    );
-    ret
-}
-
 #[macro_export]
 macro_rules! instruction {
-    ($(
-        $id:ident : {
+    (size $size:ty;
+     $(
+         $id:ident : {
             $(
                 $field_id:ident $(as $representation:ty)? : $type:ty : $start:literal -> $end:literal $($expr:ident)?
             ),*
@@ -36,7 +27,7 @@ macro_rules! instruction {
     ) => {
         $(
             paste!{
-                #[doc = "Half word instruction " [<$id>] "\n\n"]
+                #[doc = "Instruction " [<$id>] "\n\n"]
                 #[doc = "Contains the following fields:\n"]
                 $(
                     #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
@@ -56,12 +47,12 @@ macro_rules! instruction {
                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                 where
                     Self: Sized {
-                    let word: u16 = match iter.consume::<1>(){
+                    let word: $size = match iter.consume::<1>(){
                         Some(buff) => Ok(buff[0]),
                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
                     }?;
                     $(
-                        let $field_id:$type = instruction!(word $(as $representation)?; $start -> $end $($expr)?);
+                        let $field_id:$type = instruction!($size;word $(as $representation)?; $start -> $end $($expr)?);
 
                     )+
                     Ok(Self{
@@ -75,14 +66,16 @@ macro_rules! instruction {
     };
 
     (
-        $word:ident $(as $representation:ty)?; $start:literal -> $end:literal $($expr:ident)?
+        $size:ty; $word:ident $(as $representation:ty)?; $start:literal -> $end:literal $($expr:ident)?
     ) => {
+            {
+                (($word as $size).mask::<$start,$end>() $(as $representation)?)$(.$expr()?)?
 
-            (mask::<$start,$end>($word) $(as $representation)?)$(.$expr()?)?
+            }
     };
 
     (
-    table $table:ident contains
+    size $size:ty; $table:ident contains
         $(
             $id:ident : {
                 $(
@@ -102,7 +95,7 @@ macro_rules! instruction {
         }
         $(
             paste!{
-                #[doc = "Half word instruction " [<$id>] " from table " [<$table>] "\n\n"]
+                #[doc = "Instruction " [<$id>] " from table " [<$table>] "\n\n"]
                 #[doc = "Contains the following fields:\n"]
                 $(
                     #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
@@ -122,14 +115,14 @@ macro_rules! instruction {
                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                 where
                     Self: Sized {
-                    // Consume a halfword from the buffer
-                    let word: u16 = match iter.consume::<1>(){
+                    // Consume a word from the buffer
+                    let word:$size = match iter.consume::<1>(){
                         Some(buff) => Ok(buff[0]),
                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
                     }?;
                     println!("Checking word {word:#018b}");
                     $(
-                        let $field_id:$type = instruction!(word $(as $representation)?; $start -> $end $($expr)?);
+                        let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
                     )+
                     let ret = Self{
                         $(
@@ -150,11 +143,12 @@ pub trait HalfWord: Statement {}
 impl Parse for Box<dyn HalfWord> {
     type Target = Box<dyn HalfWord>;
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError> {
-        let word = iter.peek::<1>();
-        let opcode: u16 = mask::<10, 15>(match word {
+        let word: Option<u16> = iter.peek::<1>();
+        let opcode: u16 = (match word {
             Some(val) => val,
             None => return Err(ParseError::IncompleteProgram),
-        });
+        })
+        .mask::<10, 15>();
         println!("Opcode: {opcode:#09b}");
 
         match opcode {
@@ -194,17 +188,14 @@ impl Parse for Box<dyn HalfWord> {
 
 impl Statement for Box<dyn HalfWord> {}
 
-
-#[cfg(test)]
-mod test {
-    use super::mask;
-    #[test]
-    fn test_mask() {
-        assert!(mask::<0, 3>(0b11111) == mask::<0, 3>(0b01111));
-        assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b01110));
-        assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b00111));
-        assert!(mask::<1, 3>(0b11111) == mask::<1, 3>(0b11110));
-
-
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     use super::mask;
+//     #[test]
+//     fn test_mask() {
+//         assert!(mask::<0, 3>(0b11111) == mask::<0, 3>(0b01111));
+//         assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b01110));
+//         assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b00111));
+//         assert!(mask::<1, 3>(0b11111) == mask::<1, 3>(0b11110));
+//     }
+// }

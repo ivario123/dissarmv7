@@ -52,6 +52,12 @@ pub enum ParseError {
     /// Occured while parsing the block in question
     Invalid16Bit(&'static str),
 
+    /// Thrown when there is no matching 32 bit instruction
+    ///
+    /// Occured while parsing the block in question
+    Invalid32Bit(&'static str),
+
+
     /// Thrown when there is no matching
     Inclomplete32Bit,
 
@@ -124,18 +130,6 @@ impl Parse for ASM {
                 Ok(el) => stmts.push(el),
                 Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
             };
-            // match halfword >> 11 {
-            //     0b11101 | 0b11110 | 0b11111 => {
-            //         println!("Found a 32 bit instruction");
-            //         let stmt = Box::new(<Box<dyn FullWord>>::parse(iter)?);
-            //     }
-            //     _ => {
-            //         println!("Parsing a 16 bit instruction");
-            //         // Either we have 2 half words or we have one whole word
-            //         let stmt = Box::new(<Box<dyn HalfWord>>::parse(iter)?);
-            //         stmts.push(stmt as Box<dyn Statement>);
-            //     }
-            // }
         }
         Ok(stmts.into())
     }
@@ -152,27 +146,6 @@ impl ParseExact for ASM {
                 Ok(el) => stmts.push(el),
                 Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
             };
-            // let halfword: Option<u16> = iter.peek::<1>();
-            // if let None = halfword {
-            //     return Err(ParseError::PartiallyParsed(
-            //         Box::new(ParseError::IncompleteProgram),
-            //         stmts,
-            //     ));
-            // }
-            // let halfword = halfword.unwrap();
-            //
-            // match halfword >> 11 {
-            //     0b11101 | 0b11110 | 0b11111 => {
-            //         println!("Found a 32 bit instruction");
-            //         let stmt = Box::new(<Box<dyn FullWord>>::parse(iter)?);
-            //     }
-            //     _ => {
-            //         println!("Parsing a 16 bit instruction");
-            //         // Either we have 2 half words or we have one whole word
-            //         let stmt = Box::new(<Box<dyn HalfWord>>::parse(iter)?);
-            //         stmts.push(stmt as Box<dyn Statement>);
-            //     }
-            // }
         }
         Ok(stmts.into())
     }
@@ -196,7 +169,6 @@ impl ParseSingle for Box<dyn Statement> {
             }
             _ => {
                 println!("Parsing a 16 bit instruction");
-                // Either we have 2 half words or we have one whole word
                 Box::new(<Box<dyn HalfWord>>::parse(iter)?)
             }
         })

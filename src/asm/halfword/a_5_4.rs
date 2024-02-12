@@ -1,9 +1,9 @@
-use super::{mask, HalfWord};
+use super::{Mask, HalfWord};
 use crate::{asm::Statement, instruction, register::Register, Parse, ParseError, Stream};
 
 use paste::paste;
 instruction!(
-    table A5_4 contains
+    size u16;  A5_4 contains
     Add : {
         rd as u8 : Register : 0->2 try_into,
         rm as u8 : Register : 3->6 try_into

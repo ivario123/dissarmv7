@@ -4,6 +4,7 @@ pub mod asm;
 pub mod buffer;
 pub mod condition;
 pub mod register;
+pub mod shift;
 
 use std::{fmt::Debug, mem::size_of};
 
@@ -176,6 +177,6 @@ impl ParseSingle for Box<dyn Statement> {
 }
 
 pub mod prelude {
-    pub use super::{Parse, ParseExact, Stream, ASM};
+    pub use super::{Parse, ParseExact, Stream, ASM,register::*,condition::*,shift::*};
     pub use crate::buffer::PeekableBuffer;
 }

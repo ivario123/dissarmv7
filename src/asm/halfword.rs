@@ -77,62 +77,72 @@ macro_rules! instruction {
     (
     size $size:ty; $table:ident contains
         $(
-            $id:ident : {
+            $($id:ident : {
                 $(
                     $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
 
                 ),*
-            }
+            })?
+            $(
+                -> $table_id:ident
+            )?
         ),*
     ) => {
         paste!{
             #[derive(Debug)]
             pub enum $table{
                 $(
-                    $id($id),
+                    $($id($id),)?
+                    $(
+                        #[doc = "Externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
+                        [<Subtable $table_id>]($table_id),
+                    )?
                 )+
             }
         }
         $(
-            paste!{
-                #[doc = "Instruction " [<$id>] " from table " [<$table>] "\n\n"]
-                #[doc = "Contains the following fields:\n"]
-                $(
-                    #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
-                )+
-                #[derive(Debug)]
-                pub struct $id {
-                    $(
-                        #[doc = "bit " [<$start>] " to " [<$end>]]
-                        pub $field_id:$type,
-                    )+
-                }
-            }
 
-
-            impl Parse for $id{
-                type Target = Self;
-                fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
-                where
-                    Self: Sized {
-                    // Consume a word from the buffer
-                    let word:$size = match iter.consume::<1>(){
-                        Some(buff) => Ok(buff[0]),
-                        None => Err(ParseError::Invalid16Bit(stringify!($id))),
-                    }?;
-                    println!("Checking word {word:#018b}");
+            $(
+                paste!{
+                    #[doc = "Instruction " [<$id>] " from table " [<$table>] "\n\n"]
+                    #[doc = "Contains the following fields:\n"]
                     $(
-                        let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
-                    )+
-                    let ret = Self{
+                        #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
+                    )*
+                    #[derive(Debug)]
+                    pub struct $id {
                         $(
-                            $field_id: $field_id,
-                        )+
-                    };
-                    println!("Parsed {:?}",ret);
-                    Ok(ret)
+                            #[doc = "bit " [<$start>] " to " [<$end>]]
+                            pub $field_id:$type,
+                        )*
+                    }
                 }
-            }
+
+
+                impl Parse for $id{
+                    type Target = Self;
+                    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
+                    where
+                        Self: Sized {
+                        // Consume a word from the buffer
+                        let word:$size = match iter.consume::<1>(){
+                            Some(buff) => Ok(buff[0]),
+                            None => Err(ParseError::Invalid16Bit(stringify!($id))),
+                        }?;
+                        println!("Checking word {word:#018b}");
+                        $(
+                            let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
+                        )*
+                        let ret = Self{
+                            $(
+                                $field_id: $field_id,
+                            )*
+                        };
+                        println!("Parsed {:?}",ret);
+                        Ok(ret)
+                    }
+                }
+            )?
         )*
     }
 }

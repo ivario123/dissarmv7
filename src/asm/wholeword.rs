@@ -1,5 +1,9 @@
+pub mod A5_10;
 pub mod A5_16;
 pub mod A5_17;
+pub mod A5_22;
+pub mod A5_23;
+pub mod A5_30;
 
 use super::Statement;
 use crate::{asm::Mask, Parse, ParseError};
@@ -35,7 +39,6 @@ impl Parse for Box<dyn FullWord> {
         println!("op1 {:#04b}", op1);
         println!("op2 {:#010b}", op2);
         println!("op {:#03b}", op);
-        
 
         Err(ParseError::IncompleteProgram)
     }

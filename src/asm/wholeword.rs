@@ -1,4 +1,5 @@
 pub mod A5_10;
+pub mod A5_12;
 pub mod A5_16;
 pub mod A5_17;
 pub mod A5_22;

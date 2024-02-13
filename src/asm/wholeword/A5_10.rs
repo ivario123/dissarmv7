@@ -37,7 +37,6 @@ instruction!(
         imm8 as u16 : u16        : 0 -> 7,
         imm3 as u16 : u16        : 12 -> 14,
         rn as u8   : Register   : 16 -> 19 try_into,
-        s as u8    : bool       : 20 -> 20 local_try_into,
         i as u16    : u16        : 26 -> 26
     },
     Bic : {

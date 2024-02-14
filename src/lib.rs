@@ -71,6 +71,9 @@ pub enum ParseError {
     /// Thrown when an unpredicatable instruction is used
     Unpredicatable,
 
+    /// Thrown when an undefined instruction is used
+    Undefined,
+
     /// Thrown when a non covered case is reached
     IncompleteParser,
 

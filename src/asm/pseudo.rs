@@ -307,6 +307,9 @@ thumb!(
     /// Logical or
     OrrRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
+    // ==================================== P ====================================
+
+
     /// Packed halfword instruction
     Pkh <tb:bool>, {rd: Register}, <rn : Register>, <rm: Register>, {shift: ImmShift}
 
@@ -327,9 +330,72 @@ thumb!(
 
     /// Loads a set of registers from the stack
     Pop <registers:RegisterList>
-    
+
     /// Pushes a set of registers to the stack
     Push <registers:RegisterList>
+
+    // ==================================== Q ====================================
+
+    /// Saturating adds two registers
+    Qadd {rd: Register}, <rm: Register>, <rn: Register>
+
+    /// Saturating adds two registers upper and lower halfs independently
+    Qadd16 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Saturating adds all bytes in the 2 registers independently
+    Qadd8 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Saturating add, subtract and exchange
+    Qasx {rd:Register}, <rn: Register>, <rm: Register>
+
+    /// Saturating double and add
+    Qdadd {rd: Register}, <rm: Register>, <rn: Register>
+
+    /// Saturating double and sub
+    Qdsub {rd: Register}, <rm: Register>, <rn: Register>
+
+    /// Saturating subtract, add and exchange
+    Qsax {rd:Register}, <rn: Register>, <rm: Register>
+
+    /// Saturating subs two registers
+    Qsub {rd: Register}, <rm: Register>, <rn: Register>
+
+    /// Saturating subs two registers upper and lower halfs independently
+    Qsub16 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Saturating subs all bytes in the 2 registers independently
+    Qsub8 {rd: Register}, <rn: Register>, <rm: Register>
+
+    // ==================================== R ====================================
+
+    /// Reverses the bit order in a 32-bit regiser
+    Rbit <rm: Register>, <rd: Register>
+
+    /// Reverses the byte order in a 32-bit register
+    Rev <rd: Register>, <rm: Register>
+
+    /// Reverses the byte order in a the first halfword and the second halfword respectivly
+    Rev16 <rd: Register>, <rm: Register>
+
+    /// Byte reverse signed half word
+    Revsh <rd: Register>, <rm: Register>
+
+    /// Rotate right
+    RorImmediate {s:bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+
+    /// Rotate right
+    RorRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+
+    /// Rotate right and extend
+    Rrx {s:bool}, <rd: Register>, <rm: Register>
+
+    /// Reverse sub
+    RsbImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
+
+    /// Reverse sub
+    RsbRegister {s:bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+
+    // ==================================== S ====================================
 
 
 

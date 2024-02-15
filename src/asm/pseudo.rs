@@ -178,11 +178,172 @@ thumb!(
     /// Load byte
     ///
     /// Shift in this context will allways be LSL
-    LdrbRegister {add:bool},<rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    LdrbRegister {add:bool}, <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Loads a byte from memory at an affress specified by rn + imm
+    Ldrbt <rt: Register>, <rn: Register>, {imm: u32}
+
+    /// Loads two words in to memory first rt, second rt2
+    LdrdImmediate {w: bool}, {add:bool}, {index:bool}, <rt: Register>, <rt2: Register>, <rn: Register>, <imm:u32>
+
+    /// Loads two words in to memory first rt, second rt2
+    ///
+    /// Offset is based on PC instead of rn
+    LdrdLiteral {w: bool}, {add:bool}, {index:bool}, <rt: Register>, <rt2: Register>, <imm:u32>
+
+    /// Load register exclusive
+    ///
+    /// This has side effects that must be covered.
+    Ldrex <rt: Register>, <rn: Register>, <imm:u32>
+
+    /// (exclusive) Load byte from offset based on register
+    Ldrexb <rt: Register>, <rn: Register>
+
+    /// (exclusive) Load halfword from offset based on register
+    Ldrexh <rt: Register>, <rn: Register>
+
+    /// Loads a halfword from an affress computed from imm and rn
+    LdrhImmediate {w: bool}, {add: bool}, {index: bool}, <rt: Register>, <rn: Register>, <imm: u32>
+
+    /// Loads a halfword from an affress computed from imm and sp
+    LdrhLiteral {add: bool}, <rt: Register>, <imm:u32>
+
+    /// Loads a halfword from an affress computed from rm and rn
+    LdrhRegister <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Loads a halfword
+    Ldrht <rt: Register>, <rn:Register>,{imm:u32}
+
+    /// Load signed byte
+    LdrsbImmediate <add: bool>, <index:bool>, <wback:bool>, <rt: Register>, <rn: Register>, {imm:u32}
+
+    /// Load signed byte
+    LdrsbLiteral <add: bool>, <rt: Register>, <imm:u32>
+
+    /// Load signed byte
+    LdrsbRegister <rt: Register>, <rn: Register>, <rm: Register>, {shift:ImmShift}
+
+    /// Loads signed byte
+    Ldrsbt <rt: Register>, <rn: Register>, <imm: u32>
+
+    /// Load register signed halfoword
+    LdrshImmediate <add: bool>, <index:bool>, <wback:bool>, <rt: Register>, <rn: Register>, {imm:u32}
+
+    /// Load register signed halfoword
+    LdrshLiteral <add: bool>, <rt: Register>, <imm:u32>
+
+    /// Load register signed halfoword
+    LdrshRegister <rt: Register>, <rn: Register>, <rm: Register>, {shift:ImmShift}
+
+    /// Load signed halfword top part
+    Ldrsht <rt: Register>, <rn: Register>, {imm: u32}
+
+    /// Logical left shift
+    LslImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+
+    /// Logical left shift
+    LslRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+
+    /// Logical right shift
+    LsrImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+
+    /// Logical left shift
+    LsrRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+
+
+    // ==================================== M ====================================
+
+    /// Multiply and accumulate with third value
+    ///
+    /// rd = rn * rm + ra
+    Mla <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+
+    /// Multiply and subtract with third value
+    ///
+    /// rd = rn * rm + ra
+    Mls <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+
+    /// Writes an immediate value in to the destination register
+    MovImmediate {s:bool}, <rd: Register>, <imm:u32>
+
+    /// Coppies a value from a register in to the destination register
+    MovReg {s:bool}, <rd: Register>, <rm: Register>
+
+    /// Coppies an immediate value to the top half word of the destination register
+    Movt <rd: Register>, <imm:u16>
+
+    /// Move to register from special register
+    Mrs <rd: Register>, <sysm: u8> // Probably not needed
+
+    /// Move to special register from core register
+    Msr <rn: Register>, <mask:Imm2>, <sysm:u8> // Probably not needed
+
+    /// Multiplies two registers
+    Mul {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Bitwise not of an immediate, stored in destination  register
+    MvnImmediate {s: bool}, <rd: Register>, <imm: u32>
+
+    /// Bitwise not of a value stored in a register, result is stored in destination register
+    MvnRegister {s: bool}, <rd: Register>, <rm: Register>, {shift:ImmShift}
+
+
+    // ==================================== N ====================================
+
+    /// No operation
+    Nop <>
+
+    // ==================================== O ====================================
+
+    /// Logical OR Not, inclusive or
+    OrnImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
+
+    /// Logical OR Not, inclusive or
+    OrnRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Logical or
+    OrrImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm:u32>
+
+    /// Logical or
+    OrrRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+
+    /// Packed halfword instruction
+    Pkh <tb:bool>, {rd: Register}, <rn : Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Pre load data to make the load from that address faster
+    PldImmediate {add: bool}, <rn: Register>, <imm:u32>
+
+    /// Preload data from pc + literal
+    PldLiteral {add: bool}, <imm:u32>
+
+    /// Preload data
+    PldRegister <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Preload instruction relative to either a register or the PC.
+    PliImmediate {add: bool}, {rn: Register}, <imm:u32>
+
+    /// Preload instruction relative to an address stored in a register
+    PliRegister <rn: Register>, <rm: Register>, {shift:ImmShift}
+
+    /// Loads a set of registers from the stack
+    Pop <registers:RegisterList>
+    
+    /// Pushes a set of registers to the stack
+    Push <registers:RegisterList>
 
 
 
 
+    // ================================== TODO! ==================================
+
+    /// TODO!
+    Mcr <>
+    /// TODO!
+    Mrc <>
+    /// TODO!
+    Mrrc <>
+    /// TODO!
+    Mcrr <>
 
     /// TODO!
     Cdp <>

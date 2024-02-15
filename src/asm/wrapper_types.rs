@@ -55,7 +55,8 @@ macro_rules! impl_try {
                 if std::mem::size_of::<$source>() * 8 < (<Self as sealed::SignBit>::BIT + 1) {
                     return Err(ParseError::InvalidField("Immediate".to_string()));
                 }
-                let max: $source = ((1 as $source) << (<Self as sealed::SignBit>::BIT + 1)) - 1;
+                let max: $source =
+                    (((1 as u32) << (<Self as sealed::SignBit>::BIT + 1)) - 1) as $source;
                 if value > max {
                     return Err(ParseError::InvalidField("Immediate".to_string()));
                 }
@@ -121,12 +122,13 @@ macro_rules! signextend {
     };
 }
 
-imm!(Imm2(u8), Imm3(u8), Imm4(u8), Imm12(u16));
+imm!(Imm2(u8), Imm3(u8), Imm4(u8), Imm5(u8), Imm12(u16));
 
 into!(
     Imm2 => {u8,u16,u32}
     Imm3 => {u8,u16,u32}
     Imm4 => {u8,u16,u32}
+    Imm5 => {u8,u16,u32}
     Imm12 => {u16,u32}
 );
 
@@ -138,6 +140,9 @@ signextend!(
         u32 => i32, u16 => i16, u8 => i8
     }
     (Imm4,3) => {
+        u32 => i32, u16 => i16, u8 => i8
+    }
+    (Imm5,3) => {
         u32 => i32, u16 => i16, u8 => i8
     }
     (Imm12,11) => {

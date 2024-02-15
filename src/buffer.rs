@@ -1,8 +1,8 @@
 //!
 
-use std::{fmt::Debug, mem::size_of, usize};
+use std::{fmt::Debug, usize};
 
-use crate::{Branch, Consume, Peek, Stream};
+use crate::{Consume, Peek, Stream};
 
 #[derive(Debug)]
 pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {

@@ -1,10 +1,10 @@
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
-use crate::register::RegisterList;
-use crate::shift::Shift;
-use crate::wholeword::A5_23::A5_23;
+
+
+
+
 use crate::ParseError;
 use paste::paste;
 pub trait LocalTryInto<T> {
@@ -35,7 +35,7 @@ instruction!(
 
 impl Parse for A5_30 {
     type Target = Self;
-    fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    fn parse<T: Stream>(_iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,
     {

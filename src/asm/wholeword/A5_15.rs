@@ -1,15 +1,15 @@
 use super::FullWord;
 use crate::asm::Mask;
 use crate::asm::Statement;
-use crate::condition::Condition;
-use crate::instruction;
+
+
 use crate::prelude::*;
-use crate::register::Register;
-use crate::register::RegisterList;
-use crate::shift::Shift;
-use crate::wholeword::A5_23::A5_23;
+
+
+
+
 use crate::ParseError;
-use paste::paste;
+
 
 /// Defines some maker instructions
 #[derive(Debug)]

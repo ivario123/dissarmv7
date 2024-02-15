@@ -27,7 +27,7 @@ impl<T: Iterator<Item = io::Result<u8>> + Debug> From<T> for InfallibleBytes<T> 
 fn main() {
     let f = File::open("/home/ivarj/code/ltu/dissarmv7/example").unwrap();
     let iter = Box::new(f.bytes().into_iter());
-    let intermediate: InfallibleBytes<_> = iter.into();
+    let _intermediate: InfallibleBytes<_> = iter.into();
     let mut buff: PeekableBuffer<u8, _> = [0x94, 0x02, 0x1e, 0x32u8].into_iter().into();
     let res = ASM::parse(&mut buff);
     match res {

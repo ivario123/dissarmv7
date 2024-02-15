@@ -21,15 +21,6 @@ instruction!(
         rn  as u8               : Register          : 16 -> 19 try_into,
         w   as u8               : bool              : 21 -> 21 local_try_into
     },
-    /*
-        address = R[n];
-        for i = 0 to 14
-            if registers<i> == '1' then
-                R[i] = MemA[address,4]; address = address + 4;
-            if registers<15> == '1' then
-                LoadWritePC(MemA[address,4]);
-            if wback && registers<n> == '0' then R[n] = R[n] + 4*BitCount(registers);
-    */
     Ldm : {
         register_list as u16    : RegisterList      : 0 -> 12 try_into,
         m   as u8               : bool              : 14 -> 14 local_try_into,
@@ -37,56 +28,21 @@ instruction!(
         rn  as u8               : Register          : 16 -> 19 try_into,
         w   as u8               : bool              : 21 -> 21 local_try_into
     },
-    /*
-        address = SP;
-        SP = SP + 4*BitCount(registers);
-        for i = 0 to 14
-            if registers<i> == '1' then
-                R[i] = MemA[address,4]; address = address + 4;
-        if registers<15> == '1' then
-            LoadWritePC(MemA[address,4]);
-    */
     Pop : {
         register_list as u16    : RegisterList      : 0 -> 12 try_into,
         m   as u8               : bool              : 14 -> 14 local_try_into,
         p   as u8               : bool              : 15 -> 15 local_try_into
     },
-    /*
-     EncodingSpecificOperations();
-     address = R[n] - 4*BitCount(registers);
-     for i = 0 to 14
-        if registers<i> == '1' then
-            MemA[address,4] = R[i];
-            address = address + 4;
-    if wback then R[n] = R[n] - 4*BitCount(registers);
-    */
     Stmdb : {
         register_list as u16    : RegisterList      : 0 -> 12 try_into,
         m   as u8               : bool              : 14 -> 14 local_try_into,
         rn  as u8               : Register          : 16 -> 19 try_into,
         w   as u8               : bool              : 21 -> 21 local_try_into
     },
-    /*
-    address = SP - 4*BitCount(registers);
-    for i = 0 to 14
-        if registers<i> == '1' then
-            MemA[address,4] = R[i];
-            address = address + 4;
-    SP = SP - 4*BitCount(registers);
-    */
     Push : {
         register_list as u16    : RegisterList      : 0 -> 12 try_into,
         m   as u8               : bool              : 14 -> 14 local_try_into
     },
-    /*
-        address = R[n] - 4*BitCount(registers);
-        for i = 0 to 14
-            if registers<i> == '1' then
-                R[i] = MemA[address,4]; address = address + 4;
-        if registers<15> == '1' then
-            LoadWritePC(MemA[address,4]);
-        if wback && registers<n> == '0' then R[n] = R[n] - 4*BitCount(registers);
-     * */
     Ldmdb : {
         register_list as u16    : RegisterList      : 0 -> 12 try_into,
         m   as u8               : bool              : 14 -> 14 local_try_into,

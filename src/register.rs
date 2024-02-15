@@ -41,6 +41,12 @@ pub struct RegisterList {
     pub regs: Vec<Register>,
 }
 
+impl From<Register> for RegisterList {
+    fn from(value: Register) -> Self {
+        Self { regs: vec![value] }
+    }
+}
+
 impl TryFrom<u16> for RegisterList {
     type Error = ParseError;
     fn try_from(value: u16) -> Result<Self, Self::Error> {

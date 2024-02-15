@@ -1,4 +1,4 @@
-use crate::{Parse, ParseError};
+use crate::{ParseError};
 
 #[derive(Debug)]
 /// Derived from section A7.3

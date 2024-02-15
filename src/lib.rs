@@ -5,11 +5,13 @@ pub mod buffer;
 pub mod condition;
 pub mod register;
 pub mod shift;
+/// Internal helpers
+mod helpers;
 
-use std::{fmt::Debug, mem::size_of};
+use std::{fmt::Debug};
 
 use asm::{
-    halfword::{self, HalfWord},
+    halfword::{HalfWord},
     Statement,
 };
 

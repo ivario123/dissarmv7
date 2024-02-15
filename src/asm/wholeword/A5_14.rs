@@ -3,15 +3,15 @@
 //! These have one or no fields but might have side-effects
 use crate::asm::Mask;
 use crate::asm::Statement;
-use crate::condition::Condition;
-use crate::instruction;
+
+
 use crate::prelude::*;
-use crate::register::Register;
-use crate::register::RegisterList;
-use crate::shift::Shift;
-use crate::wholeword::A5_23::A5_23;
+
+
+
+
 use crate::ParseError;
-use paste::paste;
+
 use super::FullWord;
 
 /// Defines some maker instructions

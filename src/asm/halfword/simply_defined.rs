@@ -4,7 +4,7 @@ use crate::{
     condition::Condition,
     instruction,
     register::{Register, RegisterList},
-    Parse, ParseError, Stream,
+    Parse, ParseError,
 };
 
 use paste::paste;

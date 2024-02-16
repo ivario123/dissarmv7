@@ -4,10 +4,10 @@ use crate::{
     register::{Register, RegisterList},
     shift::ImmShift,
 };
+use paste::paste;
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! thumb {
     (
-
         $(
 
             $(
@@ -30,11 +30,6 @@ macro_rules! thumb {
         )*
     ) => {
         $(
-            // #[doc = "Operation with pseudo code \n```ignore\n"]
-            // $(
-            //     #[doc = $pseudo_code_line]
-            // )*
-            // #[doc = "```"]
             $(
                 #[doc = $comment]
             )*
@@ -49,6 +44,65 @@ macro_rules! thumb {
 
                 ),*
             }
+            paste!(
+                pub struct [<$name Builder>] {
+                    $(
+                        $(
+                            pub $field_name : Option<Option<$field_type>>
+                        )?
+                        $(
+                            pub $field_name_must_exist : Option<$field_type_must_exist>
+                        )?
+
+                    ),*
+                }
+                impl [<$name Builder>] {
+                    $(
+                        $(
+                            pub fn [<set_ $field_name>](mut self,val:Option<$field_type>) -> Self{
+                                self.$field_name = Some(val);
+                                self
+                            }
+                        )?
+                        $(
+                            pub fn [<set_ $field_name_must_exist>](mut self,val:$field_type_must_exist) -> Self{
+                                self.$field_name_must_exist = Some(val);
+                                self
+                            }
+                        )?
+                    )*
+                    pub fn new() -> Self{
+                        [<$name Builder>]{
+                            $(
+                                $(
+                                    $field_name : None
+                                )?
+                                $(
+                                    $field_name_must_exist : None
+                                )?
+
+                            ),*
+                        }
+                    }
+                    pub fn complete(self) -> Option<Thumb>{
+                        $(
+                            $(if self.$field_name.is_none(){ return None })?$(if self.$field_name_must_exist.is_none(){ return None })?
+                        )*
+                        return Some(Thumb::$name($name{
+                            $(
+                                $(
+                                    $field_name : self.$field_name.unwrap()
+                                )?
+                                $(
+                                    $field_name_must_exist : self.$field_name_must_exist.unwrap()
+                                )?
+                            ),*
+                        }));
+
+                   }
+
+                }
+            );
         )*
         /// All of the instructions availiable in the armv7 instruction set.
         pub enum Thumb {
@@ -525,7 +579,7 @@ thumb!(
     Umaal       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
     Umlal       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
     Umull       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
-    
+
     Uqadd16     {rd: Register}, <rn: Register>, <rm: Register>
     Uqadd8      {rd: Register}, <rn: Register>, <rm: Register>
     Uqasx       {rd: Register}, <rn: Register>, <rm: Register>
@@ -546,7 +600,7 @@ thumb!(
     Uxtb    <rd: Register>, <rm: Register>, {rotation: u32}
     Uxtb16  {rd: Register}, <rm: Register>, {rotation: u32}
     Uxth    <rd: Register>, <rm: Register>, {rotation: u32}
-    
+
 
     // ==================================== V ====================================
     //

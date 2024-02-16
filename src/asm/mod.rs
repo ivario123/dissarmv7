@@ -6,6 +6,7 @@ pub mod pseudo;
 pub mod wrapper_types;
 
 pub trait Statement: std::fmt::Debug {}
+
 pub(crate) trait Mask {
     fn mask<const START: usize, const END: usize>(&self) -> Self;
 }

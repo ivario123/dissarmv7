@@ -1,20 +1,17 @@
 //! Defines an instruction decoder for the armv7 instructions
 
+pub mod architechture;
 pub mod asm;
 pub mod buffer;
 pub mod condition;
-pub mod register;
-pub mod shift;
-pub mod architechture;
 /// Internal helpers
 mod helpers;
+pub mod register;
+pub mod shift;
 
-use std::{fmt::Debug};
+use std::fmt::Debug;
 
-use asm::{
-    halfword::{HalfWord},
-    Statement,
-};
+use asm::{halfword::HalfWord, pseudo::Thumb, Statement};
 
 use crate::asm::wholeword::{self, FullWord};
 
@@ -60,7 +57,6 @@ pub enum ParseError {
     ///
     /// Occured while parsing the block in question
     Invalid32Bit(&'static str),
-
 
     /// Thrown when there is no matching
     Inclomplete32Bit,
@@ -108,7 +104,10 @@ pub trait ParseSingle {
     where
         Self: Sized;
 }
-
+pub trait ToThumb {
+    /// Translates the encoded value in to a [`Thumb`] instruction
+    fn encoding_specific_operations(self) -> Option<Thumb>;
+}
 pub struct StreamParser {
     //
 }
@@ -183,6 +182,6 @@ impl ParseSingle for Box<dyn Statement> {
 }
 
 pub mod prelude {
-    pub use super::{Parse, ParseExact, Stream, ASM,register::*,condition::*,shift::*};
+    pub use super::{condition::*, register::*, shift::*, Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
 }

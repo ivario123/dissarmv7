@@ -4,7 +4,7 @@ use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;
-
+use crate::asm::wrapper_types::Imm12;
 
 
 
@@ -37,7 +37,7 @@ instruction!(
     size u32; A5_21 contains
     // To dissern between these two bit 7 in the first 16 bit number is 1 for T2 and 0 for T3
     StrbT2 : {
-        imm12   as u16      :   u16         : 0 -> 11,
+        imm12   as u16      :   Imm12       : 0 -> 11 try_into,
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
     },

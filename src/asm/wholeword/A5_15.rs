@@ -2,14 +2,9 @@ use super::FullWord;
 use crate::asm::Mask;
 use crate::asm::Statement;
 
-
 use crate::prelude::*;
 
-
-
-
 use crate::ParseError;
-
 
 /// Defines some maker instructions
 #[derive(Debug)]

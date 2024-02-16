@@ -14,7 +14,6 @@ use crate::{
     Parse, ParseError, Statement,
 };
 
-
 /// A 16-bit wide instruction
 pub trait HalfWord: Statement {}
 

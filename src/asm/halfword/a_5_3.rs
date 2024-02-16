@@ -1,4 +1,8 @@
-use crate::{asm::Statement, register::Register, Parse, ParseError};
+use crate::{
+    asm::{pseudo, Statement},
+    register::Register,
+    Parse, ParseError, ToThumb,
+};
 use paste::paste;
 
 use super::{HalfWord, Mask};
@@ -40,9 +44,11 @@ macro_rules! instruction_5_3 {
                 let op = ((first_byte&0b11)<<2)|(second_byte>>6);
                 match op{
                     $(
-                        $opcode => {return Ok(Self::$id($id::parse(iter)?));}
+                        $opcode => {Ok(Self::$id($id::parse(iter)?))}
+
                     )+
-                        _       => {return Err(ParseError::Invalid16Bit("A5_3"))}
+                        _       => {Err(ParseError::Invalid16Bit("A5_3"))}
+
                 }
 
             }
@@ -85,19 +91,19 @@ instruction_5_3!(
     },
     0b1000@Tst : {
         rm:Register : 3->5 try_into,
-        rdn:Register : 0->2 try_into
+        rn:Register : 0->2 try_into
     },
     0b1001@Rsb : {
-        rm:Register : 3->5 try_into,
-        rdn:Register : 0->2 try_into
+        rn:Register : 3->5 try_into,
+        rd:Register : 0->2 try_into
     },
     0b1010@Cmp : {
         rm:Register : 3->5 try_into,
-        rdn:Register : 0->2 try_into
+        rn:Register : 0->2 try_into
     },
     0b1011@Cmn : {
         rm:Register : 3->5 try_into,
-        rdn:Register : 0->2 try_into
+        rn:Register : 0->2 try_into
     },
     0b1100@Orr : {
         rm:Register : 3->5 try_into,
@@ -119,3 +125,109 @@ instruction_5_3!(
 
 impl Statement for A5_3 {}
 impl HalfWord for A5_3 {}
+
+impl ToThumb for A5_3 {
+    fn encoding_specific_operations(self) -> Option<crate::asm::pseudo::Thumb> {
+        match self {
+            Self::And(and) => pseudo::AndRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(and.rdn))
+                .set_rn(and.rdn)
+                .set_rm(and.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Eor(eor) => pseudo::EorRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(eor.rdn)
+                .set_rm(eor.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Lsl(lsl) => pseudo::LslRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(lsl.rdn)
+                .set_rn(lsl.rdn)
+                .set_rm(lsl.rm)
+                .complete(),
+            Self::Lsr(lsr) => pseudo::LsrRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(lsr.rdn)
+                .set_rn(lsr.rdn)
+                .set_rm(lsr.rm)
+                .complete(),
+            Self::Asr(asr) => pseudo::AsrRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(asr.rdn)
+                .set_rn(asr.rdn)
+                .set_rm(asr.rm)
+                .complete(),
+            Self::Adc(adc) => pseudo::AdcRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(adc.rdn)
+                .set_rm(adc.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Sbc(sbc) => pseudo::SbcRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(sbc.rdn)
+                .set_rm(sbc.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Ror(ror) => pseudo::RorRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(ror.rdn)
+                .set_rn(ror.rdn)
+                .set_rm(ror.rm)
+                .complete(),
+            Self::Tst(tst) => pseudo::TstRegisterBuilder::new()
+                .set_rn(tst.rn)
+                .set_rm(tst.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Rsb(rsb) => pseudo::RsbImmediateBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(rsb.rd))
+                .set_rn(rsb.rn)
+                .set_imm(0)
+                .complete(),
+            Self::Cmp(cmp) => pseudo::CmpRegisterBuilder::new()
+                .set_rn(cmp.rn)
+                .set_rm(cmp.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Cmn(cmn) => pseudo::CmnRegisterBuilder::new()
+                .set_rn(cmn.rn)
+                .set_rm(cmn.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Orr(orr) => pseudo::OrrRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(orr.rdn)
+                .set_rm(orr.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Mul(mul) => pseudo::MulBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(mul.rdm))
+                .set_rn(mul.rn)
+                .set_rm(mul.rdm)
+                .complete(),
+            Self::Bic(bic) => pseudo::BicRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(bic.rdn))
+                .set_rn(bic.rdn)
+                .set_rm(bic.rm)
+                .set_shift(None)
+                .complete(),
+            Self::Mvn(mvn) => pseudo::MvnRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(mvn.rd)
+                .set_rm(mvn.rm)
+                .set_shift(None)
+                .complete(),
+        }
+    }
+}

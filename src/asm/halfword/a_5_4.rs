@@ -1,4 +1,4 @@
-use super::{Mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, register::Register, Parse, ParseError, Stream};
 
 use paste::paste;

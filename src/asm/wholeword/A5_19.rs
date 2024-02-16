@@ -1,5 +1,5 @@
-use crate::asm::Mask;
 use crate::asm::wrapper_types::*;
+use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;

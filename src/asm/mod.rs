@@ -1,8 +1,8 @@
 //! Defines the statements availiable in armv7
 
 pub mod halfword;
-pub mod wholeword;
 pub mod pseudo;
+pub mod wholeword;
 pub mod wrapper_types;
 
 pub trait Statement: std::fmt::Debug {}

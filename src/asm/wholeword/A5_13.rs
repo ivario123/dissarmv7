@@ -5,7 +5,6 @@ use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;
 
-
 use crate::wholeword::A5_14::A5_14;
 use crate::wholeword::A5_15::A5_15;
 use crate::ParseError;

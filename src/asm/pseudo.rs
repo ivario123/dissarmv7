@@ -88,7 +88,7 @@ macro_rules! thumb {
                         $(
                             $(if self.$field_name.is_none(){ return None })?$(if self.$field_name_must_exist.is_none(){ return None })?
                         )*
-                        return Some(Thumb::$name($name{
+                        Some(Thumb::$name($name{
                             $(
                                 $(
                                     $field_name : self.$field_name.unwrap()
@@ -97,8 +97,7 @@ macro_rules! thumb {
                                     $field_name_must_exist : self.$field_name_must_exist.unwrap()
                                 )?
                             ),*
-                        }));
-
+                        }))
                    }
 
                 }
@@ -118,7 +117,7 @@ macro_rules! thumb {
 
 thumb!(
     AdcImmediate {s:bool}, {rd: Register}, <r: Register>, <imm:u32>
-    AdcRegister {s:bool}, {rd : Register}, <rn : Register>, {shift : ImmShift}
+    AdcRegister {s:bool}, {rd : Register}, <rn : Register>,<rm: Register>, {shift : ImmShift}
 
     AddImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
     AddRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}

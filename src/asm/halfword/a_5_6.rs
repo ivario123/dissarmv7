@@ -5,7 +5,7 @@ use crate::{
 };
 use paste::paste;
 
-use super::{Mask, HalfWord};
+use super::{HalfWord, Mask};
 use crate::instruction;
 
 instruction!(

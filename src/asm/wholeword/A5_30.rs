@@ -2,9 +2,6 @@ use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
 
-
-
-
 use crate::ParseError;
 use paste::paste;
 pub trait LocalTryInto<T> {

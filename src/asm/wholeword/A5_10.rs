@@ -3,8 +3,6 @@ use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;
 
-
-
 use crate::ParseError;
 use paste::paste;
 pub trait LocalTryInto<T> {

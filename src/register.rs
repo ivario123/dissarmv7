@@ -3,7 +3,7 @@ use crate::ParseError;
 macro_rules! reg {
     ($($reg:ident),*) => {
         #[repr(u8)]
-        #[derive(Debug)]
+        #[derive(Debug,Copy,Clone)]
         pub enum Register {
         $(
             $reg
@@ -20,7 +20,7 @@ macro_rules! reg {
                     }
                     i+=1;
                 )*
-                return Err(ParseError::InvalidRegister(value));
+                Err(ParseError::InvalidRegister(value))
             }
         }
     };

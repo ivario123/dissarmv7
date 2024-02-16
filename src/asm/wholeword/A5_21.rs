@@ -1,16 +1,12 @@
 use crate::asm::Mask;
 
-
+use crate::asm::wrapper_types::Imm12;
 use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;
-use crate::asm::wrapper_types::Imm12;
-
-
 
 use crate::ParseError;
 use paste::paste;
-
 
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;

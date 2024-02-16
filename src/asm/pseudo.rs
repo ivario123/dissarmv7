@@ -15,21 +15,18 @@ macro_rules! thumb {
             )*
             $(#[doc = $comment:expr])*
             $name:ident $(
-                    // Optional field
-                    $(
-                        { $field_name:ident : $field_type:ty }
-                    )?
-                    // Required field
-                    $(
-                        < $field_name_must_exist:ident : $field_type_must_exist:ty >
-                    )?
-                    // Denotes an empty set this is simply here to allow instructions with no
-                    // arguments
-                    $(<>)?
-
-
-                ),*
-
+                // Optional field
+                $(
+                    { $field_name:ident : $field_type:ty }
+                )?
+                // Required field
+                $(
+                    < $field_name_must_exist:ident : $field_type_must_exist:ty >
+                )?
+                // Denotes an empty set this is simply here to allow instructions with no
+                // arguments
+                $(<>)?
+            ),*
         )*
     ) => {
         $(
@@ -49,6 +46,7 @@ macro_rules! thumb {
                     $(
                         pub $field_name_must_exist : $field_type_must_exist
                     )?
+
                 ),*
             }
         )*
@@ -368,7 +366,7 @@ thumb!(
 
     // ==================================== R ====================================
 
-    /// Reverses the bit order in a 32-bit regiser
+    /// Reverses the bit order in a 32-bit register
     Rbit <rm: Register>, <rd: Register>
 
     /// Reverses the byte order in a 32-bit register
@@ -397,11 +395,195 @@ thumb!(
 
     // ==================================== S ====================================
 
+    /// Signed version of [`Qadd16`]
+    Sadd16 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Signed version of [`Qadd8`]
+    Sadd8 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Signed version of [`Qasx`]
+    Sasx {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Subtract with carry
+    SbcImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm:u32>
+
+    /// Sub with carry
+    SbcRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    /// Signed bit field extract
+    Sbfx <rd: Register>, <rn: Register>, <lsb: u32>, <width: u32>
+
+    /// Signed divide
+    Sdic {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Selects bytes using the [`Apsr`](crate::architechture::Apsr)::Ge bits.
+    Sel {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Send event, multicore system.
+    ///
+    /// This is equivalent to a NOP in this core
+    Sev <>
+
+    /// Adds the upper halfwords and the lower halfwords independently
+    /// stores the least significant halfwords of the results in the destination register
+    Shadd16 {rd: Register}, <rn: Register>, <rm: Register>
+
+    /// Same as [`Shadd16`] but with bytes
+    Shadd8 {rd: Register}, <rn: Register>, <rm: Register>
+    Shasx {rd: Register}, <rn: Register>, <rm: Register>
+    Shsax {rd: Register}, <rn: Register>, <rm: Register>
+    Shsub16 {rd: Register}, <rn: Register>, <rm: Register>
+    Shsub8  {rd: Register}, <rn: Register>, <rm: Register>
+
+    Smla    <n_high: bool>, <m_high: bool>, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smlad   {x: bool}, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smlal   <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    SmlalSelective    <n_high: bool>, <m_high: bool>,  <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Smlald  {x:bool},  <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Smlaw <m_high:bool>, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smlsd {m_swap: bool}, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smlsld {m_swap: bool}, <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Smmla {round: bool}, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smmls {round: bool}, <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Smmul {round: bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    Smuad {m_swap: bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    Smul    <n_high: bool>, <m_high: bool>, {rd: Register}, <rn: Register>, <rm: Register>
+    Smull  <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Smulw  <m_high: bool>, {rd: Register}, <rn: Register>, <rm: Register>
+    Smusd  {m_swap: bool}, {rd: Register}, <rn: Register>, <rm: Register>
+
+    Ssat <rd: Register>, <imm: u32>, <rn: Register>, {shift: ImmShift}
+    Ssat16 <rd:Register>, <imm: u32>, <rn: Register>
+    Ssax {rd: Register}, <rn: Register>, <rm: Register>
+
+    Ssub16 {rd: Register}, <rn: Register>, <rm: Register>
+    Ssub8  {rd: Register}, <rn: Register>, <rm: Register>
+
+    Stm     {w: bool}, <rn: Register>, <registers: RegisterList>
+    Stmbd   {w: bool}, <rn: Register>, <registers: RegisterList>
+    StrImmediate    {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>
+    StrRegister     <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    StrbImmediate   {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>
+    StrbRegister    <rt: Register>, <rn: Register>, <rm: Register>, {shigt: ImmShift}
+    Strbt           <rt: Register>, <rn: Register>, {imm: u32}
+    StrdImmediate   {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rt2: Register>, <rn: Register>, {imm: u32}
+
+    Strex   <rd: Register>, <rt: Register>, <rn: Register>, {imm:u32}
+    Strexb  <rd: Register>, <rt: Register>, <rn: Register>
+    Strexh  <rd: Register>, <rt: Register>, <rn: Register>
+
+    StrhImmediate   {offset: bool}, {index: bool}, <rt: Register>, <rn: Register>, {imm: u32}
+    StrhRegister    <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    Strht           <rt: Register>, <rn: Register>, {imm: u32}
+    Strt            <rt: Register>, <rn: Register>, {imm: u32}
+
+    SubImmediate        {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
+    SubRegister         {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    /// We can probably ommit all of these
+    SubSpPlusImmediate  {s: bool}, {rd: Register}, <imm:u32>
+    SubSpMinusReg       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
+
+    Sxtab   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Sxtab16 {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Sxtah   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Sxtb    <rd: Register>, <rm: Register>, {rotation: u32}
+    Sxtb16  {rd: Register}, <rm: Register>, {rotation: u32}
+    Sxth    <rd: Register>, <rm: Register>, {rotation: u32}
+
+    // ==================================== T ====================================
+
+    Tb {is_tbh:bool}, <rn: Register>, <rm: Register>
+
+    TeqImmediate    <rn: Register>, <imm: u32>
+    TeqRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    TstImmediate    <rn: Register>, <imm: u32>
+    TstRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
+
+    // ==================================== U ====================================
+
+    Uadd16  {rd: Register}, <rn: Register>, <rm: Register>
+    Uadd8   {rd: Register}, <rn: Register>, <rm: Register>
+
+    Uasx    {rd: Register}, <rn: Register>, <rm: Register>
+
+    Ubfx    <rd: Register>, <rn: Register>, <lsb: u32>, <width: u32>
+
+    /// Permanently undefined
+    Udf <imm:u32>
+
+    Udiv {rd: Register}, <rn : Register>, <rm: Register>
+
+    Uhadd16     {rd: Register}, <rn: Register>, <rm: Register>
+    Uhadd8      {rd: Register}, <rn: Register>, <rm: Register>
+    Uhasx       {rd: Register}, <rn: Register>, <rm: Register>
+    Uhsax       {rd: Register}, <rn: Register>, <rm: Register>
+
+    Uhsub16     {rd: Register}, <rn: Register>, <rm: Register>
+    Uhsub8      {rd: Register}, <rn: Register>, <rm: Register>
+
+    Umaal       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Umlal       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    Umull       <rdlo: Register>, <rdhi: Register>, <rn: Register>, <rm: Register>
+    
+    Uqadd16     {rd: Register}, <rn: Register>, <rm: Register>
+    Uqadd8      {rd: Register}, <rn: Register>, <rm: Register>
+    Uqasx       {rd: Register}, <rn: Register>, <rm: Register>
+    Uqsax       {rd: Register}, <rn: Register>, <rm: Register>
+    Uqsub16     {rd: Register}, <rn: Register>, <rm: Register>
+    Uqsub8      {rd: Register}, <rn: Register>, <rm: Register>
+    Uqsad8      {rd: Register}, <rn: Register>, <rm: Register>
+    Usada8      <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+
+    Usat    <rd: Register>, <imm: u32>, <rn: Register>, {shift: ImmShift}
+    Usat16  <rd: Register>, <imm: u32>, <rn: Register>
+    Usax    {rd: Register}, <rn: Register>, <rm: Register>
+    Usub16  {rd: Register}, <rn: Register>, <rm: Register>
+    Usub8   {rd: Register}, <rn: Register>, <rm: Register>
+    Uxtab   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Uxtab16 {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Uxtah   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
+    Uxtb    <rd: Register>, <rm: Register>, {rotation: u32}
+    Uxtb16  {rd: Register}, <rm: Register>, {rotation: u32}
+    Uxth    <rd: Register>, <rm: Register>, {rotation: u32}
+    
+
+    // ==================================== V ====================================
+    //
+    // I will be omitting all of the floating point instructions for now.
+    // TODO! Add in floats
+
+
+    // ==================================== W ====================================
+
+    Wfe <>
+    Wfi <>
+
+    // ==================================== Y ====================================
+
+    Yield <>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     // ================================== TODO! ==================================
+    // These are left for the future as they are not yet supported in SYMEX
 
+    /// TODO!
+    Svx <>
+    /// TODO!
+    Stc <>
     /// TODO!
     Mcr <>
     /// TODO!

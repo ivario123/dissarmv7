@@ -5,6 +5,7 @@ pub mod buffer;
 pub mod condition;
 pub mod register;
 pub mod shift;
+pub mod architechture;
 /// Internal helpers
 mod helpers;
 

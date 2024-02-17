@@ -5,11 +5,18 @@ pub mod A5_14;
 pub mod A5_15;
 pub mod A5_16;
 pub mod A5_17;
+pub mod A5_18;
 pub mod A5_19;
 pub mod A5_20;
 pub mod A5_21;
 pub mod A5_22;
 pub mod A5_23;
+pub mod A5_24;
+pub mod A5_25;
+pub mod A5_26;
+pub mod A5_27;
+pub mod A5_28;
+pub mod A5_29;
 pub mod A5_30;
 
 use super::Statement;

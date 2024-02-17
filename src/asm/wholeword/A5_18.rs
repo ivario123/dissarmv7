@@ -28,18 +28,13 @@ impl<T> LocalTryInto<T> for T {
 }
 
 instruction!(
-    size u32; A5_19 contains
-    LdrhLiteral : {
-        imm12   as u16  : Imm12     : 0 -> 11 try_into,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        u       as u8   : bool      : 23 -> 23 local_try_into
-    },
-    LdrhImmediateT2 : {
+    size u32; A5_18 contains
+    LdrImmediateT3 : {
         imm12   as u16  : Imm12     : 0 -> 11 try_into,
         rt      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
-    LdrhImmediateT3 : {
+    LdrImmediateT4 : {
         imm8    as u8   : u8        : 0 -> 7,
         w       as u8   : bool      : 8 -> 8 local_try_into,
         u       as u8   : bool      : 9 -> 9 local_try_into,
@@ -47,43 +42,19 @@ instruction!(
         rt      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
-    LdrhRegister : {
-        rm      as u8   : Register  : 0 -> 3 try_into,
+    Ldrt : {
+        imm8    as u8   : u8        : 0 -> 7,
+        rt      as u8   : Register  : 12 -> 15 try_into,
+        rn      as u8   : Register  : 16 -> 19 try_into
+    },
+    LdrRegister : {
+        rm      as u8   : Register  : 0 -> 7 try_into,
         imm2    as u8   : Imm2      : 4 -> 5 try_into,
         rt      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
-    Ldrht : {
-        imm8    as u8   : u8        : 0 -> 7,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        rn      as u8   : Register  : 16 -> 19 try_into
-    },
-    LdrshImmediateT1 : {
-        imm12   as u16  : Imm12     : 0 -> 11 try_into,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        rn      as u8   : Register  : 16 -> 19 try_into
-    },
-    LdrshImmediateT2 : {
-        imm8    as u8   : u8        : 0 -> 7,
-        w       as u8   : bool      : 8 -> 8 local_try_into,
-        u       as u8   : bool      : 9 -> 9 local_try_into,
-        p       as u8   : bool      : 10 -> 10 local_try_into,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        rn      as u8   : Register  : 16 -> 19 try_into
-    },
-    LdrshLiteral : {
+    LdrLiteral : {
         imm12   as u16  : Imm12     : 0 -> 11 try_into,
         rt      as u8   : Register  : 12 -> 15 try_into
-    },
-    LdshRegister : {
-        rm      as u8   : Register  : 0 -> 3 try_into,
-        imm2    as u8   : Imm2      : 4 -> 5 try_into,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        rn      as u8   : Register  : 16 -> 19 try_into
-    },
-    Ldrsht : {
-        imm8    as u8   : u8        : 0 -> 7,
-        rt      as u8   : Register  : 12 -> 15 try_into,
-        rn      as u8   : Register  : 16 -> 19 try_into
     }
 );

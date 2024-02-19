@@ -163,7 +163,10 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                pseudo::BlBuilder::new().set_imm(imm.sign_extend()).complete().into()
+                pseudo::BlBuilder::new()
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
             }
             Self::SubtableA5_14(table) => table.encoding_specific_operations(),
             Self::SubtableA5_15(table) => table.encoding_specific_operations(),

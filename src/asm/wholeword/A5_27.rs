@@ -124,7 +124,7 @@ impl Parse for A5_27 {
 }
 
 impl ToThumb for A5_27 {
-    fn encoding_specific_operations(self) -> Option<crate::asm::pseudo::Thumb> {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
         use A5_27::*;
 
         match self {
@@ -132,47 +132,47 @@ impl ToThumb for A5_27 {
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
-                .complete(),
+                .complete().into(),
             Qdadd(el) => pseudo::QdaddBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
-                .complete(),
+                .complete().into(),
             Qsub(el) => pseudo::QsubBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
-                .complete(),
+                .complete().into(),
             Qdsub(el) => pseudo::QdsubBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
-                .complete(),
+                .complete().into(),
             Sel(el) => pseudo::SelBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
-                .complete(),
+                .complete().into(),
             Rev(el) => pseudo::RevBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
-                .complete(),
+                .complete().into(),
             Rev16(el) => pseudo::Rev16Builder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
-                .complete(),
+                .complete().into(),
             Rbit(el) => pseudo::RbitBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
-                .complete(),
+                .complete().into(),
             Revsh(el) => pseudo::RevshBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
-                .complete(),
+                .complete().into(),
             Clz(el) => pseudo::ClzBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
-                .complete(),
+                .complete().into(),
         }
     }
 }

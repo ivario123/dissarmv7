@@ -40,6 +40,15 @@ pub trait Stream: Consume<u32> + Consume<u16> + Consume<u8> + Debug {
     fn step(&mut self) -> Option<u8> {
         Some(self.consume::<1>()?[0])
     }
+    fn next<T>(&mut self) -> Result<T, ParseError>
+    where
+        Self: Peek<T>,
+    {
+        match self.peek::<1>() {
+            Some(word) => Ok(word),
+            None => Err(ParseError::IncompleteProgram),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -106,7 +115,7 @@ pub trait ParseSingle {
 }
 pub trait ToThumb {
     /// Translates the encoded value in to a [`Thumb`] instruction
-    fn encoding_specific_operations(self) -> Option<Thumb>;
+    fn encoding_specific_operations(self) -> Thumb;
 }
 pub struct StreamParser {
     //

@@ -4,7 +4,17 @@ use crate::{
     register::{Register, RegisterList},
     shift::ImmShift,
 };
+#[macro_use]
 use paste::paste;
+
+trait True {}
+trait False {}
+use builder_derive::Builder;
+
+struct Bool<const TERM: bool>();
+impl True for Bool<true> {}
+impl False for Bool<false> {}
+
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! thumb {
     (
@@ -33,6 +43,7 @@ macro_rules! thumb {
             $(
                 #[doc = $comment]
             )*
+            #[derive(Builder)]
             pub struct $name {
                 $(
                     $(
@@ -44,64 +55,11 @@ macro_rules! thumb {
 
                 ),*
             }
-            paste!(
-                pub struct [<$name Builder>] {
-                    $(
-                        $(
-                            pub $field_name : Option<Option<$field_type>>
-                        )?
-                        $(
-                            pub $field_name_must_exist : Option<$field_type_must_exist>
-                        )?
-
-                    ),*
+            impl Into<Thumb> for $name{
+                fn into(self) -> Thumb{
+                    Thumb::$name(self)
                 }
-                impl [<$name Builder>] {
-                    $(
-                        $(
-                            pub fn [<set_ $field_name>](mut self,val:Option<$field_type>) -> Self{
-                                self.$field_name = Some(val);
-                                self
-                            }
-                        )?
-                        $(
-                            pub fn [<set_ $field_name_must_exist>](mut self,val:$field_type_must_exist) -> Self{
-                                self.$field_name_must_exist = Some(val);
-                                self
-                            }
-                        )?
-                    )*
-                    pub fn new() -> Self{
-                        [<$name Builder>]{
-                            $(
-                                $(
-                                    $field_name : None
-                                )?
-                                $(
-                                    $field_name_must_exist : None
-                                )?
-
-                            ),*
-                        }
-                    }
-                    pub fn complete(self) -> Option<Thumb>{
-                        $(
-                            $(if self.$field_name.is_none(){ return None })?$(if self.$field_name_must_exist.is_none(){ return None })?
-                        )*
-                        Some(Thumb::$name($name{
-                            $(
-                                $(
-                                    $field_name : self.$field_name.unwrap()
-                                )?
-                                $(
-                                    $field_name_must_exist : self.$field_name_must_exist.unwrap()
-                                )?
-                            ),*
-                        }))
-                   }
-
-                }
-            );
+            }
         )*
         /// All of the instructions availiable in the armv7 instruction set.
         pub enum Thumb {
@@ -116,7 +74,8 @@ macro_rules! thumb {
 }
 
 thumb!(
-    AdcImmediate {s:bool}, {rd: Register}, <r: Register>, <imm:u32>
+
+    AdcImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
     AdcRegister {s:bool}, {rd : Register}, <rn : Register>,<rm: Register>, {shift : ImmShift}
 
     AddImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
@@ -127,7 +86,8 @@ thumb!(
 
     Adr <rd: Register>, <add:bool>, <imm:u32>
 
-    AndImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm: u32>
+    /// Needs expansion with carry bit
+    AndImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
     AndRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
 
@@ -136,7 +96,7 @@ thumb!(
 
 
     // ==================================== B ====================================
-    B <condition:Condition>, <imm: Register>
+    B <condition:Condition>, <imm: i32>
 
     Bfc <rd: Register>, <lsb: u32>, <msb: u32>
 
@@ -168,7 +128,7 @@ thumb!(
     Clz <rd: Register>, <rm: Register>
 
     /// Compare negative
-    CmnImmediate <rn: Register>, <imm:i32> // i32 here might be wrong ?? not sure
+    CmnImmediate <rn: Register>, <imm:u32> // i32 here might be wrong ?? not sure
     /// Comapre negative
     CmnRegister <rn: Register>, <rm: Register>, {shift: ImmShift}
 
@@ -194,7 +154,7 @@ thumb!(
     // ==================================== D ====================================
 
     /// Bitwise exclusive or
-    EorImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
+    EorImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
 
     /// Bitwise exclusive or
     EorRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
@@ -315,7 +275,10 @@ thumb!(
     Mls <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
 
     /// Writes an immediate value in to the destination register
-    MovImmediate {s:bool}, <rd: Register>, <imm:u32>
+    ///
+    /// Needs to be expanded with the carry flag
+    MovImmediate {s:bool}, <rd: Register>, <imm:Imm12>
+    MovImmediatePlain {s:bool}, <rd: Register>, <imm:u32>
 
     /// Coppies a value from a register in to the destination register
     MovReg {s:bool}, <rd: Register>, <rm: Register>
@@ -347,7 +310,9 @@ thumb!(
     // ==================================== O ====================================
 
     /// Logical OR Not, inclusive or
-    OrnImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
+    ///
+    /// This needs to be extended with the carry flag
+    OrnImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
 
     /// Logical OR Not, inclusive or
     OrnRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
@@ -547,10 +512,11 @@ thumb!(
 
     Tb {is_tbh:bool}, <rn: Register>, <rm: Register>
 
-    TeqImmediate    <rn: Register>, <imm: u32>
+    TeqImmediate    <rn: Register>, <imm: Imm12>
     TeqRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
 
-    TstImmediate    <rn: Register>, <imm: u32>
+    /// Needs expansion with carry bit
+    TstImmediate    <rn: Register>, <imm: Imm12>
     TstRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     // ==================================== U ====================================

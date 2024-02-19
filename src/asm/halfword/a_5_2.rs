@@ -114,7 +114,7 @@ impl HalfWord for A5_2 {}
 impl Statement for A5_2 {}
 
 impl ToThumb for A5_2 {
-    fn encoding_specific_operations(self) -> Option<crate::asm::pseudo::Thumb> {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
         match self {
             Self::Lsl(lsl) => {
                 let shift = crate::shift::ImmShift::from((Shift::Lsl, lsl.imm));
@@ -124,6 +124,7 @@ impl ToThumb for A5_2 {
                     .set_rm(lsl.rm)
                     .set_imm(shift.shift_n.try_into().unwrap())
                     .complete()
+                    .into()
             }
             Self::Lsr(lsr) => {
                 let shift = ImmShift::from((Shift::Lsr, lsr.imm));
@@ -133,6 +134,7 @@ impl ToThumb for A5_2 {
                     .set_rm(lsr.rm)
                     .set_imm(shift.shift_n.try_into().unwrap())
                     .complete()
+                    .into()
             }
             Self::Asr(asr) => {
                 let shift = ImmShift::from((Shift::Asr, asr.imm5));
@@ -142,6 +144,7 @@ impl ToThumb for A5_2 {
                     .set_rm(asr.rm)
                     .set_imm(shift.shift_n.try_into().unwrap())
                     .complete()
+                    .into()
             }
             Self::Add(add) => pseudo::AddRegisterBuilder::new()
                 .set_s(Some(true))
@@ -149,47 +152,55 @@ impl ToThumb for A5_2 {
                 .set_rn(add.rn)
                 .set_rm(add.rm)
                 .set_shift(None)
-                .complete(),
+                .complete()
+                .into(),
             Self::Sub(sub) => pseudo::SubRegisterBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_rm(sub.rm)
                 .set_shift(None)
-                .complete(),
+                .complete()
+                .into(),
             Self::AddImmediate3(add) => pseudo::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
                 .set_imm(add.imm as u32)
-                .complete(),
+                .complete()
+                .into(),
             Self::SubImmediate3(sub) => pseudo::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_imm(sub.imm as u32)
-                .complete(),
-            Self::Mov(mov) => pseudo::MovImmediateBuilder::new()
+                .complete()
+                .into(),
+            Self::Mov(mov) => pseudo::MovImmediatePlainBuilder::new()
                 .set_s(Some(true))
                 .set_rd(mov.rd)
                 .set_imm(mov.imm as u32)
-                .complete(),
+                .complete()
+                .into(),
             Self::Cmp(cmp) => pseudo::CmpImmediateBuilder::new()
                 .set_rn(cmp.rn)
                 .set_imm(cmp.imm as u32)
-                .complete(),
+                .complete()
+                .into(),
             Self::AddImmediate8(add) => pseudo::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(add.rdn)
                 .set_imm(add.imm as u32)
-                .complete(),
+                .complete()
+                .into(),
             Self::SubImmediate8(sub) => pseudo::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(sub.rdn)
                 .set_imm(sub.imm as u32)
-                .complete(),
+                .complete()
+                .into(),
         }
     }
 }

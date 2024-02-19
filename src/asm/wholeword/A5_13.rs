@@ -1,5 +1,10 @@
+use crate::asm::pseudo;
+use crate::asm::wrapper_types::Imm21;
+use crate::asm::wrapper_types::Imm25;
+use crate::asm::wrapper_types::SignExtend;
 use crate::asm::Mask;
 use crate::asm::Statement;
+use crate::combine;
 use crate::condition::Condition;
 use crate::instruction;
 use crate::prelude::*;
@@ -8,6 +13,7 @@ use crate::register::Register;
 use crate::wholeword::A5_14::A5_14;
 use crate::wholeword::A5_15::A5_15;
 use crate::ParseError;
+use crate::ToThumb;
 use paste::paste;
 
 use super::FullWord;
@@ -121,3 +127,51 @@ impl Parse for A5_13 {
 }
 impl Statement for A5_13 {}
 impl FullWord for A5_13 {}
+
+impl ToThumb for A5_13 {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+        match self {
+            Self::BT3(el) => {
+                let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);
+                let mut imm: Imm21 = combine!(s:j2,1:j1,1:imm6,6:imm11,11:0,1,u32)
+                    .try_into()
+                    .unwrap();
+
+                pseudo::BBuilder::new()
+                    .set_condition(el.cond)
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
+            }
+            Self::BT4(el) => {
+                let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
+                let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32)
+                    .try_into()
+                    .unwrap();
+
+                pseudo::BBuilder::new()
+                    .set_condition(Condition::None)
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
+            }
+            Self::MSR(el) => todo!("This is a system level instruction and should not be needed"),
+            Self::Mrs(el) => todo!("This is a system level instruction and should not be needed"),
+            Self::Bl(el) => {
+                let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
+                let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32)
+                    .try_into()
+                    .unwrap();
+
+                pseudo::BlBuilder::new().set_imm(imm.sign_extend()).complete().into()
+            }
+            Self::SubtableA5_14(table) => table.encoding_specific_operations(),
+            Self::SubtableA5_15(table) => table.encoding_specific_operations(),
+            Self::Udf(udf) => {
+                let (imm4, imm12) = (udf.imm4, udf.imm12);
+                let imm = combine!(imm4:imm12,12,u32);
+                pseudo::UdfBuilder::new().set_imm(imm).complete().into()
+            }
+        }
+    }
+}

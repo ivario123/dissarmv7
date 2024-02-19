@@ -58,3 +58,37 @@ instruction!(
         rt      as u8   : Register  : 12 -> 15 try_into
     }
 );
+impl Parse for A5_18 {
+    type Target = Self;
+    fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        let word: u32 = iter.next()?;
+        let op2 = word.mask::<6, 11>();
+        let rn = word.mask::<16, 19>();
+        let op1 = word.mask::<23, 24>();
+
+        if rn == 0b1111 {
+            if op1 >> 1 == 0 {
+                return Ok(Self::LdrLiteral(LdrLiteral::parse(iter)?));
+            }
+            return Err(ParseError::Invalid32Bit("A5_18"));
+        }
+        if op1 == 1 {
+            return Ok(Self::LdrImmediateT3(LdrImmediateT3::parse(iter)?));
+        }
+        if op1 == 0 {
+            if op2 & 0b100100 == 0b100100 || op2 >> 2 == 0b1100 {
+                return Ok(Self::LdrImmediateT4(LdrImmediateT4::parse(iter)?));
+            }
+            if op2 >> 2 == 0b1110 {
+                return Ok(Self::Ldrt(Ldrt::parse(iter)?));
+            }
+            if op2 == 0 {
+                return Ok(Self::LdrRegister(LdrRegister::parse(iter)?));
+            }
+        }
+        Err(ParseError::Invalid32Bit("A5_18"))
+    }
+}

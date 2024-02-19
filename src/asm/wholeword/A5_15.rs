@@ -1,10 +1,12 @@
 use super::FullWord;
+use crate::asm::pseudo;
 use crate::asm::Mask;
 use crate::asm::Statement;
 
 use crate::prelude::*;
 
 use crate::ParseError;
+use crate::ToThumb;
 
 /// Defines some maker instructions
 #[derive(Debug)]
@@ -43,3 +45,23 @@ impl Parse for A5_15 {
 
 impl Statement for A5_15 {}
 impl FullWord for A5_15 {}
+
+impl ToThumb for A5_15 {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+        match self {
+            Self::Clrex => pseudo::ClrexBuilder::new().complete().into(),
+            Self::Dsb(opt) => pseudo::DsbBuilder::new()
+                .set_option(Some(opt))
+                .complete()
+                .into(),
+            Self::Dmb(opt) => pseudo::DmbBuilder::new()
+                .set_option(Some(opt))
+                .complete()
+                .into(),
+            Self::Isb(opt) => pseudo::IsbBuilder::new()
+                .set_option(Some(opt.try_into().unwrap()))
+                .complete()
+                .into(),
+        }
+    }
+}

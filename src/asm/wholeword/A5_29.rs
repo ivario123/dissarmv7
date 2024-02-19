@@ -1,3 +1,5 @@
+use std::process::id;
+
 use crate::asm::pseudo;
 use crate::asm::wrapper_types::*;
 use crate::asm::Mask;
@@ -87,10 +89,50 @@ instruction!(
         rdlo    as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
-    UmAal : {
+    Umaal : {
         rm      as u8   : Register  : 0 -> 3 try_into,
         rdhi    as u8   : Register  : 8 -> 11 try_into,
         rdlo    as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     }
 );
+
+impl Parse for A5_29 {
+    type Target = Self;
+    fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        let word: u32 = iter.next()?;
+        let op2 = word.mask::<4, 7>();
+        let op1 = word.mask::<20, 22>();
+
+        if op1 == 0b100 {
+            if op2 == 0 {
+                return Ok(Self::Smlal(Smlal::parse(iter)?));
+            }
+            if op2 >> 2 == 0b10 {
+                return Ok(Self::SmlalXY(SmlalXY::parse(iter)?));
+            }
+            if op2 >> 1 == 0b110 {
+                return Ok(Self::Smlald(Smlald::parse(iter)?));
+            }
+            return Err(ParseError::Invalid32Bit("A5_29"));
+        }
+        if op1 == 0b101 {
+            if op2 >> 1 == 0b110 {
+                return Ok(Self::Smlsld(Smlsld::parse(iter)?));
+            }
+            return Err(ParseError::Invalid32Bit("A5_29"));
+        }
+        match (op1, op2) {
+            (0b000, 0b0000) => Ok(Self::Smull(Smull::parse(iter)?)),
+            (0b001, 0b1111) => Ok(Self::Sdiv(Sdiv::parse(iter)?)),
+            (0b010, 0b0000) => Ok(Self::Umull(Umull::parse(iter)?)),
+            (0b011, 0b1111) => Ok(Self::Udiv(Udiv::parse(iter)?)),
+            (0b110, 0b0000) => Ok(Self::Umlal(Umlal::parse(iter)?)),
+            (0b110, 0b0110) => Ok(Self::Umaal(Umaal::parse(iter)?)),
+            _ => Err(ParseError::Invalid32Bit("A5_29")),
+        }
+    }
+}

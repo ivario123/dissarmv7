@@ -1,12 +1,14 @@
 //! Defines marker instructions
 //!
 //! These have one or no fields but might have side-effects
+use crate::asm::pseudo;
 use crate::asm::Mask;
 use crate::asm::Statement;
 
 use crate::prelude::*;
 
 use crate::ParseError;
+use crate::ToThumb;
 
 use super::FullWord;
 
@@ -55,9 +57,22 @@ impl Parse for A5_14 {
             let option: u8 = (op2 & 0b1111) as u8;
             return Ok(Self::Dbg(option));
         }
-        return Err(ParseError::Invalid32Bit("A5_14"));
+        Err(ParseError::Invalid32Bit("A5_14"))
     }
 }
 
 impl Statement for A5_14 {}
 impl FullWord for A5_14 {}
+
+impl ToThumb for A5_14 {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+        match self {
+            Self::Nop => pseudo::NopBuilder::new().complete().into(),
+            Self::Yield => pseudo::YieldBuilder::new().complete().into(),
+            Self::WFE => pseudo::WfeBuilder::new().complete().into(),
+            Self::WFI => pseudo::WfiBuilder::new().complete().into(),
+            Self::Sev => pseudo::SevBuilder::new().complete().into(),
+            Self::Dbg(el) => pseudo::DbgBuilder::new().set_option(el).complete().into(),
+        }
+    }
+}

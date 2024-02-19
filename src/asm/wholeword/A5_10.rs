@@ -1,10 +1,16 @@
+use crate::asm::pseudo;
+use crate::asm::wrapper_types::Imm12;
 use crate::asm::Mask;
+use crate::asm::Statement;
+use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
 use crate::register::Register;
-
 use crate::ParseError;
+use crate::ToThumb;
 use paste::paste;
+
+use super::FullWord;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -156,7 +162,7 @@ macro_rules! fields {
             None => Err(ParseError::IncompleteProgram)
         }?;
         $(
-            let $id : $type = (word.mask::<$start,$end>())$(.$map() ?)?;
+            let $id : $type = (word.mask::<$start,$end>())$(.$map()?)?;
         )+
     };
 }
@@ -215,6 +221,191 @@ impl Parse for A5_10 {
             0b1011 => Ok(Self::Sbc(Sbc::parse(iter)?)),
             0b1110 => Ok(Self::Rsb(Rsb::parse(iter)?)),
             _ => Err(ParseError::Invalid32Bit("A5_10")),
+        }
+    }
+}
+impl Statement for A5_10 {}
+impl FullWord for A5_10 {}
+
+macro_rules! combine_wrapper {
+    (
+        $el:ident : {
+            $first_id:ident:$($id:ident,$size:literal):*,$ret_ty:ty
+        }
+    ) => {
+        {
+            let $first_id = $el.$first_id;
+            let ($($id),*) = ($($el.$id,)*);
+            match combine!($first_id:$($id,$size):*,$ret_ty).try_into() {
+                Ok(w) => w,
+                _ => unreachable!("This should never happen"),
+            }
+        }
+
+    };
+}
+
+impl ToThumb for A5_10 {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+        use A5_10::*;
+        match self {
+            And(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::AndImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .complete()
+                    .into()
+            }
+            Tst(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::TstImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Bic(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::BicImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .complete()
+                    .into()
+            }
+            Orr(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::OrrImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .complete()
+                    .into()
+            }
+            Mov(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::MovImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(el.rd)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Orn(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::OrnImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Mvn(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::MvnImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(el.rd)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Eor(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::EorImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Teq(el) => {
+                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                pseudo::TeqImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Add(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::AddImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Cmn(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::CmnImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Adc(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::AdcImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Sbc(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::SbcImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Sub(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::SubImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Cmp(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::CmpImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
+            Rsb(el) => {
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = imm.thumb_expand_imm();
+                pseudo::RsbImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
+            }
         }
     }
 }

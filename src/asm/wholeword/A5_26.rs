@@ -163,14 +163,14 @@ macro_rules! translate {
         paste!(
             match $self {
                 $(
-                    Self::$id(el) => pseudo::[<$id Builder>]::new().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete()
+                    Self::$id(el) => pseudo::[<$id Builder>]::new().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into()
                 ),*
             }
         )
     };
 }
 impl ToThumb for A5_26 {
-    fn encoding_specific_operations(self) -> Option<crate::asm::pseudo::Thumb> {
+    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
         translate!(
             self, Uadd16, Uasx, Usax, Usub16, Uadd8, Usub8, Uqadd16, Uqasx, Uqsax, Uqsub16, Uqadd8,
             Uqsub8, Uhadd16, Uhasx, Uhsax, Uhsub16, Uhadd8, Uhsub8

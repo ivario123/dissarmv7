@@ -134,7 +134,7 @@ macro_rules! instruction {
 }
 #[macro_export]
 macro_rules! combine {
-    ($first_id:ident:$($id:ident,$size:literal):*,$ret_ty:ty) => {
+    ($first_id:ident:$($id:expr,$size:literal):*,$ret_ty:ty) => {
         {
 
             let mut counter:usize = {

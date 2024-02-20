@@ -5,6 +5,7 @@ pub mod a_5_3;
 pub mod a_5_4;
 pub mod a_5_5;
 pub mod a_5_6;
+pub mod A_5_7;
 pub mod a_5_8;
 pub mod simply_defined;
 

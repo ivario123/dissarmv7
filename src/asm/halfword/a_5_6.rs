@@ -1,7 +1,7 @@
-use crate::{asm::Statement, Parse, ParseError};
+use crate::{asm::Statement, Parse, ParseError, ToThumb};
 use arch::{Register, RegisterList};
 use paste::paste;
-
+use super::A5_7;
 use super::{HalfWord, Mask};
 use crate::instruction;
 
@@ -20,7 +20,8 @@ instruction!(
     },
     Cbz  : {
         rn as u8 : Register : 0 ->  2   try_into,
-        imm5 as u8 : u8     : 3 ->  7
+        imm5 as u8 : u8     : 3 ->  7,
+        op   as u8 : u8     : 11 -> 11
     },
     Sxth : {
         rd as u8 : Register : 0 ->  2   try_into,
@@ -40,7 +41,8 @@ instruction!(
     },
     Cbnz  : {
         rn as u8 : Register : 0 ->  2   try_into,
-        imm5 as u8 : u8     : 3 ->  7
+        imm5 as u8 : u8     : 3 ->  7,
+        op   as u8 : u8     : 11 -> 11
     },
     Push : {
         register_list :RegisterList     : 0->7 try_into,
@@ -65,10 +67,7 @@ instruction!(
     Bkpt  : {
         imm8 as u8 : u8             : 0->7
     },
-    Itt   : {
-        opa as u8:Register          : 0->3 try_into,
-        opb as u8:Register          : 4->6 try_into
-    }
+    -> A5_7
 );
 
 macro_rules! p {
@@ -137,7 +136,7 @@ impl Parse for A5_6 {
             p!(Bkpt from iter);
         }
         if opcode & 0b1111000 == 0b1111000 {
-            p!(Itt from iter);
+            p!(A5_7 from iter);
         }
 
         Err(ParseError::Invalid16Bit("A5_6"))
@@ -145,3 +144,40 @@ impl Parse for A5_6 {
 }
 impl HalfWord for A5_6 {}
 impl Statement for A5_6 {}
+impl ToThumb for A5_6 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::Cps(el) => thumb::Cps::builder()
+                .set_i(el.i == 1)
+                .set_f(el.f == 1)
+                .set_im(el.im == 1)
+                .complete()
+                .into(),
+            Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder()
+                .set_s(Some(false))
+                .set_rd(Some(13u8.try_into().unwrap()))
+                .set_imm((el.imm7 as u32) << 2)
+                .complete()
+                .into(),
+            Self::SubImmediateFromSp(el) => thumb::SubSpMinusImmediate::builder()
+                .set_s(Some(false))
+                .set_rd(Some(13u8.try_into().unwrap()))
+                .set_imm((el.imm7 as u32) << 2)
+                .complete()
+                .into(),
+            Self::Cbz(el) => thumb::Cbz::builder().set_non(Some(el.op == 1)).set_rn(el.rn).set_imm((el.imm5 as u32)<<1).complete().into(),
+            Self::Sxth(el) => thumb::Sxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
+            Self::Sxtb(el) => thumb::Sxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
+            Self::Uxth(el) => thumb::Uxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
+            Self::Uxtb(el) => thumb::Uxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
+            Self::Push(el) => thumb::Push::builder().set_registers(el.register_list).complete().into(),
+            Self::Rev(el) => thumb::Rev::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
+            Self::Rev16(el) => thumb::Rev16::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
+            Self::Revsh(el) => thumb::Revsh::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
+            Self::Cbnz(el) => thumb::Cbz::builder().set_non(Some(el.op == 1)).set_rn(el.rn).set_imm((el.imm5 as u32) << 1).complete().into(),
+            Self::Pop(el) => thumb::Pop::builder().set_registers(el.register_list).complete().into(),
+            Self::Bkpt(el) => thumb::Bkpt::builder().set_imm(el.imm8 as u32).complete().into()
+                                                                            
+        }
+    }
+}

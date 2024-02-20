@@ -493,7 +493,7 @@ thumb!(
     SubImmediate        {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
     SubRegister         {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
     /// We can probably ommit all of these
-    SubSpPlusImmediate  {s: bool}, {rd: Register}, <imm:u32>
+    SubSpMinusImmediate  {s: bool}, {rd: Register}, <imm:u32>
     SubSpMinusReg       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
 
     Sxtab   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}

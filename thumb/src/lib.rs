@@ -174,7 +174,7 @@ thumb!(
     LdrRegister {w:bool}, <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     /// Load byte
-    LdrbImmediate {w:bool}, {add:bool}, <rt: Register>, <rn: Register>, {imm:u32}
+    LdrbImmediate {w:bool}, {add:bool}, <index: bool>, <rt: Register>, <rn: Register>, {imm:u32}
 
     /// Load byte from pc + immediate
     LdrbLiteral {add:bool}, <rt: Register>, <imm: u32>

@@ -2,6 +2,7 @@ use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
 use crate::ParseError;
+use crate::ToThumb;
 use arch::{wrapper_types::*, Register};
 use paste::paste;
 
@@ -54,7 +55,9 @@ instruction!(
     },
     LdrLiteral : {
         imm12   as u16  : Imm12     : 0 -> 11 try_into,
-        rt      as u8   : Register  : 12 -> 15 try_into
+        rt      as u8   : Register  : 12 -> 15 try_into,
+        u       as u8   : bool      : 23 -> 23 local_try_into
+
     }
 );
 impl Parse for A5_18 {
@@ -89,5 +92,54 @@ impl Parse for A5_18 {
             }
         }
         Err(ParseError::Invalid32Bit("A5_18"))
+    }
+}
+
+impl ToThumb for A5_18 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::LdrImmediateT3(el) => thumb::LdrImmediate::builder()
+                .set_w(Some(false))
+                .set_add(true)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm12.into())
+                .set_index(true)
+                .complete()
+                .into(),
+            Self::LdrImmediateT4(el) => thumb::LdrImmediate::builder()
+                .set_w(Some(el.w))
+                .set_add(el.u)
+                .set_index(el.p)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
+            Self::Ldrt(el) => thumb::Ldrt::builder()
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm8 as u32))
+                .complete()
+                .into(),
+            Self::LdrRegister(el) => {
+                let shift = ImmShift::try_from((Shift::Lsl, el.imm2.into())).unwrap();
+
+                thumb::LdrRegister::builder()
+                    .set_w(None)
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(Some(shift))
+                    .complete()
+                    .into()
+            }
+            Self::LdrLiteral(el) => thumb::LdrLiteral::builder()
+                .set_rt(el.rt)
+                .set_add(el.u)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+        }
     }
 }

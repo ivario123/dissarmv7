@@ -164,7 +164,9 @@ thumb!(
     Ldmdb {w: bool}, <rn:Register>, <registers: RegisterList>
 
     /// Load register immediate
-    LdrImmediate {w:bool}, <add:bool>, <rt: Register>, <rn: Register>, <imm:u32>
+    LdrImmediate {w:bool}, <add:bool>, <index:bool>, <rt: Register>, <rn: Register>, <imm:u32>
+
+    LdrLiteral <add: bool>, <rt: Register>, <imm: u32>
 
     /// Load register immediate
     ///
@@ -239,6 +241,8 @@ thumb!(
 
     /// Load signed halfword top part
     Ldrsht <rt: Register>, <rn: Register>, {imm: u32}
+
+    Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
     /// Logical left shift
     LslImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:Imm5>

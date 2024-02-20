@@ -1,6 +1,6 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError, Stream};
-use arch::Condition;
+use crate::{asm::Statement, instruction, Parse, ParseError, Stream, ToThumb};
+use arch::{wrapper_types::sign_extend, Condition};
 
 use paste::paste;
 
@@ -36,3 +36,15 @@ impl Parse for A5_8 {
 }
 impl Statement for A5_8 {}
 impl HalfWord for A5_8 {}
+impl ToThumb for A5_8 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::B(el) => thumb::B::builder()
+                .set_condition(el.cond)
+                .set_imm(sign_extend::<8>(&(el.imm8 as u32)))
+                .complete()
+                .into(),
+            Self::Svc(el) => todo!("This is missing from the thumb enum"),
+        }
+    }
+}

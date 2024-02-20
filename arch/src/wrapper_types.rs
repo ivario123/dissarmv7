@@ -51,6 +51,13 @@ mod sealed {
         const BIT: usize;
     }
 }
+pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
+    let sign = *el & (1 << BIT);
+    let mask: u32 = if sign != 0 { !0 } else { 0 };
+    let mask = mask - (((1 << BIT) as u32) - (1 as u32));
+    let ret = mask & (*el as u32);
+    ret as i32
+}
 
 pub trait SignExtendGeneric<T: Sized> {
     /// Extends the resto fo the value with the bit at index BIT.

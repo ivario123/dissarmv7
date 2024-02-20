@@ -1,4 +1,5 @@
 use crate::asm::Mask;
+use crate::ToThumb;
 use arch::{wrapper_types::*, Register};
 
 use crate::instruction;
@@ -39,6 +40,7 @@ instruction!(
     StrbT3 : {
         imm8    as u8       :   u8          : 0 -> 7,
         w       as u8       :   bool        : 8 -> 8 local_try_into,
+        u       as u8       :   bool        : 9 -> 9 local_try_into,
         p       as u8       :   bool        : 10 -> 10 local_try_into,
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
@@ -58,6 +60,7 @@ instruction!(
     StrhIT3    : {
         imm8    as u8       :   u8          : 0 -> 7,
         w       as u8       :   bool        : 8 -> 8 local_try_into,
+        u       as u8       :   bool        : 9 -> 9 local_try_into,
         p       as u8       :   bool        : 10 -> 10 local_try_into,
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
@@ -69,14 +72,15 @@ instruction!(
         rn      as u8       :   Register    : 16 -> 19 try_into
     },
     // To dissern between these two bit 7 in the first 16 bit number is 1 for T2 and 0 for T3
-    StrIT2    : {
+    StrIT3    : {
         imm12   as u16      :   u16         : 0 -> 11,
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
     },
-    StrIT3    : {
+    StrIT4    : {
         imm8    as u8       :   u8          : 0 -> 7,
         w       as u8       :   bool        : 8 -> 8 local_try_into,
+        u       as u8       :   bool        : 9 -> 9 local_try_into,
         p       as u8       :   bool        : 10 -> 10 local_try_into,
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
@@ -108,10 +112,109 @@ impl Parse for A5_21 {
             (0b101, _) => Ok(Self::StrhIT2(StrhIT2::parse(iter)?)),
             (0b001, 1) => Ok(Self::StrhIT3(StrhIT3::parse(iter)?)),
             (0b001, 0) => Ok(Self::StrhReg(StrhReg::parse(iter)?)),
-            (0b110, _) => Ok(Self::StrIT2(StrIT2::parse(iter)?)),
-            (0b010, 1) => Ok(Self::StrIT3(StrIT3::parse(iter)?)),
+            (0b110, _) => Ok(Self::StrIT3(StrIT3::parse(iter)?)),
+            (0b010, 1) => Ok(Self::StrIT4(StrIT4::parse(iter)?)),
             (0b010, 0) => Ok(Self::StrReg(StrReg::parse(iter)?)),
             _ => Err(ParseError::Invalid32Bit("A5_21")),
+        }
+    }
+}
+impl ToThumb for A5_21 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::StrbT2(el) => thumb::StrbImmediate::builder()
+                .set_w(Some(false))
+                .set_index(Some(true))
+                .set_add(true)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::StrbT3(el) => thumb::StrbImmediate::builder()
+                .set_w(Some(el.w))
+                .set_index(Some(el.p))
+                .set_add(el.u)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
+            Self::StrbReg(el) => {
+                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
+                    Ok(el) => Some(el),
+                    _ => None,
+                };
+                thumb::StrbRegister::builder()
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
+            }
+            Self::StrhIT2(el) => thumb::StrhImmediate::builder()
+                .set_w(false)
+                .set_index(true)
+                .set_add(true)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm12.into()))
+                .complete()
+                .into(),
+            Self::StrhIT3(el) => thumb::StrhImmediate::builder()
+                .set_w(el.w)
+                .set_index(el.p)
+                .set_add(el.u)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm8 as u32))
+                .complete()
+                .into(),
+            Self::StrhReg(el) => {
+                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
+                    Ok(el) => Some(el),
+                    _ => None,
+                };
+                thumb::StrhRegister::builder()
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
+            }
+            Self::StrIT3(el) => thumb::StrImmediate::builder()
+                .set_w(Some(false))
+                .set_index(Some(true))
+                .set_add(true)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::StrIT4(el) => thumb::StrImmediate::builder()
+                .set_w(Some(el.w))
+                .set_index(Some(el.p))
+                .set_add(el.u)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
+            Self::StrReg(el) => {
+                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
+                    Ok(el) => Some(el),
+                    _ => None,
+                };
+                thumb::StrRegister::builder()
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
+            }
         }
     }
 }

@@ -477,7 +477,7 @@ thumb!(
     StrImmediate    {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>
     StrRegister     <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
     StrbImmediate   {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>
-    StrbRegister    <rt: Register>, <rn: Register>, <rm: Register>, {shigt: ImmShift}
+    StrbRegister    <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
     Strbt           <rt: Register>, <rn: Register>, {imm: u32}
     StrdImmediate   {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rt2: Register>, <rn: Register>, {imm: u32}
 
@@ -485,7 +485,7 @@ thumb!(
     Strexb  <rd: Register>, <rt: Register>, <rn: Register>
     Strexh  <rd: Register>, <rt: Register>, <rn: Register>
 
-    StrhImmediate   {offset: bool}, {index: bool}, <rt: Register>, <rn: Register>, {imm: u32}
+    StrhImmediate   <index: bool>, <add: bool>, <w: bool> , <rt: Register>, <rn: Register>, {imm: u32}
     StrhRegister    <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
     Strht           <rt: Register>, <rn: Register>, {imm: u32}
     Strt            <rt: Register>, <rn: Register>, {imm: u32}

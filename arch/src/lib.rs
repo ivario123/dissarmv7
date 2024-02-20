@@ -8,11 +8,11 @@ pub use register::*;
 pub use shift::*;
 pub use wrapper_types::*;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum ArchError {
     InvalidCondition,
     InvalidRegister(u8),
-    InvalidField(String)
+    InvalidField(String),
 }
 
 pub(crate) trait Mask {

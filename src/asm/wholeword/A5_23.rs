@@ -1,6 +1,8 @@
 use crate::asm::Mask;
+use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
+use crate::ToThumb;
 use arch::{wrapper_types::*, Register};
 
 use crate::ParseError;
@@ -78,6 +80,61 @@ impl Parse for A5_23 {
             (3, 0, 0) => Ok(Self::Rrx(Rrx::parse(iter)?)),
             (3, _, _) => Ok(Self::Ror(Ror::parse(iter)?)),
             _ => Err(ParseError::Invalid32Bit("A5_6")),
+        }
+    }
+}
+macro_rules! imm {
+    ($el:ident) => {
+        {
+            let (imm3,imm2) = ($el.imm3,$el.imm2);
+            combine!(imm3:imm2,2,u8)
+        }
+    };
+}
+
+impl ToThumb for A5_23 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::Mov(el) => thumb::MovReg::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Lsl(el) => thumb::LslImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Lsr(el) => thumb::LsrImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Asr(el) => thumb::AsrImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Rrx(el) => thumb::Rrx::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Ror(el) => thumb::RorImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
         }
     }
 }

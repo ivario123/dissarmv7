@@ -151,8 +151,8 @@ impl ToThumb for A5_13 {
                     .complete()
                     .into()
             }
-            Self::MSR(el) => todo!("This is a system level instruction and should not be needed"),
-            Self::Mrs(el) => todo!("This is a system level instruction and should not be needed"),
+            Self::MSR(_el) => todo!("This is a system level instruction and should not be needed"),
+            Self::Mrs(_el) => todo!("This is a system level instruction and should not be needed"),
             Self::Bl(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
                 let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32)

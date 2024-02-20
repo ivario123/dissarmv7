@@ -469,7 +469,7 @@ thumb!(
     Ssub8  {rd: Register}, <rn: Register>, <rm: Register>
 
     Stm     {w: bool}, <rn: Register>, <registers: RegisterList>
-    Stmbd   {w: bool}, <rn: Register>, <registers: RegisterList>
+    Stmdb   {w: bool}, <rn: Register>, <registers: RegisterList>
     StrImmediate    {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>
     StrRegister     <rt: Register>, <rn: Register>, <rm: Register>, {shift: ImmShift}
     StrbImmediate   {w: bool}, {index: bool}, <add: bool>, <rt: Register>, <rn: Register>, <imm: u32>

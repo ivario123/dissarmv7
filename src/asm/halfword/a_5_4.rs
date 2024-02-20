@@ -1,21 +1,22 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError, Stream};
-use arch::Register;
+use crate::{asm::Statement, combine, instruction, Parse, ParseError, Stream, ToThumb};
+use arch::{ImmShift, Register, Shift};
 
 use paste::paste;
 instruction!(
     size u16;  A5_4 contains
     Add : {
-        rd as u8 : Register : 0->2 try_into,
-        rm as u8 : Register : 3->6 try_into
+        rdn as u8 : u8      : 0->2,
+        rm as u8 : Register : 3->6 try_into,
+        dn as u8 : u8       : 7->7
     },
     Cmp : {
-        rn as u8 :Register : 0->2 try_into,
+        rn as u8 : u8       : 0->2,
         rm as u8 : Register : 3->6 try_into,
-        n as u8  :u8        : 7->7
+        n as u8  : u8       : 7->7
     },
     Mov : {
-        rd as u8 : Register : 0->2 try_into,
+        rd as u8 : u8       : 0->2,
         rm as u8 : Register : 3->6 try_into,
         d as u8  :u8        : 7->7
     },
@@ -66,3 +67,44 @@ impl Parse for A5_4 {
 
 impl HalfWord for A5_4 {}
 impl Statement for A5_4 {}
+impl ToThumb for A5_4 {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        match self {
+            Self::Add(el) => {
+                let (dn, rdn) = (el.dn, el.rdn);
+                let reg: Register = combine!(dn:rdn,3,u8).try_into().unwrap();
+
+                thumb::AddRegister::builder()
+                    .set_s(None)
+                    .set_rd(Some(reg))
+                    .set_rn(reg)
+                    .set_rm(el.rm)
+                    .set_shift(None)
+                    .complete()
+                    .into()
+            }
+            Self::Cmp(el) => {
+                let (n, rn) = (el.n, el.rn);
+                let reg: Register = combine!(n:rn,3,u8).try_into().unwrap();
+                thumb::CmpRegister::builder()
+                    .set_rn(reg)
+                    .set_rm(el.rm)
+                    .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0u8)).unwrap()))
+                    .complete()
+                    .into()
+            }
+            Self::Mov(el) => {
+                let (d, rd) = (el.d, el.rd);
+                let reg: Register = combine!(d:rd,3,u8).try_into().unwrap();
+                thumb::MovReg::builder()
+                    .set_s(Some(false))
+                    .set_rd(reg)
+                    .set_rm(el.rm)
+                    .complete()
+                    .into()
+            }
+            Self::Bx(el) => thumb::Bx::builder().set_rm(el.rm).complete().into(),
+            Self::Blx(el) => thumb::Blx::builder().set_rm(el.rm).complete().into(),
+        }
+    }
+}

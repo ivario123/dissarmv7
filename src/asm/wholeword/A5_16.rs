@@ -1,9 +1,8 @@
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
-use crate::register::RegisterList;
 use crate::ParseError;
+use arch::{Register, RegisterList};
 use paste::paste;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
@@ -85,6 +84,6 @@ impl Parse for A5_16 {
         if wrn == 0b11101 {
             return Ok(Self::Push(Push::parse(iter)?));
         }
-        return Ok(Self::Stmdb(Stmdb::parse(iter)?));
+        Ok(Self::Stmdb(Stmdb::parse(iter)?))
     }
 }

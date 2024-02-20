@@ -1,9 +1,19 @@
-//! Defines the statements availiable in armv7
+pub mod condition;
+pub mod register;
+pub mod shift;
+pub mod wrapper_types;
 
-pub mod halfword;
-pub mod wholeword;
+pub use condition::*;
+pub use register::*;
+pub use shift::*;
+pub use wrapper_types::*;
 
-pub trait Statement: std::fmt::Debug {}
+#[derive(Debug,Clone)]
+pub enum ArchError {
+    InvalidCondition,
+    InvalidRegister(u8),
+    InvalidField(String)
+}
 
 pub(crate) trait Mask {
     fn mask<const START: usize, const END: usize>(&self) -> Self;
@@ -31,26 +41,5 @@ impl Mask for u32 {
             "Masking {self:b} with mask {mask:b} from bit {START} to bit {END} resulting in {ret:b}"
         );
         ret
-    }
-}
-#[cfg(test)]
-mod test {
-    use super::Mask;
-
-    #[test]
-    fn test_mask_u16() {
-        let num: u16 = 0b10011;
-        let first_two = num.mask::<0, 1>();
-        let other = num.mask::<1, 2>();
-        assert_eq!(first_two, 0b11);
-        assert_eq!(other, 0b01);
-    }
-    #[test]
-    fn test_mask_u32() {
-        let num: u32 = 0b10011;
-        let first_two = num.mask::<0, 1>();
-        let other = num.mask::<1, 2>();
-        assert_eq!(first_two, 0b11);
-        assert_eq!(other, 0b01);
     }
 }

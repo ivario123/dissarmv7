@@ -1,13 +1,11 @@
-use crate::asm::pseudo;
-use crate::asm::wrapper_types::*;
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
 use crate::ToThumb;
 use paste::paste;
 
+use arch::{wrapper_types::*, Register};
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -124,61 +122,61 @@ impl Parse for A5_27 {
 }
 
 impl ToThumb for A5_27 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         use A5_27::*;
 
         match self {
-            Qadd(el) => pseudo::QaddBuilder::new()
+            Qadd(el) => thumb::QaddBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-            Qdadd(el) => pseudo::QdaddBuilder::new()
+            Qdadd(el) => thumb::QdaddBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-            Qsub(el) => pseudo::QsubBuilder::new()
+            Qsub(el) => thumb::QsubBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-            Qdsub(el) => pseudo::QdsubBuilder::new()
+            Qdsub(el) => thumb::QdsubBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-            Sel(el) => pseudo::SelBuilder::new()
+            Sel(el) => thumb::SelBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-            Rev(el) => pseudo::RevBuilder::new()
+            Rev(el) => thumb::RevBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
                 .complete()
                 .into(),
-            Rev16(el) => pseudo::Rev16Builder::new()
+            Rev16(el) => thumb::Rev16Builder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
                 .complete()
                 .into(),
-            Rbit(el) => pseudo::RbitBuilder::new()
+            Rbit(el) => thumb::RbitBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
                 .complete()
                 .into(),
-            Revsh(el) => pseudo::RevshBuilder::new()
+            Revsh(el) => thumb::RevshBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
                 .complete()
                 .into(),
-            Clz(el) => pseudo::ClzBuilder::new()
+            Clz(el) => thumb::ClzBuilder::new()
                 .set_rd(el.rd)
                 .set_rm(el.rd)
                 .complete()

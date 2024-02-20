@@ -1,9 +1,8 @@
 use crate::asm::Mask;
+use arch::{wrapper_types::*, Register};
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 
-use crate::shift::Shift;
 use crate::wholeword::A5_23::A5_23;
 use crate::ParseError;
 use paste::paste;

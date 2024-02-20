@@ -1,5 +1,6 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, register::Register, Parse, ParseError, Stream};
+use crate::{asm::Statement, instruction, Parse, ParseError, Stream};
+use arch::Register;
 
 use paste::paste;
 instruction!(
@@ -32,7 +33,6 @@ impl Parse for A5_4 {
     where
         Self: Sized,
     {
-        println!("WHY AM I PARSING THIS TYPE");
         let first_byte = match iter.peek::<1>() as Option<u8> {
             Some(b) => Ok(b),
             None => Err(ParseError::IncompleteProgram),
@@ -60,7 +60,7 @@ impl Parse for A5_4 {
         if op & 0b1110 == 0b1110 {
             return Ok(Self::Blx(Blx::parse(iter)?));
         }
-        return Err(ParseError::Invalid16Bit("A5_4"));
+        Err(ParseError::Invalid16Bit("A5_4"))
     }
 }
 

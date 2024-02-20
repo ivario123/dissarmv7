@@ -1,5 +1,12 @@
-use crate::asm::wrapper_types::Imm12;
-use crate::asm::Mask;
+use crate::ParseError;
+use arch::ArchError;
+
+impl From<ArchError> for ParseError {
+    fn from(value: ArchError) -> Self {
+        Self::ArchError(value)
+    }
+}
+
 #[macro_export]
 macro_rules! instruction {
     (size $size:ty;
@@ -55,8 +62,10 @@ macro_rules! instruction {
         $size:ty; $word:ident $(as $representation:ty)?; $start:literal -> $end:literal $($expr:ident)?
     ) => {
             {
-                (($word as $size).mask::<$start,$end>() $(as $representation)?)$(.$expr()?)?
-
+                fn map<T:Into<ParseError>>(el:T) -> ParseError{
+                    el.into()
+                }
+                (($word as $size).mask::<$start,$end>() $(as $representation)?)$(.$expr().map_err(|e| map(e))?)?
             }
     };
 
@@ -65,7 +74,9 @@ macro_rules! instruction {
         $(
             $($id:ident : {
                 $(
-                    $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
+                        
+                        $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
+                    
 
                 ),*
             })?

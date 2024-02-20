@@ -1,15 +1,13 @@
-use crate::asm::pseudo;
-use crate::asm::pseudo::Thumb;
-use crate::asm::wrapper_types::Imm12;
 use crate::asm::Mask;
 use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 
 use crate::ParseError;
 use crate::ToThumb;
+use arch::{Imm12, Register};
 use paste::paste;
+
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -172,11 +170,11 @@ macro_rules! combine_wrapper {
     };
 }
 impl ToThumb for A5_12 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::AddImmediateBuilder::new()
+                thumb::AddImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -186,7 +184,7 @@ impl ToThumb for A5_12 {
             }
             Self::Adr(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::AdrBuilder::new()
+                thumb::AdrBuilder::new()
                     .set_rd(el.rd)
                     .set_add(el.add)
                     .set_imm(imm.into())
@@ -195,7 +193,7 @@ impl ToThumb for A5_12 {
             }
             Self::Mov(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::MovImmediatePlainBuilder::new()
+                thumb::MovImmediatePlainBuilder::new()
                     .set_s(Some(false))
                     .set_rd(el.rd)
                     .set_imm(imm.into())
@@ -205,7 +203,7 @@ impl ToThumb for A5_12 {
             Self::Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.into();
-                pseudo::SubImmediateBuilder::new()
+                thumb::SubImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -215,7 +213,7 @@ impl ToThumb for A5_12 {
             }
             Self::Movt(el) => {
                 let imm: u16 = combine_wrapper!(el : {imm4:i,1:imm3,3:imm8,8,u16});
-                pseudo::MovtBuilder::new()
+                thumb::MovtBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(imm)
                     .complete()
@@ -227,7 +225,7 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                pseudo::SsatBuilder::new()
+                thumb::SsatBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(el.sat_imm as u32)
                     .set_rn(el.rn)
@@ -238,7 +236,7 @@ impl ToThumb for A5_12 {
             Self::Bfi(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                pseudo::BfiBuilder::new()
+                thumb::BfiBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsb)
@@ -249,7 +247,7 @@ impl ToThumb for A5_12 {
             Self::Bfc(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                pseudo::BfcBuilder::new()
+                thumb::BfcBuilder::new()
                     .set_rd(el.rd)
                     .set_lsb(lsb)
                     .set_msb(msb as u32)
@@ -262,7 +260,7 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                pseudo::UsatBuilder::new()
+                thumb::UsatBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(el.sat_imm as u32)
                     .set_rn(el.rn)
@@ -273,7 +271,7 @@ impl ToThumb for A5_12 {
             Self::Sbfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                pseudo::SbfxBuilder::new()
+                thumb::SbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsbit as u32)
@@ -284,7 +282,7 @@ impl ToThumb for A5_12 {
             Self::Ubfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                pseudo::UbfxBuilder::new()
+                thumb::UbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsbit as u32)
@@ -294,7 +292,7 @@ impl ToThumb for A5_12 {
             }
             Self::Ssat16(el) => {
                 let saturate_to = el.sat_imm + 1;
-                pseudo::Ssat16Builder::new()
+                thumb::Ssat16Builder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_imm(saturate_to as u32)
@@ -303,7 +301,7 @@ impl ToThumb for A5_12 {
             }
             Self::Usat16(el) => {
                 let saturate_to = el.sat_imm + 1;
-                pseudo::Usat16Builder::new()
+                thumb::Usat16Builder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_imm(saturate_to as u32)

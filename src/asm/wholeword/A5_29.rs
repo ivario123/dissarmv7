@@ -1,14 +1,9 @@
-use std::process::id;
-
-use crate::asm::pseudo;
-use crate::asm::wrapper_types::*;
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
-use crate::ToThumb;
 use paste::paste;
+use arch::{wrapper_types::*, Register};
 
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;

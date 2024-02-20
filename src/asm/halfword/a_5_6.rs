@@ -1,8 +1,5 @@
-use crate::{
-    asm::Statement,
-    register::{Register, RegisterList},
-    Parse, ParseError,
-};
+use crate::{asm::Statement, Parse, ParseError};
+use arch::{Register, RegisterList};
 use paste::paste;
 
 use super::{HalfWord, Mask};
@@ -143,7 +140,7 @@ impl Parse for A5_6 {
             p!(Itt from iter);
         }
 
-        return Err(ParseError::Invalid16Bit("A5_6"));
+        Err(ParseError::Invalid16Bit("A5_6"))
     }
 }
 impl HalfWord for A5_6 {}

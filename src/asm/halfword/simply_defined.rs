@@ -1,11 +1,6 @@
 use super::{HalfWord, Mask};
-use crate::{
-    asm::Statement,
-    condition::Condition,
-    instruction,
-    register::{Register, RegisterList},
-    Parse, ParseError,
-};
+use crate::{asm::Statement, instruction, Parse, ParseError};
+use arch::{Condition, Register, RegisterList};
 
 use paste::paste;
 

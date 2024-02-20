@@ -1,5 +1,6 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, register::Register, Parse, ParseError, Stream};
+use crate::{asm::Statement, instruction, Parse, ParseError, Stream};
+use arch::Register;
 
 use paste::paste;
 

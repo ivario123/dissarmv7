@@ -3,15 +3,16 @@
 pub mod architechture;
 pub mod asm;
 pub mod buffer;
-pub mod condition;
+// pub mod condition;
 /// Internal helpers
 mod helpers;
-pub mod register;
-pub mod shift;
+// pub mod register;
+// pub mod shift;
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
-use asm::{halfword::HalfWord, pseudo::Thumb, Statement};
+use arch::ArchError;
+use asm::{halfword::HalfWord, Statement};
 
 use crate::asm::wholeword::{self, FullWord};
 
@@ -90,6 +91,9 @@ pub enum ParseError {
 
     /// Thrown when the parsing fails part way through parsing
     PartiallyParsed(Box<Self>, Vec<Box<dyn Statement>>),
+
+    /// Sub-crate [`arch`] threw an error
+    ArchError(ArchError)
 }
 
 pub trait Parse {
@@ -115,7 +119,7 @@ pub trait ParseSingle {
 }
 pub trait ToThumb {
     /// Translates the encoded value in to a [`Thumb`] instruction
-    fn encoding_specific_operations(self) -> Thumb;
+    fn encoding_specific_operations(self) -> thumb::Thumb;
 }
 pub struct StreamParser {
     //
@@ -191,6 +195,7 @@ impl ParseSingle for Box<dyn Statement> {
 }
 
 pub mod prelude {
-    pub use super::{condition::*, register::*, shift::*, Parse, ParseExact, Stream, ASM};
+    pub use arch::*;
+    pub use super::{Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
 }

@@ -2,17 +2,14 @@
 #![allow(dead_code)]
 use super::{HalfWord, Mask};
 use crate::{
-    asm::{
-        self,
-        pseudo::{self, Thumb},
-        Statement,
-    },
+    asm::Statement,
     instruction,
     prelude::{ImmShift, Shift},
-    register::Register,
     Parse, ParseError, ToThumb,
 };
+use arch::Register;
 use paste::paste;
+use thumb::{self};
 
 instruction!(
     size u16; A5_2 contains
@@ -114,11 +111,11 @@ impl HalfWord for A5_2 {}
 impl Statement for A5_2 {}
 
 impl ToThumb for A5_2 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Lsl(lsl) => {
-                let shift = crate::shift::ImmShift::from((Shift::Lsl, lsl.imm));
-                pseudo::LslImmediateBuilder::new()
+                let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
+                thumb::LslImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsl.rd)
                     .set_rm(lsl.rm)
@@ -128,7 +125,7 @@ impl ToThumb for A5_2 {
             }
             Self::Lsr(lsr) => {
                 let shift = ImmShift::from((Shift::Lsr, lsr.imm));
-                pseudo::LsrImmediateBuilder::new()
+                thumb::LsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsr.rd)
                     .set_rm(lsr.rm)
@@ -138,7 +135,7 @@ impl ToThumb for A5_2 {
             }
             Self::Asr(asr) => {
                 let shift = ImmShift::from((Shift::Asr, asr.imm5));
-                pseudo::LsrImmediateBuilder::new()
+                thumb::LsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(asr.rd)
                     .set_rm(asr.rm)
@@ -146,7 +143,7 @@ impl ToThumb for A5_2 {
                     .complete()
                     .into()
             }
-            Self::Add(add) => pseudo::AddRegisterBuilder::new()
+            Self::Add(add) => thumb::AddRegisterBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
@@ -154,7 +151,7 @@ impl ToThumb for A5_2 {
                 .set_shift(None)
                 .complete()
                 .into(),
-            Self::Sub(sub) => pseudo::SubRegisterBuilder::new()
+            Self::Sub(sub) => thumb::SubRegisterBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
@@ -162,39 +159,39 @@ impl ToThumb for A5_2 {
                 .set_shift(None)
                 .complete()
                 .into(),
-            Self::AddImmediate3(add) => pseudo::AddImmediateBuilder::new()
+            Self::AddImmediate3(add) => thumb::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
-            Self::SubImmediate3(sub) => pseudo::SubImmediateBuilder::new()
+            Self::SubImmediate3(sub) => thumb::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_imm(sub.imm as u32)
                 .complete()
                 .into(),
-            Self::Mov(mov) => pseudo::MovImmediatePlainBuilder::new()
+            Self::Mov(mov) => thumb::MovImmediatePlainBuilder::new()
                 .set_s(Some(true))
                 .set_rd(mov.rd)
                 .set_imm(mov.imm as u32)
                 .complete()
                 .into(),
-            Self::Cmp(cmp) => pseudo::CmpImmediateBuilder::new()
+            Self::Cmp(cmp) => thumb::CmpImmediateBuilder::new()
                 .set_rn(cmp.rn)
                 .set_imm(cmp.imm as u32)
                 .complete()
                 .into(),
-            Self::AddImmediate8(add) => pseudo::AddImmediateBuilder::new()
+            Self::AddImmediate8(add) => thumb::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(add.rdn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
-            Self::SubImmediate8(sub) => pseudo::SubImmediateBuilder::new()
+            Self::SubImmediate8(sub) => thumb::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(sub.rdn)

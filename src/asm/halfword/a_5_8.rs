@@ -1,5 +1,6 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, condition::Condition, instruction, Parse, ParseError, Stream};
+use crate::{asm::Statement, instruction, Parse, ParseError, Stream};
+use arch::Condition;
 
 use paste::paste;
 
@@ -30,7 +31,7 @@ impl Parse for A5_8 {
         if opcode == 0b1110 {
             return Err(ParseError::Unpredicatable);
         }
-        return Ok(Self::B(B::parse(iter)?));
+        Ok(Self::B(B::parse(iter)?))
     }
 }
 impl Statement for A5_8 {}

@@ -1,14 +1,13 @@
 use super::A5_25::A5_25;
 use super::A5_26::A5_26;
 use super::A5_27::A5_27;
-use crate::asm::wrapper_types::*;
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
 use paste::paste;
 
+use arch::{wrapper_types::*, Register};
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }

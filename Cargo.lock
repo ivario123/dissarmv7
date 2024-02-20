@@ -3,6 +3,10 @@
 version = 3
 
 [[package]]
+name = "arch"
+version = "0.1.0"
+
+[[package]]
 name = "builder_derive"
 version = "0.1.0"
 dependencies = [
@@ -21,9 +25,11 @@ checksum = "91197b4526cc9706ace5dd44334605a8bfdb826f879b844ce9d73d51ee56f11d"
 name = "dissarmv7"
 version = "0.1.0"
 dependencies = [
+ "arch",
  "builder_derive",
  "const-if",
  "paste",
+ "thumb",
 ]
 
 [[package]]
@@ -59,6 +65,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "thumb"
+version = "0.1.0"
+dependencies = [
+ "arch",
+ "builder_derive",
 ]
 
 [[package]]

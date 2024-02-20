@@ -1,14 +1,10 @@
-use crate::asm::pseudo;
-use crate::asm::wrapper_types::Imm21;
-use crate::asm::wrapper_types::Imm25;
-use crate::asm::wrapper_types::SignExtend;
 use crate::asm::Mask;
 use crate::asm::Statement;
 use crate::combine;
-use crate::condition::Condition;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
+
+use arch::{Condition, Imm21, Imm25, Register, SignExtend};
 
 use crate::wholeword::A5_14::A5_14;
 use crate::wholeword::A5_15::A5_15;
@@ -122,14 +118,14 @@ impl Parse for A5_13 {
         if op1 & 0b101 == 0b101 {
             return Ok(Self::Bl(Bl::parse(iter)?));
         }
-        return Err(ParseError::Invalid32Bit("A5_13"));
+        Err(ParseError::Invalid32Bit("A5_13"))
     }
 }
 impl Statement for A5_13 {}
 impl FullWord for A5_13 {}
 
 impl ToThumb for A5_13 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::BT3(el) => {
                 let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);
@@ -137,7 +133,7 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                pseudo::BBuilder::new()
+                thumb::BBuilder::new()
                     .set_condition(el.cond)
                     .set_imm(imm.sign_extend())
                     .complete()
@@ -149,7 +145,7 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                pseudo::BBuilder::new()
+                thumb::BBuilder::new()
                     .set_condition(Condition::None)
                     .set_imm(imm.sign_extend())
                     .complete()
@@ -163,7 +159,7 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                pseudo::BlBuilder::new()
+                thumb::BlBuilder::new()
                     .set_imm(imm.sign_extend())
                     .complete()
                     .into()
@@ -173,7 +169,7 @@ impl ToThumb for A5_13 {
             Self::Udf(udf) => {
                 let (imm4, imm12) = (udf.imm4, udf.imm12);
                 let imm = combine!(imm4:imm12,12,u32);
-                pseudo::UdfBuilder::new().set_imm(imm).complete().into()
+                thumb::UdfBuilder::new().set_imm(imm).complete().into()
             }
         }
     }

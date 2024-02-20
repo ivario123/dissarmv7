@@ -1,8 +1,7 @@
-use crate::asm::wrapper_types::*;
+use arch::{wrapper_types::*, Register};
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
 use paste::paste;
 

@@ -1,13 +1,11 @@
-use crate::asm::pseudo;
-use crate::asm::wrapper_types::Imm12;
 use crate::asm::Mask;
 use crate::asm::Statement;
 use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
 use crate::ToThumb;
+use arch::{Imm12, Register};
 use paste::paste;
 
 use super::FullWord;
@@ -246,12 +244,12 @@ macro_rules! combine_wrapper {
 }
 
 impl ToThumb for A5_10 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         use A5_10::*;
         match self {
             And(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::AndImmediateBuilder::new()
+                thumb::AndImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -261,7 +259,7 @@ impl ToThumb for A5_10 {
             }
             Tst(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::TstImmediateBuilder::new()
+                thumb::TstImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -269,7 +267,7 @@ impl ToThumb for A5_10 {
             }
             Bic(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::BicImmediateBuilder::new()
+                thumb::BicImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -279,7 +277,7 @@ impl ToThumb for A5_10 {
             }
             Orr(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::OrrImmediateBuilder::new()
+                thumb::OrrImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -289,7 +287,7 @@ impl ToThumb for A5_10 {
             }
             Mov(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::MovImmediateBuilder::new()
+                thumb::MovImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
@@ -298,7 +296,7 @@ impl ToThumb for A5_10 {
             }
             Orn(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::OrnImmediateBuilder::new()
+                thumb::OrnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -308,7 +306,7 @@ impl ToThumb for A5_10 {
             }
             Mvn(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::MvnImmediateBuilder::new()
+                thumb::MvnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
@@ -317,7 +315,7 @@ impl ToThumb for A5_10 {
             }
             Eor(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::EorImmediateBuilder::new()
+                thumb::EorImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -327,7 +325,7 @@ impl ToThumb for A5_10 {
             }
             Teq(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                pseudo::TeqImmediateBuilder::new()
+                thumb::TeqImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -336,7 +334,7 @@ impl ToThumb for A5_10 {
             Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::AddImmediateBuilder::new()
+                thumb::AddImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -347,7 +345,7 @@ impl ToThumb for A5_10 {
             Cmn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::CmnImmediateBuilder::new()
+                thumb::CmnImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -356,7 +354,7 @@ impl ToThumb for A5_10 {
             Adc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::AdcImmediateBuilder::new()
+                thumb::AdcImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -367,7 +365,7 @@ impl ToThumb for A5_10 {
             Sbc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::SbcImmediateBuilder::new()
+                thumb::SbcImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -378,7 +376,7 @@ impl ToThumb for A5_10 {
             Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::SubImmediateBuilder::new()
+                thumb::SubImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -389,7 +387,7 @@ impl ToThumb for A5_10 {
             Cmp(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::CmpImmediateBuilder::new()
+                thumb::CmpImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -398,7 +396,7 @@ impl ToThumb for A5_10 {
             Rsb(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                pseudo::RsbImmediateBuilder::new()
+                thumb::RsbImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)

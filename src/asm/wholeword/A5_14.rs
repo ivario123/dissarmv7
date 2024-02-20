@@ -1,7 +1,6 @@
 //! Defines marker instructions
 //!
 //! These have one or no fields but might have side-effects
-use crate::asm::pseudo;
 use crate::asm::Mask;
 use crate::asm::Statement;
 
@@ -65,14 +64,14 @@ impl Statement for A5_14 {}
 impl FullWord for A5_14 {}
 
 impl ToThumb for A5_14 {
-    fn encoding_specific_operations(self) -> crate::asm::pseudo::Thumb {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Nop => pseudo::NopBuilder::new().complete().into(),
-            Self::Yield => pseudo::YieldBuilder::new().complete().into(),
-            Self::WFE => pseudo::WfeBuilder::new().complete().into(),
-            Self::WFI => pseudo::WfiBuilder::new().complete().into(),
-            Self::Sev => pseudo::SevBuilder::new().complete().into(),
-            Self::Dbg(el) => pseudo::DbgBuilder::new().set_option(el).complete().into(),
+            Self::Nop => thumb::NopBuilder::new().complete().into(),
+            Self::Yield => thumb::YieldBuilder::new().complete().into(),
+            Self::WFE => thumb::WfeBuilder::new().complete().into(),
+            Self::WFI => thumb::WfiBuilder::new().complete().into(),
+            Self::Sev => thumb::SevBuilder::new().complete().into(),
+            Self::Dbg(el) => thumb::DbgBuilder::new().set_option(el).complete().into(),
         }
     }
 }

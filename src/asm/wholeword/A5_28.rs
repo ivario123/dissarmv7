@@ -1,13 +1,10 @@
-use crate::asm::pseudo;
-use crate::asm::wrapper_types::*;
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;
-use crate::register::Register;
 use crate::ParseError;
 use crate::ToThumb;
+use arch::{wrapper_types::*, Register};
 use paste::paste;
-
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }

@@ -195,6 +195,11 @@ impl ParseSingle for thumb::Thumb {
 pub mod prelude {
     pub use super::{Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
-    pub use arch::*;
+    pub use arch::wrapper_types::*;
+    pub use arch::Condition;
+    pub use arch::ImmShift;
+    pub use arch::Shift;
+    pub use arch::Register;
+    pub use arch::RegisterList;
     pub use thumb::Thumb;
 }

@@ -4,7 +4,7 @@ use arch::{
     shift::ImmShift,
     wrapper_types::*,
 };
-use builder_derive::Builder;
+use builder_derive::{Builder,Consumer};
 
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! thumb {
@@ -34,7 +34,7 @@ macro_rules! thumb {
             $(
                 #[doc = $comment]
             )*
-            #[derive(Builder,Debug,Clone)]
+            #[derive(Builder,Consumer,Debug,Clone)]
             pub struct $name {
                 $(
                     $(

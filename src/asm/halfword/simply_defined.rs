@@ -1,5 +1,5 @@
 use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError};
+use crate::{asm::Statement, instruction, Parse, ParseError, ToThumb};
 use arch::{Condition, Register, RegisterList};
 
 use paste::paste;
@@ -27,8 +27,8 @@ instruction!(
         rn              as u8 : Register  : 8->10 try_into
     },
     B  : {
-        imm8  as u8 : u8       : 0->7,
-        cond  as u8 : Condition: 8->12 try_into
+        imm11  as u8 : u8       : 0->7
+        //cond  as u8 : Condition: 8->12 try_into
     }
 );
 macro_rules! halfword {
@@ -42,3 +42,63 @@ macro_rules! halfword {
     };
 }
 halfword!(Ldr Adr Add Stm Ldm B);
+
+impl ToThumb for Ldr {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::LdrLiteral::builder()
+            .set_imm((self.imm8 as u32) << 2)
+            .set_add(true)
+            .set_rt(self.rt)
+            .complete()
+            .into()
+    }
+}
+impl ToThumb for Adr {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::Adr::builder()
+            .set_imm((self.imm8 as u32) << 2)
+            .set_add(true)
+            .set_rd(self.rd)
+            .complete()
+            .into()
+    }
+}
+impl ToThumb for Add {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::AddSPImmediate::builder()
+            .set_imm((self.imm8 as u32) << 2)
+            .set_rd(Some(self.rd))
+            .set_s(Some(false))
+            .complete()
+            .into()
+    }
+}
+impl ToThumb for Stm {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::Stm::builder()
+            .set_w(Some(true))
+            .set_rn(self.rn)
+            .set_registers(self.register_list)
+            .complete()
+            .into()
+    }
+}
+impl ToThumb for Ldm {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::Ldm::builder()
+            .set_w(Some(!self.register_list.regs.contains(&self.rn)))
+            .set_rn(self.rn)
+            .set_registers(self.register_list)
+            .complete()
+            .into()
+    }
+}
+impl ToThumb for B {
+    fn encoding_specific_operations(self) -> thumb::Thumb {
+        thumb::B::builder()
+            .set_condition(Condition::None)
+            .set_imm(((self.imm11 as u32) << 1) as i32)
+            .complete()
+            .into()
+    }
+}

@@ -3,8 +3,8 @@ use crate::instruction;
 use crate::prelude::*;
 use crate::ParseError;
 use crate::ToThumb;
+use arch::{wrapper_types::*, Register};
 use paste::paste;
-use arch::{Register,wrapper_types::*};
 
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;

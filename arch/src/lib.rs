@@ -24,9 +24,6 @@ impl Mask for u16 {
         let mask = ((1 << (END - START + 1) as u16) as u16) - 1 as u16;
 
         let ret = intermediate & mask;
-        println!(
-            "Masking {self:b} with mask {mask:b} from bit {START} to bit {END} resulting in {ret:b}"
-        );
         ret
     }
 }
@@ -37,9 +34,6 @@ impl Mask for u32 {
         let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
 
         let ret = intermediate & mask;
-        println!(
-            "Masking {self:b} with mask {mask:b} from bit {START} to bit {END} resulting in {ret:b}"
-        );
         ret
     }
 }

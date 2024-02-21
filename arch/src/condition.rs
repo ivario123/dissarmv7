@@ -1,6 +1,6 @@
 use crate::ArchError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Derived from section A7.3
 pub enum Condition {
     /// Exactly equal to, z == 1

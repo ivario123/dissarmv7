@@ -2,7 +2,7 @@
 
 use crate::ArchError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Shift {
     /// Logical left shift
     Lsl,
@@ -31,6 +31,7 @@ impl TryFrom<u8> for Shift {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ImmShift {
     pub shift_n: u8,
     pub shift_t: Shift,

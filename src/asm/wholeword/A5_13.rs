@@ -155,8 +155,14 @@ impl ToThumb for A5_13 {
             Self::Mrs(_el) => todo!("This is a system level instruction and should not be needed"),
             Self::Bl(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
-                let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32)
+                let num = combine!(s:j1,1:j2,1:imm10,10:imm11,11:0,1,u32);
+
+                let mut imm: Imm25 = num
                     .try_into()
+                    .map_err(|e| {
+                        println!("tried to fit {num} into Imm25");
+                        e
+                    })
                     .unwrap();
 
                 thumb::BlBuilder::new()

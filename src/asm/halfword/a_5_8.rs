@@ -41,7 +41,7 @@ impl ToThumb for A5_8 {
         match self {
             Self::B(el) => thumb::B::builder()
                 .set_condition(el.cond)
-                .set_imm(sign_extend::<8>(&(el.imm8 as u32)))
+                .set_imm(sign_extend::<8>(&((el.imm8 as u32) << 1)))
                 .complete()
                 .into(),
             Self::Svc(el) => todo!("This is missing from the thumb enum"),

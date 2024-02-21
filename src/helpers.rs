@@ -74,9 +74,9 @@ macro_rules! instruction {
         $(
             $($id:ident : {
                 $(
-                        
+
                         $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
-                    
+
 
                 ),*
             })?
@@ -126,7 +126,6 @@ macro_rules! instruction {
                             Some(buff) => Ok(buff[0]),
                             None => Err(ParseError::Invalid16Bit(stringify!($id))),
                         }?;
-                        println!("Checking word {word:#018b}");
                         $(
                             let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
                         )*
@@ -135,7 +134,6 @@ macro_rules! instruction {
                                 $field_id: $field_id,
                             )*
                         };
-                        println!("Parsed {:?}",ret);
                         Ok(ret)
                     }
                 }
@@ -173,7 +171,6 @@ mod test {
         let imm2: u8 = 2;
         let imm3: u8 = 4;
         let res: u32 = combine!(i:imm2,2:imm3,3,u32);
-        println!("{res:#010b}");
         assert_eq!(0b110100, res);
         let zero = 0;
         let res: u32 = combine!(i:zero,2,u32);

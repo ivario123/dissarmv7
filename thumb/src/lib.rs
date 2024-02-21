@@ -34,7 +34,7 @@ macro_rules! thumb {
             $(
                 #[doc = $comment]
             )*
-            #[derive(Builder)]
+            #[derive(Builder,Debug,Clone)]
             pub struct $name {
                 $(
                     $(
@@ -53,6 +53,7 @@ macro_rules! thumb {
             }
         )*
         /// All of the instructions availiable in the armv7 instruction set.
+        #[derive(Debug,Clone)]
         pub enum Thumb {
             $(
                 $(
@@ -245,13 +246,13 @@ thumb!(
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
     /// Logical left shift
-    LslImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+    LslImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:u8>
 
     /// Logical left shift
     LslRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
 
     /// Logical right shift
-    LsrImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+    LsrImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:u8>
 
     /// Logical left shift
     LsrRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
@@ -427,7 +428,7 @@ thumb!(
     Sbfx <rd: Register>, <rn: Register>, <lsb: u32>, <width: u32>
 
     /// Signed divide
-    Sdic {rd: Register}, <rn: Register>, <rm: Register>
+    Sdiv {rd: Register}, <rn: Register>, <rm: Register>
 
     /// Selects bytes using the [`Apsr`](crate::architechture::Apsr)::Ge bits.
     Sel {rd: Register}, <rn: Register>, <rm: Register>
@@ -548,6 +549,7 @@ thumb!(
     Uqsub8      {rd: Register}, <rn: Register>, <rm: Register>
     Uqsad8      {rd: Register}, <rn: Register>, <rm: Register>
     Usada8      <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
+    Usad8       {rd: Register}, <rn: Register>, <rm: Register>
 
     Usat    <rd: Register>, <imm: u32>, <rn: Register>, {shift: ImmShift}
     Usat16  <rd: Register>, <imm: u32>, <rn: Register>

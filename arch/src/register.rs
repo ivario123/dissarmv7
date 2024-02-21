@@ -3,7 +3,7 @@ use crate::ArchError;
 macro_rules! reg {
     ($($reg:ident),*) => {
         #[repr(u8)]
-        #[derive(Debug,Copy,Clone)]
+        #[derive(Debug,Copy,Clone,PartialEq)]
         pub enum Register {
         $(
             $reg
@@ -36,7 +36,7 @@ impl TryFrom<u16> for Register {
 
 /// Register lists lifted from a bit vector to allow
 /// type level representations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RegisterList {
     pub regs: Vec<Register>,
 }
@@ -50,7 +50,6 @@ impl From<Register> for RegisterList {
 impl TryFrom<u16> for RegisterList {
     type Error = ArchError;
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        println!("Trying to use bitvector {value}");
         let mut regs = vec![];
         for i in 0..16_u8 {
             if (value >> i) & 0b1 == 0b1 {

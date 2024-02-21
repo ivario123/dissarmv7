@@ -13,6 +13,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use arch::ArchError;
 use asm::{halfword::HalfWord, Statement};
+use thumb::Thumb;
 
 use crate::asm::wholeword::{self, FullWord};
 
@@ -90,10 +91,13 @@ pub enum ParseError {
     InvalidCondition,
 
     /// Thrown when the parsing fails part way through parsing
-    PartiallyParsed(Box<Self>, Vec<Box<dyn Statement>>),
+    PartiallyParsed(Box<Self>, Vec<Thumb>),
 
     /// Sub-crate [`arch`] threw an error
-    ArchError(ArchError)
+    ArchError(ArchError),
+
+    /// Thrown when internal logic is faulty, this should never occur
+    InternalError(&'static str),
 }
 
 pub trait Parse {
@@ -129,11 +133,11 @@ pub struct StreamParser {
 /// [`StreamParser`].
 #[derive(Debug)]
 pub struct ASM {
-    statements: Vec<Box<dyn Statement>>,
+    statements: Vec<thumb::Thumb>,
 }
 
-impl From<Vec<Box<dyn Statement>>> for ASM {
-    fn from(value: Vec<Box<dyn Statement>>) -> Self {
+impl From<Vec<Thumb>> for ASM {
+    fn from(value: Vec<thumb::Thumb>) -> Self {
         Self { statements: value }
     }
 }
@@ -145,7 +149,7 @@ impl Parse for ASM {
     {
         let mut stmts = Vec::new();
         while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
-            match <Box<dyn Statement>>::parse_single(iter) {
+            match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
                 Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
             };
@@ -161,7 +165,7 @@ impl ParseExact for ASM {
     {
         let mut stmts = Vec::new();
         for _ in 0..N {
-            match <Box<dyn Statement>>::parse_single(iter) {
+            match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
                 Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
             };
@@ -169,8 +173,8 @@ impl ParseExact for ASM {
         Ok(stmts.into())
     }
 }
-impl ParseSingle for Box<dyn Statement> {
-    type Target = Self;
+impl ParseSingle for thumb::Thumb {
+    type Target = thumb::Thumb;
     fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,
@@ -182,20 +186,15 @@ impl ParseSingle for Box<dyn Statement> {
         let halfword = halfword.unwrap();
 
         Ok(match halfword >> 11 {
-            0b11101 | 0b11110 | 0b11111 => {
-                println!("Found a 32 bit instruction");
-                Box::new(<Box<dyn FullWord>>::parse(iter)?)
-            }
-            _ => {
-                println!("Parsing a 16 bit instruction");
-                Box::new(<Box<dyn HalfWord>>::parse(iter)?)
-            }
+            0b11101 | 0b11110 | 0b11111 => <Box<dyn FullWord>>::parse(iter)?,
+            _ => <Box<dyn HalfWord>>::parse(iter)?,
         })
     }
 }
 
 pub mod prelude {
-    pub use arch::*;
     pub use super::{Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
+    pub use arch::*;
+    pub use thumb::Thumb;
 }

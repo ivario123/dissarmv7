@@ -20,7 +20,7 @@ pub mod A5_29;
 pub mod A5_30;
 
 use super::Statement;
-use crate::{asm::Mask, Parse, ParseError};
+use crate::{asm::Mask, Parse, ParseError, ToThumb};
 
 #[inline(always)]
 fn mask_32<const START: usize, const END: usize>(num: u32) -> u32 {
@@ -35,7 +35,7 @@ pub trait FullWord: Statement {}
 
 /// A 16-bit wide instruction
 impl Parse for Box<dyn FullWord> {
-    type Target = Box<dyn FullWord>;
+    type Target = thumb::Thumb;
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError> {
         let first: u16 = match iter.peek::<1>() {
             Some(value) => value,
@@ -45,16 +45,67 @@ impl Parse for Box<dyn FullWord> {
             Some(value) => Ok(value),
             None => Err(ParseError::Inclomplete32Bit),
         }?;
-        let op1 = first.mask::<10, 12>();
-        let op2 = first.mask::<3, 10>();
-        let op = second.mask::<14, 15>();
-        println!("first : {:#018b}", first);
-        println!("first : {:#018b}", second);
-        println!("op1 {:#04b}", op1);
-        println!("op2 {:#010b}", op2);
-        println!("op {:#03b}", op);
+        let op1 = first.mask::<11, 12>();
+        let op2 = first.mask::<4, 10>();
+        let op = second.mask::<15, 15>();
+        if op1 > 3 {
+            println!("{op1} > 3");
+            return Err(ParseError::InternalError("Masking is broken op1 > 3"));
+        }
+        if op > 1 {
+            println!("{op} > 3");
+            return Err(ParseError::InternalError("Masking is broken op > 1"));
+        }
+        if op1 == 1 {
+            if ((op2 >> 2) & 0b11001) == 0b00000 {
+                return Ok(A5_16::A5_16::parse(iter)?.encoding_specific_operations());
+            }
+            if ((op2 >> 2) & 0b11001) == 0b00001 {
+                return Ok(A5_17::A5_17::parse(iter)?.encoding_specific_operations());
+            }
+            if (op2 >> 5) == 1 {
+                return Ok(A5_22::A5_22::parse(iter)?.encoding_specific_operations());
+            }
+            return Err(ParseError::Invalid32Bit("Invalid op2"));
+        }
+        if op1 == 2 {
+            if op == 0 {
+                if (op2 >> 6) == 1 {
+                    todo!("No support for co-processor instructions");
+                    //return Ok(A5_30::A5_30::parse(iter)?.encoding_specific_operations())
+                }
+                if ((op2 >> 5) & 0b10) == 0 {
+                    return Ok(A5_10::A5_10::parse(iter)?.encoding_specific_operations());
+                }
+                return Err(ParseError::Invalid32Bit("Invalid op2"));
+            }
+            return Ok(A5_13::A5_13::parse(iter)?.encoding_specific_operations());
+        }
+        if (op2 & 0b1110001) == 0b0000000 {
+            return Ok(A5_21::A5_21::parse(iter)?.encoding_specific_operations());
+        }
+        match op2 & 0b1100111 {
+            0b0000001 => return Ok(A5_20::A5_20::parse(iter)?.encoding_specific_operations()),
+            0b0000011 => return Ok(A5_19::A5_19::parse(iter)?.encoding_specific_operations()),
+            0b0000101 => return Ok(A5_18::A5_18::parse(iter)?.encoding_specific_operations()),
+            0b0000111 => return Err(ParseError::Undefined),
+            _ => {}
+        }
+        if op2 >> 4 == 2 {
+            return Ok(A5_24::A5_24::parse(iter)?.encoding_specific_operations());
+        }
+        if op2 >> 3 == 0b0110 {
+            return Ok(A5_28::A5_28::parse(iter)?.encoding_specific_operations());
+        }
+        if op2 >> 3 == 0b0111 {
+            return Ok(A5_29::A5_29::parse(iter)?.encoding_specific_operations());
+        }
+        if op2 >> 6 == 1 {
+            // Co processor things
+            return Err(ParseError::IncompleteParser);
+        }
 
-        Err(ParseError::IncompleteProgram)
+        Err(ParseError::Invalid32Bit(""))
     }
 }
 

@@ -114,7 +114,7 @@ impl ToThumb for A5_2 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Lsl(lsl) => {
-                let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
+                let shift = arch::shift::ImmShift::try_from((Shift::Lsl, lsl.imm)).unwrap();
                 thumb::LslImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsl.rd)
@@ -124,12 +124,12 @@ impl ToThumb for A5_2 {
                     .into()
             }
             Self::Lsr(lsr) => {
-                let shift = ImmShift::from((Shift::Lsr, lsr.imm));
+                let shift = ImmShift::try_from((Shift::Lsr, lsr.imm)).unwrap();
                 thumb::LsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsr.rd)
                     .set_rm(lsr.rm)
-                    .set_imm(shift.shift_n.try_into().unwrap())
+                    .set_imm(shift.shift_n)
                     .complete()
                     .into()
             }

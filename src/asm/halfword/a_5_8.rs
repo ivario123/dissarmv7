@@ -1,6 +1,6 @@
 use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, Parse, ParseError, Stream, ToThumb};
-use arch::{wrapper_types::sign_extend, Condition};
+use arch::{wrapper_types::sign_extend_u32, Condition};
 
 use paste::paste;
 
@@ -41,10 +41,10 @@ impl ToThumb for A5_8 {
         match self {
             Self::B(el) => thumb::B::builder()
                 .set_condition(el.cond)
-                .set_imm(sign_extend::<8>(&((el.imm8 as u32) << 1)))
+                .set_imm(sign_extend_u32::<8>(&((el.imm8 as u32) << 1)))
                 .complete()
                 .into(),
-            Self::Svc(el) => todo!("This is missing from the thumb enum"),
+            Self::Svc(_el) => todo!("This is missing from the thumb enum"),
         }
     }
 }

@@ -1,6 +1,6 @@
 use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, Parse, ParseError, ToThumb};
-use arch::{Condition, Register, RegisterList};
+use arch::{Condition, Imm12, Register, RegisterList, SignExtend};
 
 use paste::paste;
 
@@ -27,7 +27,7 @@ instruction!(
         rn              as u8 : Register  : 8->10 try_into
     },
     B  : {
-        imm11  as u8 : u8       : 0->7
+        imm11  as u16 : u16       : 0->7
         //cond  as u8 : Condition: 8->12 try_into
     }
 );
@@ -95,9 +95,11 @@ impl ToThumb for Ldm {
 }
 impl ToThumb for B {
     fn encoding_specific_operations(self) -> thumb::Thumb {
+        let mut imm: Imm12 = ((self.imm11) << 1).try_into().unwrap();
+
         thumb::B::builder()
             .set_condition(Condition::None)
-            .set_imm(((self.imm11 as u32) << 1) as i32)
+            .set_imm(imm.sign_extend())
             .complete()
             .into()
     }

@@ -7,15 +7,15 @@ use crate::{
     prelude::{ImmShift, Shift},
     Parse, ParseError, ToThumb,
 };
-use arch::Register;
+use arch::{Condition, Imm4, Register};
 use paste::paste;
 use thumb::{self};
 
 instruction!(
     size u16; A5_7 contains
     It : {
-        mask        as u8   : u8    : 0 -> 3,
-        firstcod    as u8   : u8    : 4 -> 7
+        mask        as u8   : Imm4    : 0 -> 3 try_into,
+        firstcond    as u8   : Condition    : 4 -> 7 try_into
     },
     Nop : {},
     Yield : {},
@@ -51,7 +51,11 @@ impl Parse for A5_7 {
 impl ToThumb for A5_7 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::It(it) => todo!("This is lacking in thumb"),
+            Self::It(it) => thumb::It::builder()
+                .set_cond(it.firstcond)
+                .set_mask(it.mask)
+                .complete()
+                .into(),
             Self::Nop(_) => thumb::Nop::builder().complete().into(),
             Self::Yield(_) => thumb::Yield::builder().complete().into(),
             Self::Wfe(_) => thumb::Wfe::builder().complete().into(),

@@ -88,7 +88,7 @@ thumb!(
 
 
     // ==================================== B ====================================
-    B <condition:Condition>, <imm: i32>
+    B <condition:Condition>, <imm: u32>
 
     Bfc <rd: Register>, <lsb: u32>, <msb: u32>
 
@@ -155,6 +155,8 @@ thumb!(
 
     /// Instruction syn barrier, flush pipe
     Isb {option: Imm4}
+
+    It <cond: Condition>, <mask: Imm4>
 
     // ==================================== L ====================================
 
@@ -611,8 +613,6 @@ thumb!(
 
     /// TODO!
     Cdp <>
-    /// TODO!
-    IT <> // A7.7.37  this is quite important
     /// TODO!
     Ldc<>
 

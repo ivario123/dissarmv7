@@ -52,11 +52,36 @@ mod sealed {
     }
 }
 pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
-    let sign = *el & (1 << BIT);
+    let np1: u32 = 1 << BIT;
+    let sign = *el & np1;
+    if sign == 0{
+        return *el as i32
+    }
+    println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
-    let mask = mask - (((1 << BIT) as u32) - (1 as u32));
-    let ret = mask & (*el as u32);
+    println!("mask:{mask}");
+    let mask = mask ^ ((1 << (1)) - (1 as u32));
+    println!("mask:{mask}");
+    let ret = mask | *el;
+    println!("ret:{ret}");
+
     ret as i32
+}
+pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
+    let np1: u32 = 1 << BIT;
+    let sign = *el & np1;
+    if sign == 0{
+        return *el 
+    }
+    println!("sign:{sign}");
+    let mask: u32 = if sign != 0 { !0 } else { 0 };
+    println!("mask:{mask}");
+    let mask = mask ^ ((1 << (1)) - (1 as u32));
+    println!("mask:{mask}");
+    let ret = mask | *el;
+    println!("ret:{ret}");
+
+    ret
 }
 
 pub trait SignExtendGeneric<T: Sized> {
@@ -135,10 +160,19 @@ macro_rules! signextend {
             $(
                 impl SignExtend<$target> for $source {
                     fn sign_extend(&mut self) -> $target {
-                        let sign = self.val & (1 << <Self as sealed::SignBit>::BIT);
+                        let np1: $intermediate =   (1 << <Self as sealed::SignBit>::BIT);
+                        let sign = (self.val as $intermediate) & np1;
+                        if sign == 0{
+                            return self.val as $target;
+                        } 
+                        println!("sign:{sign}");
                         let mask: $intermediate = if sign != 0 { !0 } else { 0 };
-                        let mask = mask - (((1 << <Self as sealed::SignBit>::BIT) as $intermediate) - (1 as $intermediate));
-                        let ret = mask & (self.val as $intermediate);
+                        println!("mask:{mask}");
+                        let mask = mask ^ ((1 << (<Self as sealed::SignBit>::BIT+1)) - (1 as $intermediate));
+                        println!("mask:{mask}");
+                        let ret = mask | (self.val as $intermediate);
+                        println!("ret:{ret}");
+
                         ret as $target
                     }
                 }
@@ -198,3 +232,16 @@ signextend!(
         u32 => u32
     }
 );
+#[cfg(test)]
+mod test {
+    use crate::{Imm2, SignExtend};
+
+    #[test]
+    fn sign_extend_test() {
+        let mut i: Imm2 = 0b10u8.try_into().unwrap();
+        let exptected: u8 = 0b1111_1110;
+        let res: u8 = i.sign_extend();
+
+        assert_eq!(res, exptected)
+    }
+}

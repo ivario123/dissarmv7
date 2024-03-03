@@ -2785,6 +2785,7 @@ impl Into<Vec<Operation>> for Thumb {
                 ])
             },
             Thumb::SubRegister(sub) => {
+                todo!()
 
             },
             Thumb::SubSpMinusImmediate(_) => todo!(),

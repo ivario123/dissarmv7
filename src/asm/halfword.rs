@@ -1,6 +1,6 @@
 //! Defines all of the 16 bit instructions
 
-pub mod A_5_7;
+pub mod a_5_7;
 pub mod a_5_2;
 pub mod a_5_3;
 pub mod a_5_4;

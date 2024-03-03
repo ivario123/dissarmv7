@@ -62,6 +62,7 @@ macro_rules! instruction {
         $size:ty; $word:ident $(as $representation:ty)?; $start:literal -> $end:literal $($expr:ident)?
     ) => {
             {
+                #[allow(dead_code)]
                 fn map<T:Into<ParseError>>(el:T) -> ParseError{
                     el.into()
                 }

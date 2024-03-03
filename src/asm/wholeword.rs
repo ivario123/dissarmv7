@@ -1,34 +1,26 @@
-pub mod A5_10;
-pub mod A5_12;
-pub mod A5_13;
-pub mod A5_14;
-pub mod A5_15;
-pub mod A5_16;
-pub mod A5_17;
-pub mod A5_18;
-pub mod A5_19;
-pub mod A5_20;
-pub mod A5_21;
-pub mod A5_22;
-pub mod A5_23;
-pub mod A5_24;
-pub mod A5_25;
-pub mod A5_26;
-pub mod A5_27;
-pub mod A5_28;
-pub mod A5_29;
-pub mod A5_30;
+pub mod a5_10;
+pub mod a5_12;
+pub mod a5_13;
+pub mod a5_14;
+pub mod a5_15;
+pub mod a5_16;
+pub mod a5_17;
+pub mod a5_18;
+pub mod a5_19;
+pub mod a5_20;
+pub mod a5_21;
+pub mod a5_22;
+pub mod a5_23;
+pub mod a5_24;
+pub mod a5_25;
+pub mod a5_26;
+pub mod a5_27;
+pub mod a5_28;
+pub mod a5_29;
+pub mod a5_30;
 
 use super::Statement;
 use crate::{asm::Mask, Parse, ParseError, ToThumb};
-
-#[inline(always)]
-fn mask_32<const START: usize, const END: usize>(num: u32) -> u32 {
-    let intermediate = num >> START;
-    let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
-    let ret = intermediate & mask;
-    ret
-}
 
 /// A 16-bit wide instruction
 pub trait FullWord: Statement {}
@@ -58,13 +50,13 @@ impl Parse for Box<dyn FullWord> {
         }
         if op1 == 1 {
             if ((op2 >> 2) & 0b11001) == 0b00000 {
-                return Ok(A5_16::A5_16::parse(iter)?.encoding_specific_operations());
+                return Ok(a5_16::A5_16::parse(iter)?.encoding_specific_operations());
             }
             if ((op2 >> 2) & 0b11001) == 0b00001 {
-                return Ok(A5_17::A5_17::parse(iter)?.encoding_specific_operations());
+                return Ok(a5_17::A5_17::parse(iter)?.encoding_specific_operations());
             }
             if (op2 >> 5) == 1 {
-                return Ok(A5_22::A5_22::parse(iter)?.encoding_specific_operations());
+                return Ok(a5_22::A5_22::parse(iter)?.encoding_specific_operations());
             }
             return Err(ParseError::Invalid32Bit("Invalid op2"));
         }
@@ -72,33 +64,33 @@ impl Parse for Box<dyn FullWord> {
             if op == 0 {
                 if (op2 >> 6) == 1 {
                     todo!("No support for co-processor instructions");
-                    //return Ok(A5_30::A5_30::parse(iter)?.encoding_specific_operations())
+                    //return Ok(a5_30::A5_30::parse(iter)?.encoding_specific_operations())
                 }
                 if ((op2 >> 5) & 0b10) == 0 {
-                    return Ok(A5_10::A5_10::parse(iter)?.encoding_specific_operations());
+                    return Ok(a5_10::A5_10::parse(iter)?.encoding_specific_operations());
                 }
                 return Err(ParseError::Invalid32Bit("Invalid op2"));
             }
-            return Ok(A5_13::A5_13::parse(iter)?.encoding_specific_operations());
+            return Ok(a5_13::A5_13::parse(iter)?.encoding_specific_operations());
         }
         if (op2 & 0b1110001) == 0b0000000 {
-            return Ok(A5_21::A5_21::parse(iter)?.encoding_specific_operations());
+            return Ok(a5_21::A5_21::parse(iter)?.encoding_specific_operations());
         }
         match op2 & 0b1100111 {
-            0b0000001 => return Ok(A5_20::A5_20::parse(iter)?.encoding_specific_operations()),
-            0b0000011 => return Ok(A5_19::A5_19::parse(iter)?.encoding_specific_operations()),
-            0b0000101 => return Ok(A5_18::A5_18::parse(iter)?.encoding_specific_operations()),
+            0b0000001 => return Ok(a5_20::A5_20::parse(iter)?.encoding_specific_operations()),
+            0b0000011 => return Ok(a5_19::A5_19::parse(iter)?.encoding_specific_operations()),
+            0b0000101 => return Ok(a5_18::A5_18::parse(iter)?.encoding_specific_operations()),
             0b0000111 => return Err(ParseError::Undefined),
             _ => {}
         }
         if op2 >> 4 == 2 {
-            return Ok(A5_24::A5_24::parse(iter)?.encoding_specific_operations());
+            return Ok(a5_24::A5_24::parse(iter)?.encoding_specific_operations());
         }
         if op2 >> 3 == 0b0110 {
-            return Ok(A5_28::A5_28::parse(iter)?.encoding_specific_operations());
+            return Ok(a5_28::A5_28::parse(iter)?.encoding_specific_operations());
         }
         if op2 >> 3 == 0b0111 {
-            return Ok(A5_29::A5_29::parse(iter)?.encoding_specific_operations());
+            return Ok(a5_29::A5_29::parse(iter)?.encoding_specific_operations());
         }
         if op2 >> 6 == 1 {
             // Co processor things

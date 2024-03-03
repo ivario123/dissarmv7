@@ -6,8 +6,8 @@ use crate::prelude::*;
 
 use arch::{Condition, Imm21, Imm25, Register, SignExtend};
 
-use crate::wholeword::A5_14::A5_14;
-use crate::wholeword::A5_15::A5_15;
+use crate::wholeword::a5_14::A5_14;
+use crate::wholeword::a5_15::A5_15;
 use crate::ParseError;
 use crate::ToThumb;
 use paste::paste;

@@ -13,7 +13,7 @@ macro_rules! combine {
             #[allow(unused_assignments)]
             {
                 $(
-                    counter = counter - $size;
+                    counter -= 8 - $size;
                     sum |= (($id as $ret_ty) << counter) as $ret_ty;
                 )*
             }
@@ -60,7 +60,7 @@ pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
     println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
     println!("mask:{mask}");
-    let mask = mask ^ ((1 << (1)) - (1 as u32));
+    let mask = mask ^ ((1 << (1)) - 1_u32);
     println!("mask:{mask}");
     let ret = mask | *el;
     println!("ret:{ret}");
@@ -76,7 +76,7 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
     println!("mask:{mask}");
-    let mask = mask ^ ((1 << (1)) - (1 as u32));
+    let mask = mask ^ ((1 << (1)) - 1_u32);
     println!("mask:{mask}");
     let ret = mask | *el;
     println!("ret:{ret}");

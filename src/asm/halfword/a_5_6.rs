@@ -1,4 +1,4 @@
-use super::A_5_7::A5_7;
+use super::a_5_7::A5_7;
 use super::{HalfWord, Mask};
 use crate::instruction;
 use crate::{asm::Statement, Parse, ParseError, ToThumb};

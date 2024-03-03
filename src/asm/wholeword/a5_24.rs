@@ -1,6 +1,6 @@
-use super::A5_25::A5_25;
-use super::A5_26::A5_26;
-use super::A5_27::A5_27;
+use super::a5_25::A5_25;
+use super::a5_26::A5_26;
+use super::a5_27::A5_27;
 use crate::asm::Mask;
 use crate::instruction;
 use crate::prelude::*;

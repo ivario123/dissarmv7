@@ -1,5 +1,3 @@
-use std::collections::binary_heap::Iter;
-
 use crate::ArchError;
 
 macro_rules! reg {

@@ -21,19 +21,17 @@ pub(crate) trait Mask {
 impl Mask for u16 {
     fn mask<const START: usize, const END: usize>(&self) -> u16 {
         let intermediate = self >> START;
-        let mask = ((1 << (END - START + 1) as u16) as u16) - 1 as u16;
+        let mask = ((1 << (END - START + 1) as u16) as u16) - 1_u16;
 
-        let ret = intermediate & mask;
-        ret
+        intermediate & mask
     }
 }
 
 impl Mask for u32 {
     fn mask<const START: usize, const END: usize>(&self) -> u32 {
         let intermediate = self >> START;
-        let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
+        let mask = ((1 << (END - START + 1) as u32) as u32) - 1_u32;
 
-        let ret = intermediate & mask;
-        ret
+        intermediate & mask
     }
 }

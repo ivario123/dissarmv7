@@ -1,7 +1,7 @@
-use crate::prelude::{Condition, ImmShift, Register,  Shift, Thumb};
+use crate::prelude::{Condition as ARMCondition, ImmShift, Register,  Shift, Thumb};
 use general_assembly::operand::DataWord;
 use general_assembly::{
-    condition::Condition as GACondition, operand::Operand, operation::Operation,
+    condition::Condition as Condition, operand::Operand, operation::Operation,
     shift::Shift as GAShift,
 };
 use paste::paste;
@@ -810,7 +810,7 @@ impl Into<Vec<Operation>> for Thumb {
                 // 3. Branch to the new target
                 ret.push(Operation::ConditionalJump {
                     destination: target,
-                    condition: Condition::None.local_into(),
+                    condition: Condition::None,
                 });
                 ret
             }
@@ -879,7 +879,7 @@ impl Into<Vec<Operation>> for Thumb {
                     },
                     Operation::ConditionalJump {
                         destination: target,
-                        condition: Condition::None.local_into(),
+                        condition: Condition::None,
                     },
                 ];
                 ret
@@ -935,7 +935,7 @@ impl Into<Vec<Operation>> for Thumb {
                     },
                     Operation::ConditionalJump {
                         destination: rm,
-                        condition: Condition::None.local_into(),
+                        condition: Condition::None,
                     },
                 ]
             }
@@ -946,10 +946,9 @@ impl Into<Vec<Operation>> for Thumb {
                 let intermediate = Operand::Local("z_intermediate".to_owned());
 
                 let condition = match non {
-                    Some(true) => Condition::Ne,
-                    _ => Condition::Eq,
-                }
-                .local_into();
+                    Some(true) => ARMCondition::Ne.local_into(),
+                    _ => ARMCondition::Eq.local_into(),
+                };
                 let target = Operand::Local("target".to_owned());
                 vec![
                     Operation::Move {
@@ -1856,7 +1855,7 @@ impl Into<Vec<Operation>> for Thumb {
                 consume!((s,rd, rm.local_into()) from mov);
                 if rd == Register::PC {
                     break 'outer_block vec![
-                        Operation::ConditionalJump { destination: rm, condition: Condition::None.local_into() }
+                        Operation::ConditionalJump { destination: rm, condition: Condition::None }
                     ];
                 }
                 let rd = rd.local_into();
@@ -2785,20 +2784,251 @@ impl Into<Vec<Operation>> for Thumb {
                 ])
             },
             Thumb::SubRegister(sub) => {
-                todo!()
+                consume!((
+                        s.unwrap_or(false),
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        rm.local_into(),
+                        shift
+                        ) from sub);
+                let mut ret = vec![];
+                local!(shifted);
+                shift!(ret.shift rm -> shifted);
 
+                pseudo!(ret.extend[
+                    let intermediate = !shifted;
+
+                    // Backup previous flag
+                    let old_c = Flag("c");
+                    Flag("c") = 1.local_into();
+                    let result = rn adc intermediate;
+
+                    rd = result;
+                    if s {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetVFlag(rn,intermediate,false,true);
+                        SetCFlag(rn,intermediate,false,true);
+                    }
+                    else {
+                        Flag("c") = old_c;
+                    }
+                ]);
+                ret
             },
-            Thumb::SubSpMinusImmediate(_) => todo!(),
-            Thumb::SubSpMinusReg(_) => todo!(),
-            Thumb::Sxtab(_) => todo!(),
-            Thumb::Sxtab16(_) => todo!(),
-            Thumb::Sxtah(_) => todo!(),
-            Thumb::Sxtb(_) => todo!(),
-            Thumb::Sxtb16(_) => todo!(),
-            Thumb::Sxth(_) => todo!(),
-            Thumb::Tb(_) => todo!(),
-            Thumb::TeqImmediate(_) => todo!(),
-            Thumb::TeqRegister(_) => todo!(),
+            Thumb::SubSpMinusImmediate(sub) => {
+                consume!((
+                        s.unwrap_or(false),
+                        rd.local_into().unwrap_or(Register::SP.local_into()),
+                        imm.local_into()
+                        ) from sub);
+                let rn = Register::SP.local_into();
+
+                pseudo!([
+                    let intermediate = !imm;
+
+                    // Backup previous flag
+                    let old_c = Flag("c");
+                    Flag("c") = 1.local_into();
+                    let result = rn adc intermediate;
+
+                    rd = result;
+                    if s {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetVFlag(rn,intermediate,false,true);
+                        SetCFlag(rn,intermediate,false,true);
+                    }
+                    else {
+                        Flag("c") = old_c;
+                    }
+                ])
+            },
+            Thumb::SubSpMinusReg(sub) =>{
+                let rn = Register::SP.local_into();
+                consume!((
+                        s.unwrap_or(false),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        rm.local_into(),
+                        shift
+                        ) from sub);
+                let mut ret = vec![];
+                local!(shifted);
+                shift!(ret.shift rm -> shifted);
+
+                pseudo!(ret.extend[
+                    let intermediate = !shifted;
+
+                    // Backup previous flag
+                    let old_c = Flag("c");
+                    Flag("c") = 1.local_into();
+                    let result = rn adc intermediate;
+
+                    rd = result;
+                    if s {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetVFlag(rn,intermediate,false,true);
+                        SetCFlag(rn,intermediate,false,true);
+                    }
+                    else {
+                        Flag("c") = old_c;
+                    }
+                ]);
+                ret
+            },
+            Thumb::Sxtab(sxtab) => {
+                consume!((
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        rm.local_into(),
+                        rotation.unwrap_or(0)) from sxtab);
+                let mut ret = vec![];
+                pseudo!(ret.extend[
+                    let rotated = Ror(rm, rotation.local_into());
+                    let masked = rotated & (u8::MAX as u32).local_into();
+                    rd = rn + SignExtend(masked,8);
+                ]);
+                ret
+            },
+            Thumb::Sxtab16(sxtab) => {
+                consume!((
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        rm.local_into(),
+                        rotation.unwrap_or(0)) from sxtab);
+                pseudo!([
+                    let rotated = Ror(rm, rotation.local_into());
+
+
+                    // Clear the current rd
+                    rd = 0.local_into();
+
+                    let lsh_mask = (u16::MAX as u32).local_into();
+                    
+                    let rotated_lsbyte = rotated & (u8::MAX as u32).local_into();
+                    rd = rn & lsh_mask;
+                    // TODO! Make not in the docs for GA that 8 is the msb in the number
+                    // prior to sign extension
+                    rd = rd + SignExtend(rotated_lsbyte,8);
+                    rd = rd & lsh_mask;
+                    
+                    
+
+                    //let msh_mask = ((u16::MAX as u32) << 16).local_into();
+                    let msh_intermediate = rn >> 16.local_into();
+                    rotated = rotated >> 16.local_into();
+                    rotated = rotated & (u8::MAX as u32).local_into();
+                    let intemediate_result = msh_intermediate + SignExtend(rotated,8);
+                    intemediate_result = intemediate_result & lsh_mask;
+                    intemediate_result = intemediate_result << 16.local_into();
+
+                    rd =  rd | intemediate_result;
+                ])
+            },
+            Thumb::Sxtah(sxtah) => {
+                consume!((
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        rm.local_into(),
+                        rotation.unwrap_or(0).local_into()
+                        ) from sxtah);
+                pseudo!([
+                        let rotated = Ror(rm,rotation);
+                        rotated = rotated & ( u16::MAX as u32).local_into();
+                        rd = rn + SignExtend(rotated,16);
+                ])
+            },
+            Thumb::Sxtb(sxtb) => {
+                consume!((
+                        rd.local_into(),
+                        rm.local_into(),
+                        rotation.unwrap_or(0).local_into()
+                        ) from sxtb);
+                pseudo!([
+                        let rotated = Ror(rm,rotation);
+                        rotated = rotated & ( u8::MAX as u32).local_into();
+                        rd = SignExtend(rotated,8);
+                ])
+            },
+            Thumb::Sxtb16(sxtb) =>  {
+                consume!((
+                        rm.local_into(),
+                        rd.local_into().unwrap_or(rm.clone()),
+                        rotation.unwrap_or(0).local_into()
+                        ) from sxtb);
+                pseudo!([
+                        let rotated = Ror(rm,rotation);
+                        let lsbyte = rotated & ( u8::MAX as u32).local_into();
+                        rd = SignExtend(lsbyte,16) &  (u16::MAX as u32).local_into();
+
+                        let msbyte = rotated >> 16.local_into();
+                        msbyte = msbyte & (u8::MAX as u32).local_into();
+                        msbyte = SignExtend(msbyte,16) & (u16::MAX as u32).local_into();
+                        msbyte = msbyte << 16.local_into();
+
+                        rd = rd | msbyte;
+                ])
+            },
+            Thumb::Sxth(sxth) => {
+                consume!((
+                        rd.local_into(),
+                        rm.local_into(),
+                        rotation.unwrap_or(0).local_into()
+                        ) from sxth);
+                pseudo!([
+                    let rotated = Ror(rm,rotation) & (u16::MAX as u32).local_into();
+                    rd = SignExtend(rotated, 16);
+                ])
+            },
+            Thumb::Tb(tb) => {
+                consume!((
+                            rn.local_into(),
+                            rm.local_into(),
+                            is_tbh.unwrap_or(false)
+                        ) from tb);
+                pseudo!([
+                    let halfwords = 0.local_into();
+
+                    if is_tbh {
+                        let address = rm << 1.local_into();
+                        address = address + rn;
+                        halfwords = LocalAddress(address,2);
+                    } else {
+                        let address = rn + rm;
+                        halfwords = LocalAddress(address,1);
+                    }
+                    let target = halfwords*2.local_into();
+                    target = target + (Register::PC).local_into();
+                    Jump(target);
+                ])
+            },
+            Thumb::TeqImmediate(teq) => {
+                todo!("Needs thumb_expand_imm_c");
+                // consume!((rn.local_into(), imm.into().local_into()) from teq);
+                // pseudo!([
+                //     let result = rn ^ imm;
+                //     SetNFlag(result);
+                //     SetZFlag(result);
+                //     // TODO! Look in to carry bit here
+                // ])
+            },
+            Thumb::TeqRegister(teq) => {
+                consume!((
+                        rn.local_into(),
+                        rm.local_into(),
+                        shift
+                        ) from teq);
+                let mut ret = vec![];
+                local!(intermediate);
+                shift!(ret.shift rm -> intermediate set c for rn);
+                pseudo!(ret.extend[
+                        let result = rn ^ intermediate;
+                        SetZFlag(result);
+                        SetNFlag(result);
+                ]);
+                ret
+            },
             Thumb::TstImmediate(_) => todo!(),
             Thumb::TstRegister(_) => todo!(),
             Thumb::Uadd16(_) => todo!(),
@@ -2879,24 +3109,24 @@ use sealed::Into;
 
 use self::sealed::ToString;
 
-impl sealed::Into<GACondition> for Condition {
-    fn local_into(self) -> GACondition {
+impl sealed::Into<Condition> for ARMCondition {
+    fn local_into(self) -> Condition {
         match self {
-            Self::Eq => GACondition::EQ,
-            Self::Ne => GACondition::NE,
-            Self::Mi => GACondition::MI,
-            Self::Pl => GACondition::PL,
-            Self::Vs => GACondition::VS,
-            Self::Vc => GACondition::VC,
-            Self::Hi => GACondition::HI,
-            Self::Ge => GACondition::GE,
-            Self::Lt => GACondition::LT,
-            Self::Gt => GACondition::GT,
-            Self::Ls => GACondition::LS,
-            Self::Le => GACondition::LE,
-            Self::Cs => GACondition::CS,
-            Self::Cc => GACondition::CC,
-            Self::None => GACondition::None,
+            Self::Eq => Condition::EQ,
+            Self::Ne => Condition::NE,
+            Self::Mi => Condition::MI,
+            Self::Pl => Condition::PL,
+            Self::Vs => Condition::VS,
+            Self::Vc => Condition::VC,
+            Self::Hi => Condition::HI,
+            Self::Ge => Condition::GE,
+            Self::Lt => Condition::LT,
+            Self::Gt => Condition::GT,
+            Self::Ls => Condition::LS,
+            Self::Le => Condition::LE,
+            Self::Cs => Condition::CS,
+            Self::Cc => Condition::CC,
+            Self::None => Condition::None,
         }
     }
 }

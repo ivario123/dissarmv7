@@ -3,7 +3,7 @@ use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
 use crate::ToThumb;
-use arch::{wrapper_types::*, Register};
+use arch::Register;
 
 use crate::ParseError;
 use paste::paste;

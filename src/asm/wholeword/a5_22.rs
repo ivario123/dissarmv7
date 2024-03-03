@@ -366,7 +366,7 @@ impl ToThumb for A5_22 {
                 .complete()
                 .into(),
             Self::Pkh(el) => {
-                let (tb, t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
+                let (tb, _t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
                 let ty = Shift::try_from((tb as u8) << 1).unwrap();
                 let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
                     Ok(w) => Some(w),

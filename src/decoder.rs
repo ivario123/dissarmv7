@@ -1,4 +1,4 @@
-use crate::prelude::{Condition, ImmShift, Register, RegisterList, Shift, Thumb};
+use crate::prelude::{Condition, ImmShift, Register,  Shift, Thumb};
 use general_assembly::operand::DataWord;
 use general_assembly::{
     condition::Condition as GACondition, operand::Operand, operation::Operation,

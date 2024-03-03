@@ -37,6 +37,7 @@ macro_rules! instruction {
 
             impl Parse for $id{
                 type Target = Self;
+                // #[allow(unused_variables)]
                 fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                 where
                     Self: Sized {
@@ -119,6 +120,7 @@ macro_rules! instruction {
 
                 impl Parse for $id{
                     type Target = Self;
+                    // #[allow(unused_variables)]
                     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
                     where
                         Self: Sized {

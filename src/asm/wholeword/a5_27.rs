@@ -5,7 +5,7 @@ use crate::ParseError;
 use crate::ToThumb;
 use paste::paste;
 
-use arch::{wrapper_types::*, Register};
+use arch::Register;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }

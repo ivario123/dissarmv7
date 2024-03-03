@@ -1,5 +1,4 @@
 use crate::asm::Mask;
-use crate::combine;
 use crate::instruction;
 use crate::prelude::*;
 use crate::ToThumb;

@@ -3,7 +3,7 @@ use crate::instruction;
 use crate::prelude::*;
 use crate::ParseError;
 use crate::ToThumb;
-use arch::{wrapper_types::*, Register};
+use arch::Register;
 use paste::paste;
 
 pub trait LocalTryInto<T> {

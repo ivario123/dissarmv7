@@ -10,7 +10,7 @@ mod helpers;
 // pub mod register;
 // pub mod shift;
 
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use arch::ArchError;
 use asm::{halfword::HalfWord, Statement};
@@ -133,6 +133,7 @@ pub struct StreamParser {
 /// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
 /// [`StreamParser`].
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ASM {
     statements: Vec<thumb::Thumb>,
 }

@@ -1,13 +1,8 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use super::{HalfWord, Mask};
-use crate::{
-    asm::Statement,
-    instruction,
-    prelude::{ImmShift, Shift},
-    Parse, ParseError, ToThumb,
-};
-use arch::{Condition, Imm4, Register};
+use super::Mask;
+use crate::{instruction, Parse, ParseError, ToThumb};
+use arch::{Condition, Imm4};
 use paste::paste;
 use thumb::{self};
 

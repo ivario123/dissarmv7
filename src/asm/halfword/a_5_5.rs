@@ -93,7 +93,6 @@ macro_rules! match_iter {
     ($op2:ident $iter:ident $($option:ident)+) => {
         {
             let mut counter = 0;
-
             $(
                 if counter == $op2{
                     return Ok(Self::$option($option::parse($iter)?))
@@ -105,6 +104,7 @@ macro_rules! match_iter {
 }
 impl Parse for A5_5 {
     type Target = Self;
+    #[allow(unused_assignments)]
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

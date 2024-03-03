@@ -1,3 +1,5 @@
+use std::collections::binary_heap::Iter;
+
 use crate::ArchError;
 
 macro_rules! reg {
@@ -23,9 +25,22 @@ macro_rules! reg {
                 Err(ArchError::InvalidRegister(value))
             }
         }
+        impl Into<u8> for Register {
+            #[allow(unused_assignments)]
+            fn into(self) -> u8 {
+                let mut i = 0;
+                $(
+                    if Self::$reg == self{
+                        return i;
+                    }
+                    i+=1;
+                )*
+                unreachable!();
+            }
+        }
     };
 }
-reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR,PC);
+reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC);
 
 impl TryFrom<u16> for Register {
     type Error = ArchError;
@@ -39,6 +54,14 @@ impl TryFrom<u16> for Register {
 #[derive(Debug, Clone)]
 pub struct RegisterList {
     pub regs: Vec<Register>,
+}
+
+impl IntoIterator for RegisterList {
+    type Item = Register;
+    type IntoIter = <Vec<Register> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.regs.into_iter()
+    }
 }
 
 impl From<Register> for RegisterList {

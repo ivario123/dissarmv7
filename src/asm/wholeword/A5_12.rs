@@ -193,7 +193,7 @@ impl ToThumb for A5_12 {
             }
             Self::Mov(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::MovImmediatePlainBuilder::new()
+                thumb::MovImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(el.rd)
                     .set_imm(imm.into())

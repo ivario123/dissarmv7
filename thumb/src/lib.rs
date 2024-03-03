@@ -4,7 +4,7 @@ use arch::{
     shift::ImmShift,
     wrapper_types::*,
 };
-use builder_derive::{Builder,Consumer};
+use builder_derive::{Builder, Consumer};
 
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! thumb {
@@ -130,7 +130,7 @@ thumb!(
     CmpRegister <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     /// Change processor state
-    Cps <i: bool>, <f: bool>, <im: bool>
+    Cps <enable: bool>, <disable: bool>, <affect_pri: bool>, <affect_fault: bool>
 
     // ==================================== D ====================================
 

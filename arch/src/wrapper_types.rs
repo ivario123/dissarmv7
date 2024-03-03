@@ -54,8 +54,8 @@ mod sealed {
 pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
     let np1: u32 = 1 << BIT;
     let sign = *el & np1;
-    if sign == 0{
-        return *el as i32
+    if sign == 0 {
+        return *el as i32;
     }
     println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
@@ -70,8 +70,8 @@ pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
 pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     let np1: u32 = 1 << BIT;
     let sign = *el & np1;
-    if sign == 0{
-        return *el 
+    if sign == 0 {
+        return *el;
     }
     println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
@@ -164,7 +164,7 @@ macro_rules! signextend {
                         let sign = (self.val as $intermediate) & np1;
                         if sign == 0{
                             return self.val as $target;
-                        } 
+                        }
                         println!("sign:{sign}");
                         let mask: $intermediate = if sign != 0 { !0 } else { 0 };
                         println!("mask:{mask}");

@@ -12,3 +12,8 @@ const-if = "0.1.3"
 builder_derive = {path = "../builder_derive"}
 arch = {path = "./arch" }
 thumb = {path = "./thumb"}
+
+
+# These should be feature flagged
+general_assembly = {path= "../general_assembly"}
+transpiler = {path = "../transpiler"}

@@ -3,6 +3,7 @@
 pub mod architechture;
 pub mod asm;
 pub mod buffer;
+pub mod decoder;
 // pub mod condition;
 /// Internal helpers
 mod helpers;
@@ -198,8 +199,8 @@ pub mod prelude {
     pub use arch::wrapper_types::*;
     pub use arch::Condition;
     pub use arch::ImmShift;
-    pub use arch::Shift;
     pub use arch::Register;
     pub use arch::RegisterList;
+    pub use arch::Shift;
     pub use thumb::Thumb;
 }

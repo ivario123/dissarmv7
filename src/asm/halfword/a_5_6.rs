@@ -148,9 +148,10 @@ impl ToThumb for A5_6 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Cps(el) => thumb::Cps::builder()
-                .set_i(el.i == 1)
-                .set_f(el.f == 1)
-                .set_im(el.im == 1)
+                .set_enable(el.im == 0)
+                .set_disable(el.im == 1)
+                .set_affect_pri(el.i == 1)
+                .set_affect_fault(el.f == 1)
                 .complete()
                 .into(),
             Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder()

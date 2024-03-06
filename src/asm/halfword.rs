@@ -1,33 +1,30 @@
 //! Defines all of the 16 bit instructions
 
-pub mod a_5_7;
 pub mod a_5_2;
 pub mod a_5_3;
 pub mod a_5_4;
 pub mod a_5_5;
 pub mod a_5_6;
+pub mod a_5_7;
 pub mod a_5_8;
 pub mod simply_defined;
 
 use super::Mask;
 use crate::{
     asm::halfword::{a_5_2::A5_2, a_5_3::A5_3, a_5_4::A5_4, a_5_5::A5_5, a_5_6::A5_6, a_5_8::A5_8},
-    Parse, ParseError, Statement, ToThumb,
+    Parse, ParseError, ToThumb,
 };
 
 /// A 16-bit wide instruction
-pub trait HalfWord: Statement {}
-
-impl Parse for Box<dyn HalfWord> {
-    type Target = thumb::Thumb;
-    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError> {
+pub enum HalfWord {}
+impl HalfWord {
+    fn parse_interal<T: crate::Stream>(iter: &mut T) -> Result<thumb::Thumb, crate::ParseError> {
         let word: Option<u16> = iter.peek::<1>();
         let opcode: u16 = (match word {
             Some(val) => val,
             None => return Err(ParseError::IncompleteProgram),
         })
         .mask::<10, 15>();
-        println!("Opcode: {opcode:#09b}");
 
         match opcode {
             0b010000 => return Ok(A5_3::parse(iter)?.encoding_specific_operations()),
@@ -64,8 +61,15 @@ impl Parse for Box<dyn HalfWord> {
         Err(ParseError::Invalid16Bit("Half word"))
     }
 }
-
-impl Statement for Box<dyn HalfWord> {}
+impl Parse for HalfWord {
+    type Target = (usize, thumb::Thumb);
+    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        Ok((16, Self::parse_interal(iter)?))
+    }
+}
 
 // #[cfg(test)]
 // mod test {

@@ -13,7 +13,7 @@ pub enum Condition {
     Cc,
     // Minus, negative N == 1
     Mi,
-    /// Plus, positive or zero, N == 0
+    /// Plus, positive or zero, N >= 0
     Pl,
     /// Overflow, V  == 1
     Vs,
@@ -35,6 +35,55 @@ pub enum Condition {
     None,
 }
 
+impl Condition {
+    fn invert(&self) -> Self {
+        match self {
+            Self::Eq => Self::Ne,
+            Self::Ne => Self::Eq,
+            Self::Cs => Self::Cc,
+            Self::Cc => Self::Cs,
+            Self::Mi => Self::Pl,
+            Self::Pl => Self::Mi,
+            Self::Vs => Self::Vc,
+            Self::Vc => Self::Vs,
+            Self::Hi => Self::Ls,
+            Self::Ls => Self::Hi,
+            Self::Ge => Self::Lt,
+            Self::Lt => Self::Ge,
+            Self::Gt => Self::Le,
+            Self::Le => Self::Gt,
+            Self::None => Self::None,
+        }
+    }
+}
+
+#[derive(Debug,Clone)]
+pub struct ITCondition {
+    pub conditions: Vec<Condition>,
+}
+
+impl From<(Condition, u8)> for ITCondition {
+    fn from(value: (Condition, u8)) -> Self {
+        let mut conditions = Vec::with_capacity(4);
+        let mut mask = value.1;
+        let cond = value.0;
+        for i in 0..3 {
+            if mask & 0b1 == 1 {
+                conditions.push(cond.clone());
+            } else {
+                conditions.push(cond.invert());
+            }
+            mask = mask >> 1;
+        }
+        Self { conditions }
+    }
+}
+
+impl Into<Vec<Condition>> for ITCondition {
+    fn into(self) -> Vec<Condition> {
+        self.conditions
+    }
+}
 impl TryFrom<u8> for Condition {
     type Error = ArchError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {

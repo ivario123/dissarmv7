@@ -107,8 +107,6 @@ impl Parse for A5_2 {
         }
     }
 }
-impl HalfWord for A5_2 {}
-impl Statement for A5_2 {}
 
 impl ToThumb for A5_2 {
     fn encoding_specific_operations(self) -> thumb::Thumb {

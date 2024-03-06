@@ -1,5 +1,5 @@
 use arch::{
-    condition::Condition,
+    condition::{Condition,ITCondition},
     register::{Register, RegisterList},
     shift::ImmShift,
     wrapper_types::*,
@@ -79,7 +79,7 @@ thumb!(
     Adr <rd: Register>, <add:bool>, <imm:u32>
 
     /// Needs expansion with carry bit
-    AndImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
+    AndImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry:bool}
     AndRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
 
@@ -94,12 +94,12 @@ thumb!(
 
     Bfi <rd: Register>, <rn: Register>, <lsb: u32>, <msb: u32>
 
-    BicImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
+    BicImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry: bool}
     BicRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
     Bkpt <imm: u32>
 
-    Bl <imm:i32>
+    Bl <imm: u32>
 
     /// Branch link and exchange
     ///
@@ -146,7 +146,7 @@ thumb!(
     // ==================================== D ====================================
 
     /// Bitwise exclusive or
-    EorImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
+    EorImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry: bool}
 
     /// Bitwise exclusive or
     EorRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
@@ -156,7 +156,7 @@ thumb!(
     /// Instruction syn barrier, flush pipe
     Isb {option: Imm4}
 
-    It <cond: Condition>, <mask: Imm4>
+    It <conds: ITCondition>/* , <mask: Imm4> */
 
     // ==================================== L ====================================
 
@@ -275,7 +275,7 @@ thumb!(
     /// Writes an immediate value in to the destination register
     ///
     /// Needs to be expanded with the carry flag
-    MovImmediate {s:bool}, <rd: Register>, <imm:Imm12>
+    MovImmediate {s:bool}, <rd: Register>, <imm:u32>, {carry:bool}
     MovImmediatePlain {s:bool}, <rd: Register>, <imm:u32>
 
     /// Coppies a value from a register in to the destination register
@@ -294,7 +294,7 @@ thumb!(
     Mul {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>
 
     /// Bitwise not of an immediate, stored in destination  register
-    MvnImmediate {s: bool}, <rd: Register>, <imm: u32>
+    MvnImmediate {s: bool}, <rd: Register>, {carry:bool}, <imm: u32>
 
     /// Bitwise not of a value stored in a register, result is stored in destination register
     MvnRegister {s: bool}, <rd: Register>, <rm: Register>, {shift:ImmShift}
@@ -310,13 +310,13 @@ thumb!(
     /// Logical OR Not, inclusive or
     ///
     /// This needs to be extended with the carry flag
-    OrnImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: Imm12>
+    OrnImmediate {s: bool}, {rd: Register}, <rn: Register>, {carry: bool}, <imm: u32>
 
     /// Logical OR Not, inclusive or
     OrnRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     /// Logical or
-    OrrImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm:u32>
+    OrrImmediate {s: bool}, {rd: Register}, <rn: Register>, {carry:bool}, <imm:u32>
 
     /// Logical or
     OrrRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
@@ -510,11 +510,11 @@ thumb!(
 
     Tb {is_tbh:bool}, <rn: Register>, <rm: Register>
 
-    TeqImmediate    <rn: Register>, <imm: Imm12>
+    TeqImmediate    <rn: Register>, {carry:bool}, <imm: u32>
     TeqRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     /// Needs expansion with carry bit
-    TstImmediate    <rn: Register>, <imm: Imm12>
+    TstImmediate    <rn: Register>, {carry:bool}, <imm: u32>
     TstRegister     <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     // ==================================== U ====================================

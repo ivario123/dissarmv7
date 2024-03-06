@@ -135,14 +135,21 @@ pub struct StreamParser {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ASM {
-    statements: Vec<thumb::Thumb>,
+    statements: Vec<(usize, thumb::Thumb)>,
 }
 
-impl From<Vec<Thumb>> for ASM {
-    fn from(value: Vec<thumb::Thumb>) -> Self {
+impl From<Vec<(usize, Thumb)>> for ASM {
+    fn from(value: Vec<(usize, thumb::Thumb)>) -> Self {
         Self { statements: value }
     }
 }
+
+impl Into<Vec<(usize, Thumb)>> for ASM {
+    fn into(self) -> Vec<(usize, Thumb)> {
+        self.statements
+    }
+}
+
 impl Parse for ASM {
     type Target = ASM;
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
@@ -153,7 +160,12 @@ impl Parse for ASM {
         while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
             match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
-                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
+                Err(e) => {
+                    return Err(ParseError::PartiallyParsed(
+                        Box::new(e),
+                        stmts.into_iter().map(|el| el.1).collect(),
+                    ))
+                }
             };
         }
         Ok(stmts.into())
@@ -169,14 +181,19 @@ impl ParseExact for ASM {
         for _ in 0..N {
             match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
-                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
+                Err(e) => {
+                    return Err(ParseError::PartiallyParsed(
+                        Box::new(e),
+                        stmts.into_iter().map(|el| el.1).collect(),
+                    ))
+                }
             };
         }
         Ok(stmts.into())
     }
 }
 impl ParseSingle for thumb::Thumb {
-    type Target = thumb::Thumb;
+    type Target = (usize, thumb::Thumb);
     fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,
@@ -188,8 +205,8 @@ impl ParseSingle for thumb::Thumb {
         let halfword = halfword.unwrap();
 
         Ok(match halfword >> 11 {
-            0b11101 | 0b11110 | 0b11111 => <Box<dyn FullWord>>::parse(iter)?,
-            _ => <Box<dyn HalfWord>>::parse(iter)?,
+            0b11101 | 0b11110 | 0b11111 => FullWord::parse(iter)?,
+            _ => HalfWord::parse(iter)?,
         })
     }
 }

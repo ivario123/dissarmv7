@@ -24,6 +24,7 @@ impl Mask for u32 {
         let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
 
         let ret = intermediate & mask;
+        assert!(ret <= mask);
         ret
     }
 }

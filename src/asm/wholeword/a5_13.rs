@@ -121,8 +121,6 @@ impl Parse for A5_13 {
         Err(ParseError::Invalid32Bit("A5_13"))
     }
 }
-impl Statement for A5_13 {}
-impl FullWord for A5_13 {}
 
 impl ToThumb for A5_13 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
@@ -155,7 +153,8 @@ impl ToThumb for A5_13 {
             Self::Mrs(_el) => todo!("This is a system level instruction and should not be needed"),
             Self::Bl(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
-                let num = combine!(s:j1,1:j2,1:imm10,10:imm11,11:0,1,u32);
+                let (i1, i2) = (!(j1 ^ s), !(j2 ^ s));
+                let num = combine!(s:i1,1:i2,1:imm10,10:imm11,11:0,1,u32);
 
                 let mut imm: Imm25 = num
                     .try_into()

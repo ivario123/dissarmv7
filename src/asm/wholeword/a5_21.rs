@@ -103,8 +103,14 @@ impl Parse for A5_21 {
             Some(word) => Ok(word),
             None => Err(ParseError::IncompleteProgram),
         }?;
-        let op2 = word.mask::<10, 11>();
+        // Only concerned with first bit
+        let op2 = word.mask::<11, 11>();
         let op1 = word.mask::<21, 23>();
+        
+        println!("
+                 op2 :  0b{op2:01b}
+                 op1 :  0b{op1:03b}
+                 ");
         match (op1, op2) {
             (0b100, _) => Ok(Self::StrbT2(StrbT2::parse(iter)?)),
             (0b000, 1) => Ok(Self::StrbT3(StrbT3::parse(iter)?)),

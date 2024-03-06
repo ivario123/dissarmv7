@@ -121,9 +121,6 @@ instruction_5_3!(
     }
 );
 
-impl Statement for A5_3 {}
-impl HalfWord for A5_3 {}
-
 impl ToThumb for A5_3 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {

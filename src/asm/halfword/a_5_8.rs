@@ -34,8 +34,6 @@ impl Parse for A5_8 {
         Ok(Self::B(B::parse(iter)?))
     }
 }
-impl Statement for A5_8 {}
-impl HalfWord for A5_8 {}
 impl ToThumb for A5_8 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {

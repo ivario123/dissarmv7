@@ -23,19 +23,28 @@ macro_rules! combine {
 }
 impl Imm12 {
     pub fn thumb_expand_imm(self) -> u32 {
+        self.thumb_expand_imm_c().0
+    }
+    pub fn thumb_expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
         let zero = 0;
         if repr.mask::<10, 11>() == 0 {
             let bits = repr.mask::<0, 7>();
-            return match repr.mask::<8, 9>() {
-                0 => repr.into(),
-                1 => combine!(zero:bits,8:zero,8:bits,8,u32),
-                2 => combine!(bits:zero,8:bits,8:zero,8,u32),
-                3 => combine!(bits:bits,8:bits,8:bits,8,u32),
-                _ => unreachable!("Given that mask works there is no other option here"),
-            };
+            return (
+                match repr.mask::<8, 9>() {
+                    0 => repr.into(),
+                    1 => combine!(zero:bits,8:zero,8:bits,8,u32),
+                    2 => combine!(bits:zero,8:bits,8:zero,8,u32),
+                    3 => combine!(bits:bits,8:bits,8:bits,8,u32),
+                    _ => unreachable!("Given that mask works there is no other option here"),
+                },
+                None,
+            );
         }
-        todo!("What is ror c where https://developer.arm.com/documentation/ddi0308/d/Thumb-Instructions/Immediate-constants/Operation?lang=en")
+        let unrotated = (1<<7) + repr.mask::<0,6>() as u32;
+        let ret = unrotated.rotate_right(repr.mask::<10,11>() as u32);
+        let c = ret.mask::<31,31>() == 1;
+        (ret,Some(c))
     }
 }
 
@@ -57,13 +66,9 @@ pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
     if sign == 0 {
         return *el as i32;
     }
-    println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
-    println!("mask:{mask}");
     let mask = mask ^ ((1 << (1)) - 1_u32);
-    println!("mask:{mask}");
     let ret = mask | *el;
-    println!("ret:{ret}");
 
     ret as i32
 }
@@ -73,13 +78,9 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     if sign == 0 {
         return *el;
     }
-    println!("sign:{sign}");
     let mask: u32 = if sign != 0 { !0 } else { 0 };
-    println!("mask:{mask}");
     let mask = mask ^ ((1 << (1)) - 1_u32);
-    println!("mask:{mask}");
     let ret = mask | *el;
-    println!("ret:{ret}");
 
     ret
 }
@@ -165,13 +166,9 @@ macro_rules! signextend {
                         if sign == 0{
                             return self.val as $target;
                         }
-                        println!("sign:{sign}");
                         let mask: $intermediate = if sign != 0 { !0 } else { 0 };
-                        println!("mask:{mask}");
                         let mask = mask ^ ((1 << (<Self as sealed::SignBit>::BIT+1)) - (1 as $intermediate));
-                        println!("mask:{mask}");
                         let ret = mask | (self.val as $intermediate);
-                        println!("ret:{ret}");
 
                         ret as $target
                     }

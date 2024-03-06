@@ -27,21 +27,10 @@ instruction!(
         rn              as u8 : Register  : 8->10 try_into
     },
     B  : {
-        imm11  as u16 : u16       : 0->7
+        imm11  as u16 : u16       : 0->10
         //cond  as u8 : Condition: 8->12 try_into
     }
 );
-macro_rules! halfword {
-    ($($id:ident)+) => {
-        $(
-            impl Statement for $id{
-            }
-            impl HalfWord for $id{
-            }
-        )+
-    };
-}
-halfword!(Ldr Adr Add Stm Ldm B);
 
 impl ToThumb for Ldr {
     fn encoding_specific_operations(self) -> thumb::Thumb {

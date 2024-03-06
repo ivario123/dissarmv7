@@ -2,14 +2,10 @@
 //!
 //! These have one or no fields but might have side-effects
 use crate::asm::Mask;
-use crate::asm::Statement;
-
 use crate::prelude::*;
-
 use crate::ParseError;
 use crate::ToThumb;
 
-use super::FullWord;
 
 /// Defines some maker instructions
 #[derive(Debug)]
@@ -60,8 +56,6 @@ impl Parse for A5_14 {
     }
 }
 
-impl Statement for A5_14 {}
-impl FullWord for A5_14 {}
 
 impl ToThumb for A5_14 {
     fn encoding_specific_operations(self) -> thumb::Thumb {

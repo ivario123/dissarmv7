@@ -19,27 +19,38 @@ pub mod a5_28;
 pub mod a5_29;
 pub mod a5_30;
 
-use super::Statement;
 use crate::{asm::Mask, Parse, ParseError, ToThumb};
 
-/// A 16-bit wide instruction
-pub trait FullWord: Statement {}
+/// A 32-bit wide instruction
+pub enum FullWord {}
 
-/// A 16-bit wide instruction
-impl Parse for Box<dyn FullWord> {
-    type Target = thumb::Thumb;
-    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError> {
-        let first: u16 = match iter.peek::<1>() {
+impl Parse for FullWord {
+    type Target = (usize, thumb::Thumb);
+    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized,
+    {
+        let ret = match Self::parse_interal(iter) {
+            Ok(e) => e,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        Ok((32, ret))
+    }
+}
+
+/// A 32-bit wide instruction
+impl FullWord {
+    fn parse_interal<T: crate::Stream>(iter: &mut T) -> Result<thumb::Thumb, crate::ParseError> {
+        let word: u32 = match iter.peek::<1>() {
             Some(value) => value,
             None => return Err(ParseError::IncompleteProgram),
         };
-        let second: u16 = match iter.peek::<2>() {
-            Some(value) => Ok(value),
-            None => Err(ParseError::Inclomplete32Bit),
-        }?;
-        let op1 = first.mask::<11, 12>();
-        let op2 = first.mask::<4, 10>();
-        let op = second.mask::<15, 15>();
+        let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
+        let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
+        let op = word.mask::<15, 15>();
         if op1 > 3 {
             println!("{op1} > 3");
             return Err(ParseError::InternalError("Masking is broken op1 > 3"));
@@ -93,6 +104,15 @@ impl Parse for Box<dyn FullWord> {
             return Ok(a5_29::A5_29::parse(iter)?.encoding_specific_operations());
         }
         if op2 >> 6 == 1 {
+            println!(
+                "
+instr: 0b{:32b}
+op1 : 0b{:02b}
+op2 : 0b{:07b}
+op  : 0b{:01b}
+                     ",
+                word, op1, op2, op
+            );
             // Co processor things
             return Err(ParseError::IncompleteParser);
         }
@@ -100,5 +120,3 @@ impl Parse for Box<dyn FullWord> {
         Err(ParseError::Invalid32Bit(""))
     }
 }
-
-impl Statement for Box<dyn FullWord> {}

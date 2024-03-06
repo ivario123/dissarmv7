@@ -38,7 +38,7 @@ instruction!(
     Tst : {
         imm8 as u16 : u16        : 0 -> 7,
         imm3 as u16 : u16        : 12 -> 14,
-        rn as u8   : Register   : 16 -> 19 try_into,
+        rn as u8    : Register   : 16 -> 19 try_into,
         i as u16    : u16        : 26 -> 26
     },
     Bic : {
@@ -222,8 +222,6 @@ impl Parse for A5_10 {
         }
     }
 }
-impl Statement for A5_10 {}
-impl FullWord for A5_10 {}
 
 macro_rules! combine_wrapper {
     (
@@ -248,86 +246,105 @@ impl ToThumb for A5_10 {
         use A5_10::*;
         match self {
             And(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::AndImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
                     .set_s(Some(el.s))
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Tst(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = Imm12::try_into(imm).unwrap();
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::TstImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Bic(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::BicImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
                     .set_s(Some(el.s))
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Orr(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::OrrImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
                     .set_s(Some(el.s))
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Mov(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::MovImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Orn(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::OrnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Mvn(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::MvnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Eor(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::EorImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }
             Teq(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let (imm, carry) = imm.thumb_expand_imm_c();
                 thumb::TeqImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
+                    .set_carry(carry)
                     .complete()
                     .into()
             }

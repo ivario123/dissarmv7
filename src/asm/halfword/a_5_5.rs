@@ -153,8 +153,6 @@ impl Parse for A5_5 {
         Err(ParseError::Invalid16Bit("A5_5"))
     }
 }
-impl HalfWord for A5_5 {}
-impl Statement for A5_5 {}
 
 impl ToThumb for A5_5 {
     fn encoding_specific_operations(self) -> thumb::Thumb {

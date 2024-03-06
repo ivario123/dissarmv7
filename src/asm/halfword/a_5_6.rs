@@ -1,7 +1,7 @@
 use super::a_5_7::A5_7;
 use super::{HalfWord, Mask};
-use crate::instruction;
 use crate::{asm::Statement, Parse, ParseError, ToThumb};
+use crate::{combine, instruction};
 use arch::{Register, RegisterList};
 use paste::paste;
 
@@ -61,8 +61,8 @@ instruction!(
         rm as u8 : Register : 3 ->  5   try_into
     },
     Pop   : {
-        register_list : RegisterList: 0->7 try_into,
-        p as u8:u8                  : 8->8
+        register_list : u16 : 0->7,
+        p as u16: u16                  : 8->8
     },
     Bkpt  : {
         imm8 as u8 : u8             : 0->7
@@ -142,8 +142,7 @@ impl Parse for A5_6 {
         Err(ParseError::Invalid16Bit("A5_6"))
     }
 }
-impl HalfWord for A5_6 {}
-impl Statement for A5_6 {}
+
 impl ToThumb for A5_6 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
@@ -196,10 +195,16 @@ impl ToThumb for A5_6 {
                 .set_rotation(None)
                 .complete()
                 .into(),
-            Self::Push(el) => thumb::Push::builder()
-                .set_registers(el.register_list)
-                .complete()
-                .into(),
+            Self::Push(el) => {
+                let mut el = el;
+                if el.m == 1 {
+                    el.register_list.regs.push(Register::LR);
+                }
+                thumb::Push::builder()
+                    .set_registers(el.register_list)
+                    .complete()
+                    .into()
+            }
             Self::Rev(el) => thumb::Rev::builder()
                 .set_rd(el.rd)
                 .set_rm(el.rm)
@@ -221,10 +226,15 @@ impl ToThumb for A5_6 {
                 .set_imm((el.imm5 as u32) << 1)
                 .complete()
                 .into(),
-            Self::Pop(el) => thumb::Pop::builder()
-                .set_registers(el.register_list)
-                .complete()
-                .into(),
+            Self::Pop(el) => {
+                let registers = el.register_list;
+                let p = el.p;
+                let registers = combine!(p:0,7:registers,8,u16).try_into().unwrap();
+                thumb::Pop::builder()
+                    .set_registers(registers)
+                    .complete()
+                    .into()
+            }
             Self::Bkpt(el) => thumb::Bkpt::builder()
                 .set_imm(el.imm8 as u32)
                 .complete()

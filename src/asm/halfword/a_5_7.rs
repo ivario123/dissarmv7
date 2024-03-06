@@ -9,7 +9,7 @@ use thumb::{self};
 instruction!(
     size u16; A5_7 contains
     It : {
-        mask        as u8   : Imm4    : 0 -> 3 try_into,
+        mask        as u8    : u8    : 0 -> 3 ,
         firstcond    as u8   : Condition    : 4 -> 7 try_into
     },
     Nop : {},
@@ -47,8 +47,7 @@ impl ToThumb for A5_7 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::It(it) => thumb::It::builder()
-                .set_cond(it.firstcond)
-                .set_mask(it.mask)
+                .set_conds((it.firstcond,it.mask).into())
                 .complete()
                 .into(),
             Self::Nop(_) => thumb::Nop::builder().complete().into(),

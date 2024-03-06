@@ -42,8 +42,6 @@ impl Parse for A5_15 {
     }
 }
 
-impl Statement for A5_15 {}
-impl FullWord for A5_15 {}
 
 impl ToThumb for A5_15 {
     fn encoding_specific_operations(self) -> thumb::Thumb {

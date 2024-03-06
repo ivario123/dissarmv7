@@ -197,6 +197,7 @@ impl ToThumb for A5_12 {
                     .set_s(Some(false))
                     .set_rd(el.rd)
                     .set_imm(imm.into())
+                    .set_carry(None)
                     .complete()
                     .into()
             }

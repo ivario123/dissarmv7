@@ -1,34 +1,40 @@
-//! Defines an instruction decoder for the armv7 instructions
+//! Defines an instruction decoder for the Armv7 instruction set.
+//!
+//! The main export of this crate is the [`ASM`] object, which can be constructed
+//! by [`parsing`](ASM::parse) from a byte [`Buffer`](buffer::PeekableBuffer).
+#![deny(clippy::all)]
+#![deny(warnings)]
 
 pub mod architechture;
 pub mod asm;
 pub mod buffer;
 pub mod decoder;
-// pub mod condition;
+
 /// Internal helpers
 mod helpers;
-// pub mod register;
-// pub mod shift;
-
-use std::fmt::Debug;
 
 use arch::ArchError;
-use asm::{halfword::HalfWord, Statement};
+use asm::halfword::HalfWord;
+use std::fmt::Debug;
 use thumb::Thumb;
 
 use crate::asm::wholeword::{self, FullWord};
+
+
+/// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
+/// [`StreamParser`].
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct ASM {
+    statements: Vec<(usize, thumb::Thumb)>,
+}
+
 
 pub trait Peek<T: Sized>: Sized {
     /// Peeks `N` steps forward.
     ///
     /// If the value `N` exceeds the remaining buffer then the function returns None.
     fn peek<const N: usize>(&mut self) -> Option<T>;
-}
-pub trait Branch {
-    /// Creates a new Branch
-    ///
-    /// This branch has no access to the previous scope
-    fn branch(&self) -> Self;
 }
 
 pub trait Consume<T: Sized>: Sized + Peek<T> {
@@ -130,26 +136,6 @@ pub struct StreamParser {
     //
 }
 
-/// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
-/// [`StreamParser`].
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct ASM {
-    statements: Vec<(usize, thumb::Thumb)>,
-}
-
-impl From<Vec<(usize, Thumb)>> for ASM {
-    fn from(value: Vec<(usize, thumb::Thumb)>) -> Self {
-        Self { statements: value }
-    }
-}
-
-impl Into<Vec<(usize, Thumb)>> for ASM {
-    fn into(self) -> Vec<(usize, Thumb)> {
-        self.statements
-    }
-}
-
 impl Parse for ASM {
     type Target = ASM;
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
@@ -208,6 +194,18 @@ impl ParseSingle for thumb::Thumb {
             0b11101 | 0b11110 | 0b11111 => FullWord::parse(iter)?,
             _ => HalfWord::parse(iter)?,
         })
+    }
+}
+
+impl From<Vec<(usize, Thumb)>> for ASM {
+    fn from(value: Vec<(usize, thumb::Thumb)>) -> Self {
+        Self { statements: value }
+    }
+}
+
+impl From<ASM> for Vec<(usize, Thumb)> {
+    fn from(value: ASM) -> Vec<(usize, Thumb)> {
+        value.statements
     }
 }
 

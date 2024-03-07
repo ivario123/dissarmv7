@@ -1,24 +1,28 @@
+//! Defines a peekable buffer.
 //!
+//! This modules main export is the [`PeekableBuffer`]
+//! which allows the implementors of [`Parse`](crate::Parse)
+//! to get the next element in the buffer without consuming it.
+//! It also reorders the bytes to conform to the byte order of the
+//! Armv7 encoding, this allows for a 1:1 parsing in the implementors
+//! of [`Parse`](crate::Parse).
 
 use std::{fmt::Debug, usize};
 
 use crate::{Consume, Peek, Stream};
 
 #[derive(Debug)]
+/// A buffer that allows non intrusive peeking in linear time.
+///
+/// This type allows the user to [`peek`](PeekableBuffer::peek) the `N` next elements in the buffer,
+/// without mutating it. Moreover if the buffer is not large enough
+/// and the user tries to [`consume`](PeekableBuffer::consume) `N` elements
+/// from it and the buffer does not have `N` elements, no elements are consumed and
+/// an error is returned.
 pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {
     itter: T,
     peeked_elements: Vec<u8>,
 }
-
-impl<I: Sized, T: Iterator<Item = I>> From<T> for PeekableBuffer<I, T> {
-    fn from(itter: T) -> Self {
-        Self {
-            itter,
-            peeked_elements: Vec::new(),
-        }
-    }
-}
-
 impl<T: Sized + Iterator<Item = u8>> PeekableBuffer<u8, T> {
     // Peeks a u16 in to the peeked elements buffer
     fn peek_count(&mut self) -> bool {
@@ -34,7 +38,7 @@ impl<T: Sized + Iterator<Item = u8>> PeekableBuffer<u8, T> {
         // Convert to bytes in this machines order
         let intermediate = &u16::from_le_bytes(ret).to_ne_bytes()[0..counter];
         self.peeked_elements.extend(intermediate.iter().rev());
-        return counter == 2;
+        counter == 2
     }
 }
 
@@ -46,7 +50,7 @@ where
         let ret = (((self.peek::<1>()? as u16) as u32) << 16) | ((self.peek::<2>()? as u16) as u32);
 
         // Get the new byte and return it as a u16
-        return Some(ret);
+        Some(ret)
     }
 }
 
@@ -67,7 +71,7 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u16> for PeekableBuffer<u8, T> {
         let data = [els[offset + 1], els[offset]];
 
         // Get the new byte and return it as a u16
-        return Some(u16::from_ne_bytes(data));
+        Some(u16::from_ne_bytes(data))
     }
 }
 
@@ -83,7 +87,7 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u8> for PeekableBuffer<u8, T> {
             peeked = self.peeked_elements.len();
         }
         // Get the new byte and return it as a u16
-        return Some(self.peeked_elements[N - 1]);
+        Some(self.peeked_elements[N - 1])
     }
 }
 
@@ -141,3 +145,12 @@ impl<T: Iterator<Item = u8> + Debug> Consume<u8> for PeekableBuffer<u8, T> {
 }
 
 impl<T: Iterator<Item = u8> + Debug> Stream for PeekableBuffer<u8, T> {}
+
+impl<I: Sized, T: Iterator<Item = I>> From<T> for PeekableBuffer<I, T> {
+    fn from(itter: T) -> Self {
+        Self {
+            itter,
+            peeked_elements: Vec::new(),
+        }
+    }
+}

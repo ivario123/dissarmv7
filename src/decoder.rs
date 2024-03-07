@@ -374,7 +374,7 @@ impl Convert for Thumb {
                 let (rd, imm) = (rd.local_into(), imm.local_into());
                 pseudo!([
                     // Alling to 4 
-                    let aligned = Register("PC+")  / 4.local_into();
+                    let aligned = Register("PC")  / 4.local_into();
                     aligned = aligned * 4.local_into();
 
                     let result = aligned - imm;
@@ -612,7 +612,7 @@ impl Convert for Thumb {
                     Register("LR") = next_instr_addr<31:1> << 1.local_into();
                     Register("LR") |= 1.local_into();
                     Register("EPSR") = Register("EPSR") | (1 << 27).local_into();
-                    Jump(target);
+                    Register("PC") = target;
                 ])
             }
 
@@ -622,7 +622,7 @@ impl Convert for Thumb {
                 pseudo!([
                     let next_addr = rm;
                     next_addr = next_addr<31:1> << 1.local_into();
-                    Jump(next_addr);
+                    Register("PC") = next_addr;
                 ])
             }
             Thumb::Cbz(cbz) => {
@@ -637,7 +637,7 @@ impl Convert for Thumb {
                 };
                 pseudo!([
                     SetZFlag(rn);
-                    let dest = Register("PC") + imm;
+                    let dest = Register("PC+") + imm;
                     Jump(dest,cond);
                 ])
             }
@@ -1089,7 +1089,7 @@ impl Convert for Thumb {
                 );
                 let new_t = rt.clone().local_into();
                 pseudo!([
-                    let base = Register("PC+")/4.local_into();
+                    let base = Register("PC")/4.local_into();
                     base = base*4.local_into();
                     let address = base-imm;
                     if (add) {
@@ -2462,7 +2462,9 @@ impl Convert for Thumb {
             Thumb::Smlsd(_) => todo!("Need to revisit SInt"),
             Thumb::Smlsld(_) => todo!("Need to revisit SInt"),
             Thumb::Smmla(_) => todo!("Need to revisit SInt"),
-            Thumb::Smmls(_) => todo!("Need to revisit SInt"),
+            Thumb::Smmls(smmls) => {
+                todo!()
+            },
             Thumb::Smmul(_) => todo!("Need to revisit SInt"),
             Thumb::Smuad(_) => todo!("Need to revisit SInt"),
             Thumb::Smul(_) => todo!("Need to revisit SInt"),

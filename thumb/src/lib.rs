@@ -46,9 +46,9 @@ macro_rules! thumb {
 
                 ),*
             }
-            impl Into<Thumb> for $name{
-                fn into(self) -> Thumb{
-                    Thumb::$name(self)
+            impl From<$name> for Thumb{
+                fn from(val:$name) -> Thumb{
+                    Thumb::$name(val)
                 }
             }
         )*

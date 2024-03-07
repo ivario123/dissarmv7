@@ -73,15 +73,15 @@ impl From<(Condition, u8)> for ITCondition {
             } else {
                 conditions.push(cond.invert());
             }
-            mask = mask >> 1;
+            mask >>= 1;
         }
         Self { conditions }
     }
 }
 
-impl Into<Vec<Condition>> for ITCondition {
-    fn into(self) -> Vec<Condition> {
-        self.conditions
+impl From<ITCondition> for Vec<Condition> {
+    fn from(val: ITCondition) -> Self {
+        val.conditions
     }
 }
 impl TryFrom<u8> for Condition {

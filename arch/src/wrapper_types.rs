@@ -80,9 +80,9 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     }
     let mask: u32 = if sign != 0 { !0 } else { 0 };
     let mask = mask ^ ((1 << (1)) - 1_u32);
-    let ret = mask | *el;
+    
 
-    ret
+    mask | *el
 }
 
 pub trait SignExtendGeneric<T: Sized> {

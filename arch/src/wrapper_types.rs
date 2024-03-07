@@ -137,9 +137,10 @@ macro_rules! into {
     )*) => {
         $(
             $(
-                impl Into<$target> for $source{
-                    fn into(self) -> $target{
-                        self.val as $target
+                impl From<$source> for $target{
+                    fn from(val:$source) -> $target{
+                        
+                        val.val as $target
                     }
                 }
             )*

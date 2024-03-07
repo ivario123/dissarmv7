@@ -2,11 +2,13 @@ pub mod condition;
 pub mod register;
 pub mod shift;
 pub mod wrapper_types;
+pub mod coproc;
 
 pub use condition::*;
 pub use register::*;
 pub use shift::*;
 pub use wrapper_types::*;
+pub use coproc::*;
 
 #[derive(Debug, Clone)]
 pub enum ArchError {

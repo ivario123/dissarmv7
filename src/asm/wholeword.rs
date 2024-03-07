@@ -51,6 +51,11 @@ impl FullWord {
         let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
         let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
         let op = word.mask::<15, 15>();
+        // println!("
+        //          op1 : {op1:02b}
+        //          op2 : {op2:07b}
+        //          op  : {op:01b}
+        //          ");
         if op1 > 3 {
             println!("{op1} > 3");
             return Err(ParseError::InternalError("Masking is broken op1 > 3"));
@@ -69,18 +74,17 @@ impl FullWord {
             if (op2 >> 5) == 1 {
                 return Ok(a5_22::A5_22::parse(iter)?.encoding_specific_operations());
             }
+            if (op2 >> 6) == 1 {
+                return Ok(a5_30::A5_30::parse(iter)?.encoding_specific_operations());
+            }
             return Err(ParseError::Invalid32Bit("Invalid op2"));
         }
         if op1 == 2 {
             if op == 0 {
-                if (op2 >> 6) == 1 {
-                    todo!("No support for co-processor instructions");
-                    //return Ok(a5_30::A5_30::parse(iter)?.encoding_specific_operations())
-                }
-                if ((op2 >> 5) & 0b10) == 0 {
+                if (op2 & 0b0100000) == 0 {
                     return Ok(a5_10::A5_10::parse(iter)?.encoding_specific_operations());
                 }
-                return Err(ParseError::Invalid32Bit("Invalid op2"));
+                return Ok(a5_12::A5_12::parse(iter)?.encoding_specific_operations());
             }
             return Ok(a5_13::A5_13::parse(iter)?.encoding_specific_operations());
         }

@@ -213,6 +213,11 @@ impl Parse for A5_10 {
             }
             return Ok(Self::Cmp(Cmp::parse(iter)?));
         }
+        // println!("
+        //          Op : 0b{op:04b}
+        //          rn : 0b{rn:04b}
+        //          rd : 0b{rd:04b}
+        //          ");
         match op {
             1 => Ok(Self::Bic(Bic::parse(iter)?)),
             0b1010 => Ok(Self::Adc(Adc::parse(iter)?)),

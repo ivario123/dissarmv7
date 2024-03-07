@@ -116,11 +116,20 @@ impl Parse for A5_5 {
 
         let op1 = word.mask::<12, 15>();
         let op2 = word.mask::<9, 11>();
+        assert!(op2 <= 7);
 
         if op1 == 0b0101 {
-            match_iter!(
-                op2 iter Str Strh Strb Ldrsb Ldr Ldrh Ldrb Ldrsh
-            );
+            return match op2 {
+                0 => Ok(Self::Str(Str::parse(iter)?)),
+                1 => Ok(Self::Strh(Strh::parse(iter)?)),
+                2 => Ok(Self::Strb(Strb::parse(iter)?)),
+                3 => Ok(Self::Ldr(Ldr::parse(iter)?)),
+                4 => Ok(Self::Ldrh(Ldrh::parse(iter)?)),
+                5 => Ok(Self::Ldrh(Ldrh::parse(iter)?)),
+                6 => Ok(Self::Ldrb(Ldrb::parse(iter)?)),
+                7 => Ok(Self::Ldrsh(Ldrsh::parse(iter)?)),
+                _ => unreachable!("Ureachable due to previous asserts"),
+            };
         }
         if op1 == 0b0110 {
             return Ok(if op2 & 0b100 == 0 {

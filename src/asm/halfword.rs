@@ -36,8 +36,8 @@ impl HalfWord {
             0b01001 => return Ok(simply_defined::Ldr::parse(iter)?.encoding_specific_operations()),
             0b10100 => return Ok(simply_defined::Adr::parse(iter)?.encoding_specific_operations()),
             0b10101 => return Ok(simply_defined::Add::parse(iter)?.encoding_specific_operations()),
-            0b11000 => todo!("this might be tricky"),
-            0b11001 => todo!("this might also be tricky"),
+            0b11000 => return Ok(simply_defined::Stm::parse(iter)?.encoding_specific_operations()),
+            0b11001 => return Ok(simply_defined::Ldm::parse(iter)?.encoding_specific_operations()),
             0b11100 => return Ok(simply_defined::B::parse(iter)?.encoding_specific_operations()),
 
             _ => {}

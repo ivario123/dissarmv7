@@ -45,11 +45,10 @@ instruction!(
         cond    as u8   : Condition : 22 -> 25 try_into,
         s       as u8   : bool      : 26 -> 26 local_try_into
     },
-    // Lacks propper documentation
-    MSR : {
+    Msr : {
         sysm    as u8   : u8        : 0 -> 7,
-        mask    as u8   : u8        : 10 -> 11,
-        rn      as u8   : u8        : 16 -> 19
+        mask    as u8   : Imm2      : 10 -> 11 try_into,
+        rn      as u8   : Register  : 16 -> 19 try_into
     },
     -> A5_14,
     -> A5_15,
@@ -96,7 +95,7 @@ impl Parse for A5_13 {
                 return Ok(Self::BT3(BT3::parse(iter)?));
             }
             if op >> 1 == 0b11100 {
-                return Ok(Self::MSR(MSR::parse(iter)?));
+                return Ok(Self::Msr(Msr::parse(iter)?));
             }
             if op >> 1 == 0b011111 {
                 return Ok(Self::Mrs(Mrs::parse(iter)?));
@@ -149,8 +148,17 @@ impl ToThumb for A5_13 {
                     .complete()
                     .into()
             }
-            Self::MSR(_el) => todo!("This is a system level instruction and should not be needed"),
-            Self::Mrs(_el) => todo!("This is a system level instruction and should not be needed"),
+            Self::Msr(el) => thumb::Msr::builder()
+                .set_rn(el.rn)
+                .set_mask(el.mask)
+                .set_sysm(el.sysm)
+                .complete()
+                .into(),
+            Self::Mrs(el) => thumb::Mrs::builder()
+                .set_rd(el.rd)
+                .set_sysm(el.sysm)
+                .complete()
+                .into(),
             Self::Bl(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
                 let (i1, i2) = (!(j1 ^ s), !(j2 ^ s));

@@ -177,11 +177,6 @@ impl Convert for Thumb {
                 }]);
                 if let Some(true) = s {
                     ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
                         Operation::SetNFlag(rd.clone()),
                         Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
@@ -204,7 +199,9 @@ impl Convert for Thumb {
                 consume!((s,rd,rn,rm,shift) from adc);
                 let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
                 let rd = rd.unwrap_or(rn.clone());
+                local!(shifted);
                 let (mut ret, local_rn, local_rm) = backup!(rn, rm);
+                shift!(ret.shift rm -> shifted);
                 ret.extend([Operation::Adc {
                     destination: rd.clone(),
                     operand1: rm.clone(),
@@ -212,11 +209,6 @@ impl Convert for Thumb {
                 }]);
                 if let Some(true) = s {
                     ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
                         Operation::SetNFlag(rd.clone()),
                         Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
@@ -236,77 +228,69 @@ impl Convert for Thumb {
                 ret
             }
             Thumb::AddImmediate(add) => {
-                consume!((s,rd,rn,imm) from add);
+                consume!((
+                          s.unwrap_or(false),
+                          rd,
+                          rn,
+                          imm
+                          ) from add);
                 let (rd, rn, imm) = (
                     rd.unwrap_or(rn).local_into(),
                     rn.local_into(),
                     imm.local_into(),
                 );
-                let (mut ret, local_rn) = backup!(rn);
+                pseudo!([
+                    let result = imm + rn;
+                    rd = result;
+                    if (s) {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        Flag("c") = 0.local_into();
+                        SetCFlag(imm,rn,false,true);
+                        SetVFlag(imm,rn,false,true);
+                    }
+                ])
 
-                ret.push(Operation::Add {
-                    destination: rd.clone(),
-                    operand1: rn.clone(),
-                    operand2: imm.clone(),
-                });
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: imm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: imm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
-                ret
             }
             Thumb::AddRegister(add) => {
-                consume!((s,rd,rn,rm,shift) from add);
+                consume!((
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from add
+                );
+                let should_jump = match rd {
+                    Some(Register::PC) => true,
+                    None => match rn {
+                        Register::PC => true,
+                        _ => false,
+                    },
+                    _ => false
+                };
+
                 let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
                 let rd = rd.unwrap_or(rn.clone());
-                let (mut ret, local_rn, local_rm) = backup!(rn, rm);
-                ret.extend([Operation::Adc {
-                    destination: rd.clone(),
-                    operand1: rm.clone(),
-                    operand2: rn.clone(),
-                }]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: local_rm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: local_rm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
+
+                let mut ret = vec![];
+                local!(shifted);
+                shift!(ret.shift rm -> shifted);
+                pseudo!( ret.extend[
+                    let result = shifted + rn;
+                    if (should_jump) {
+                        Jump(result);
+                    } else {
+                        rd = result;
+                    }
+                    if (s) {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        Flag("c") = 0.local_into();
+                        SetCFlag(shifted,rn,false,true);
+                        SetVFlag(shifted,rn,false,true);
+                    }
+                ]);
                 ret
             }
             Thumb::AddSPImmediate(add) => {
@@ -325,11 +309,6 @@ impl Convert for Thumb {
                 });
                 if let Some(true) = s {
                     ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
                         Operation::SetNFlag(rd.clone()),
                         Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
@@ -361,30 +340,28 @@ impl Convert for Thumb {
                     Register::SP.local_into(),
                     rm.local_into(),
                 );
-                let (mut ret, local_rn, local_rm) = backup!(rn, rm);
+                let (mut ret, local_rn) = backup!(rn);
+                local!(shifted);
+
+                shift!(ret.shift rm -> shifted);
                 ret.extend([Operation::Adc {
                     destination: rd.clone(),
-                    operand1: rm.clone(),
+                    operand1: shifted.clone(),
                     operand2: rn.clone(),
                 }]);
                 if let Some(true) = s {
                     ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
                         Operation::SetNFlag(rd.clone()),
                         Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
-                            operand2: local_rm.clone(),
+                            operand2: shifted.clone(),
                             sub: false,
                             carry: false,
                         },
                         Operation::SetVFlag {
                             operand1: local_rn,
-                            operand2: local_rm,
+                            operand2: shifted,
                             sub: false,
                             carry: false,
                         },
@@ -1254,6 +1231,8 @@ impl Convert for Thumb {
                         add.unwrap_or(false),
                         w.unwrap_or(false),
                         index.unwrap_or(false)) from ldrd);
+                // These are not used in the pseudo code
+                let (_w,_index) = (w,index);
                 pseudo!([
                     let address = Register("PC+") - imm;
                     if (add) {
@@ -1515,7 +1494,7 @@ impl Convert for Thumb {
             },
             Thumb::LslRegister(lsl) => {
                 consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsl);
-                local!(shift_n,result);
+                local!(shift_n);
                 let mut ret = vec![
                     Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
                 ];
@@ -1539,7 +1518,7 @@ impl Convert for Thumb {
             },
             Thumb::LsrRegister(lsr) => {
                 consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsr);
-                local!(shift_n,result);
+                local!(shift_n);
                 let mut ret = vec![
                     Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
                 ];
@@ -1905,7 +1884,7 @@ impl Convert for Thumb {
                 );
                 ret
             },
-            Thumb::PldImmediate(pld) => {
+            Thumb::PldImmediate(_pld) => {
                 todo!(" We need some speciality pre load instruction here")
             },
             Thumb::PldLiteral(_) => todo!(" We need some speciality pre load instruction here"),
@@ -1972,13 +1951,7 @@ impl Convert for Thumb {
             Thumb::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
             Thumb::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
             Thumb::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qsub(qsub) => {
-                consume!((
-                        rd.local_into(),
-                        rm.local_into(),
-                        rn.local_into()
-                    ) from qsub
-                );
+            Thumb::Qsub(_) => {
                 todo!("Need to add in the flags APSR.Q");
             },
             Thumb::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
@@ -2893,25 +2866,16 @@ impl Convert for Thumb {
                 let rn = Register::SP.local_into();
 
                 pseudo!([
-                    // let intermediate = !imm;
-                    //
-                    // // Backup previous flag
-                    // let old_c = Flag("c");
-                    // Flag("c") = 1.local_into();
-                    // let result = rn adc intermediate;
-                    //
-                    // rd = result;
-                    // if s {
-                    //     SetNFlag(result);
-                    //     SetZFlag(result);
-                    //     SetVFlag(rn,intermediate,false,true);
-                    //     SetCFlag(rn,intermediate,false,true);
-                    // }
-                    // else {
-                    //     Flag("c") = old_c;
-                    // }
-                    Register("SP") = Register("SP") - imm;
 
+                    let result = rn - imm;
+
+                    rd = result;
+                    if (s) {
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetVFlag(rn,imm,true,false);
+                        SetCFlag(rn,imm,true,false);
+                    }
                 ])
             },
             Thumb::SubSpMinusReg(sub) =>{
@@ -3456,7 +3420,7 @@ impl Convert for Thumb {
                 pseudo!([
                     let diff1 = rn<15:0> - rm<15:0>;
                     let diff2 = rn<31:16> - rm<31:16>;
-                    let rd = diff1<15:0>;
+                    rd = diff1<15:0>;
                     diff2 = diff2<15:0> << 16.local_into();
                     rd = rd | diff2;
 
@@ -3464,22 +3428,8 @@ impl Convert for Thumb {
                 ])
                 
             },
-            Thumb::Usub8(usub) => {
-
-                let (
-                    rn,rd,rm
-                ) = (
-                    usub.rn.local_into(),
-                    usub.rd.local_into(),
-                    usub.rm.local_into()
-                );
-                let rd = rd.unwrap_or(rn.clone());
-                pseudo!([
-                    let diff1 = rn<7:0> - rm<7:0>;
-                    let diff2 = rn<15:8> - rm<15:8>;
-                    let diff3 = rn<23:16> - rm<23:16>;
-                    let diff4 = rn<31:23> - rm<31:23>;
-                ])
+            Thumb::Usub8(_) => {
+                todo!("SIMD needs more work");
             },
             Thumb::Uxtab(uxtab) => {
                 let (
@@ -3594,9 +3544,6 @@ mod sealed {
     }
     pub trait ToString {
         fn to_string(self) -> String;
-    }
-    pub trait ToInt {
-        fn to_u32(self) -> u32;
     }
 }
 

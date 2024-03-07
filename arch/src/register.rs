@@ -23,12 +23,12 @@ macro_rules! reg {
                 Err(ArchError::InvalidRegister(value))
             }
         }
-        impl Into<u8> for Register {
+        impl From<Register> for u8 {
             #[allow(unused_assignments)]
-            fn into(self) -> u8 {
+            fn from(val:Register) -> u8 {
                 let mut i = 0;
                 $(
-                    if Self::$reg == self{
+                    if Register::$reg == val{
                         return i;
                     }
                     i+=1;

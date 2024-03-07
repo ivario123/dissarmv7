@@ -67,7 +67,7 @@ impl From<(Condition, u8)> for ITCondition {
         let mut conditions = Vec::with_capacity(4);
         let mut mask = value.1;
         let cond = value.0;
-        for i in 0..3 {
+        for _i in 0..3 {
             if mask & 0b1 == 1 {
                 conditions.push(cond.clone());
             } else {

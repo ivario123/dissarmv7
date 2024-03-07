@@ -25,12 +25,12 @@ macro_rules! coproc {
                 Err(ArchError::InvalidRegister(value))
             }
         }
-        impl Into<u8> for CoProcessor {
+        impl From<CoProcessor> for u8 {
             #[allow(unused_assignments)]
-            fn into(self) -> u8 {
+            fn from(val:CoProcessor) -> u8 {
                 let mut i = 0;
                 $(
-                    if Self::$coproc == self{
+                    if CoProcessor::$coproc == val{
                         return i;
                     }
                     i+=1;

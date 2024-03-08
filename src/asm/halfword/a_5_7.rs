@@ -59,3 +59,82 @@ impl ToThumb for A5_7 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use arch::ITCondition;
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_it() {
+        let bin = [0b10111111u8, 0b00110011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let condition:Condition = Condition::try_from(0b0011u8).unwrap();
+        let target: Thumb = thumb::It::builder()
+            .set_conds(ITCondition::try_from((condition,0b0011)).unwrap())
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_nop() {
+        let bin = [0b10111111u8, 0];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Nop::builder()
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_yield() {
+        let bin = [0b10111111u8, 0b00010000u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Yield::builder()
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_wfe() {
+        let bin = [0b10111111u8, 0b00100000u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Wfe::builder()
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_wfi() {
+        let bin = [0b10111111u8, 0b00110000u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Wfi::builder()
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sev() {
+        let bin = [0b10111111u8, 0b01000000u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Sev::builder()
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+}
+
+

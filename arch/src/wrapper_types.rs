@@ -1,4 +1,5 @@
 //! Creates a few helper types to make translations clearer
+
 use crate::{ArchError, Mask};
 
 macro_rules! combine {
@@ -48,11 +49,6 @@ impl Imm12 {
     }
 }
 
-// impl From<u16> for Imm12 {
-//     fn from(value: u16) -> Self {
-//         Self { val: value }
-//     }
-// }
 
 mod sealed {
     pub trait SignBit {
@@ -185,6 +181,8 @@ imm!(
     Imm3(u8),
     Imm4(u8),
     Imm5(u8),
+    Imm8(u8),
+    Imm9(u16),
     Imm12(u16),
     Imm21(u32),
     Imm25(u32)
@@ -195,6 +193,8 @@ into!(
     Imm3 => {u8,u16,u32}
     Imm4 => {u8,u16,u32}
     Imm5 => {u8,u16,u32}
+    Imm8 => {u8,u16,u32}
+    Imm9 => {u16,u32}
     Imm12 => {u16,u32}
     Imm21 => {u32}
     Imm25 => {u32}
@@ -213,9 +213,17 @@ signextend!(
         u32 => i32, u16 => i16, u8 => i8,
         u32 => u32, u16 => u16, u8 => u8
     }
-    (Imm5,3) => {
+    (Imm5,4) => {
         u32 => i32, u16 => i16, u8 => i8,
         u32 => u32, u16 => u16, u8 => u8
+    }
+    (Imm8,7) => {
+        u32 => i32, u16 => i16,
+        u32 => u32, u16 => u16
+    }
+    (Imm9,8) => {
+        u32 => i32, u16 => i16,
+        u32 => u32, u16 => u16
     }
     (Imm12,11) => {
         u32 => i32, u16 => i16,

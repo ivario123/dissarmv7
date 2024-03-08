@@ -70,7 +70,12 @@ impl Parse for HalfWord {
     where
         Self: Sized,
     {
-        Ok((16, Self::parse_interal(iter)?))
+        let ret = Self::parse_interal(iter)?;
+        let _:u16 = match iter.consume::<1>() {
+            Some(val) => val[0],
+            None => return Err(ParseError::IncompleteProgram)
+        };
+        Ok((16, ret))
     }
 }
 

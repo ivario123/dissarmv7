@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use general_assembly::{
     condition::Condition,
     operand::{DataWord, Operand},

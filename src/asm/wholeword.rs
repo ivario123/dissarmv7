@@ -37,6 +37,10 @@ impl Parse for FullWord {
                 return Err(e);
             }
         };
+        let _: u32 = match iter.consume::<1>() {
+            Some(val) => val[0],
+            None => return Err(ParseError::IncompleteProgram),
+        };
 
         Ok((32, ret))
     }

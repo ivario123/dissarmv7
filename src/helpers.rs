@@ -66,8 +66,8 @@ macro_rules! instruction {
                 fn parse<T: $crate::Stream>(iter: &mut T) -> Result<Self::Target, $crate::ParseError>
                 where
                     Self: Sized {
-                    let word: $size = match iter.consume::<1>(){
-                        Some(buff) => Ok(buff[0]),
+                    let word: $size = match iter.peek::<1>(){
+                        Some(buff) => Ok(buff),
                         None => Err(ParseError::Invalid16Bit(stringify!($id))),
                     }?;
                     $(
@@ -150,8 +150,8 @@ macro_rules! instruction {
                     where
                         Self: Sized {
                         // Consume a word from the buffer
-                        let word:$size = match iter.consume::<1>(){
-                            Some(buff) => Ok(buff[0]),
+                        let word:$size = match iter.peek::<1>(){
+                            Some(buff) => Ok(buff),
                             None => Err(ParseError::Invalid16Bit(stringify!($id))),
                         }?;
                         $(

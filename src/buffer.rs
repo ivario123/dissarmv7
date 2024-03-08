@@ -14,11 +14,11 @@ use crate::{Consume, Peek, Stream};
 #[derive(Debug)]
 /// A buffer that allows non intrusive peeking in linear time.
 ///
-/// This type allows the user to [`peek`](PeekableBuffer::peek) the `N` next elements in the buffer,
-/// without mutating it. Moreover if the buffer is not large enough
-/// and the user tries to [`consume`](PeekableBuffer::consume) `N` elements
-/// from it and the buffer does not have `N` elements, no elements are consumed and
-/// an error is returned.
+/// This type allows the user to [`peek`](PeekableBuffer::peek) the `N` next
+/// elements in the buffer, without mutating it. Moreover if the buffer is not
+/// large enough and the user tries to [`consume`](PeekableBuffer::consume) `N`
+/// elements from it and the buffer does not have `N` elements, no elements are
+/// consumed and an error is returned.
 pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {
     itter: T,
     peeked_elements: Vec<u8>,

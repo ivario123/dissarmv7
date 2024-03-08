@@ -63,6 +63,7 @@ impl HalfWord {
 }
 impl Parse for HalfWord {
     type Target = (usize, thumb::Thumb);
+
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

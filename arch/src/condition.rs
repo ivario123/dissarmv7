@@ -86,6 +86,7 @@ impl From<ITCondition> for Vec<Condition> {
 }
 impl TryFrom<u8> for Condition {
     type Error = ArchError;
+
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(match value {
             0b0 => Self::Eq,
@@ -109,6 +110,7 @@ impl TryFrom<u8> for Condition {
 }
 impl TryFrom<u16> for Condition {
     type Error = ArchError;
+
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         Self::try_from(value as u8)
     }

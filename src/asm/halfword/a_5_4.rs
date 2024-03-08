@@ -1,8 +1,8 @@
+use arch::{ImmShift, Register, Shift};
+use paste::paste;
+
 use super::{HalfWord, Mask};
 use crate::{asm::Statement, combine, instruction, Parse, ParseError, Stream, ToThumb};
-use arch::{ImmShift, Register, Shift};
-
-use paste::paste;
 instruction!(
     size u16;  A5_4 contains
     Add : {
@@ -30,6 +30,7 @@ instruction!(
 
 impl Parse for A5_4 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
     where
         Self: Sized,

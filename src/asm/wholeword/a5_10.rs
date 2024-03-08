@@ -1,13 +1,13 @@
+use arch::{Imm12, Register};
+use paste::paste;
+
+use super::FullWord;
 use crate::{
     asm::{Mask, Statement},
     combine, instruction,
     prelude::*,
     ParseError, ToThumb,
 };
-use arch::{Imm12, Register};
-use paste::paste;
-
-use super::FullWord;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -166,6 +166,7 @@ macro_rules! fields {
 
 impl Parse for A5_10 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

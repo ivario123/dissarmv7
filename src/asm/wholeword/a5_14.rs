@@ -22,6 +22,7 @@ pub enum A5_14 {
 
 impl Parse for A5_14 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

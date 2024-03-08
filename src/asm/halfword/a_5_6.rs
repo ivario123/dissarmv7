@@ -1,7 +1,8 @@
-use super::{a_5_7::A5_7, HalfWord, Mask};
-use crate::{asm::Statement, combine, instruction, Parse, ParseError, ToThumb};
 use arch::{Register, RegisterList};
 use paste::paste;
+
+use super::{a_5_7::A5_7, HalfWord, Mask};
+use crate::{asm::Statement, combine, instruction, Parse, ParseError, ToThumb};
 
 instruction!(
     size u16;  A5_6 contains
@@ -76,6 +77,7 @@ macro_rules! p {
 
 impl Parse for A5_6 {
     type Target = Self;
+
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

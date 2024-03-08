@@ -1,18 +1,14 @@
+use arch::{Condition, Imm21, Imm25, Register, SignExtend};
+use paste::paste;
+
+use super::FullWord;
 use crate::{
     asm::{Mask, Statement},
     combine, instruction,
     prelude::*,
-};
-
-use arch::{Condition, Imm21, Imm25, Register, SignExtend};
-
-use crate::{
     wholeword::{a5_14::A5_14, a5_15::A5_15},
     ParseError, ToThumb,
 };
-use paste::paste;
-
-use super::FullWord;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -79,6 +75,7 @@ instruction!(
 
 impl Parse for A5_13 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

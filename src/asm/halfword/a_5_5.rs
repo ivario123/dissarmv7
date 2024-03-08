@@ -1,8 +1,8 @@
+use arch::{ImmShift, Register, Shift};
+use paste::paste;
+
 use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, Parse, ParseError, Stream, ToThumb};
-use arch::{ImmShift, Register, Shift};
-
-use paste::paste;
 
 instruction!(
     size u16;  A5_5 contains
@@ -104,6 +104,7 @@ macro_rules! match_iter {
 }
 impl Parse for A5_5 {
     type Target = Self;
+
     #[allow(unused_assignments)]
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where

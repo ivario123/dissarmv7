@@ -1,10 +1,9 @@
-use crate::{asm::Statement, Parse, ParseError, ToThumb};
 use arch::Register;
 use paste::paste;
 use thumb;
 
 use super::{HalfWord, Mask};
-use crate::instruction;
+use crate::{asm::Statement, instruction, Parse, ParseError, ToThumb};
 macro_rules! instruction_5_3 {
     ($(
         $opcode:literal@$id:ident : {

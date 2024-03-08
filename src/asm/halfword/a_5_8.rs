@@ -1,8 +1,8 @@
+use arch::{wrapper_types::sign_extend_u32, Condition};
+use paste::paste;
+
 use super::{HalfWord, Mask};
 use crate::{asm::Statement, instruction, Parse, ParseError, Stream, ToThumb};
-use arch::{wrapper_types::sign_extend_u32, Condition};
-
-use paste::paste;
 
 instruction!(
     size u16;  A5_8 contains
@@ -17,6 +17,7 @@ instruction!(
 
 impl Parse for A5_8 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

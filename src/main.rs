@@ -1,9 +1,10 @@
-use dissarmv7::prelude::*;
 use std::{
     fmt::Debug,
     fs::File,
     io::{self, Read},
 };
+
+use dissarmv7::prelude::*;
 
 #[derive(Debug)]
 pub struct InfallibleBytes<T: Iterator<Item = io::Result<u8>> + Debug> {
@@ -11,6 +12,7 @@ pub struct InfallibleBytes<T: Iterator<Item = io::Result<u8>> + Debug> {
 }
 impl<T: Iterator<Item = io::Result<u8>> + Debug> Iterator for InfallibleBytes<T> {
     type Item = u8;
+
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|r| r.unwrap())
     }

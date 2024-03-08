@@ -1,10 +1,11 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use super::Mask;
-use crate::{instruction, Parse, ParseError, ToThumb};
 use arch::{Condition, Imm4};
 use paste::paste;
 use thumb::{self};
+
+use super::Mask;
+use crate::{instruction, Parse, ParseError, ToThumb};
 
 instruction!(
     size u16; A5_7 contains
@@ -21,6 +22,7 @@ instruction!(
 
 impl Parse for A5_7 {
     type Target = Self;
+
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

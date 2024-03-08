@@ -3,8 +3,9 @@
 //! Main macros is the [`instruction`] macro.
 //! This provides the ability to create a new instruction
 //! in a short and readable way.
-use crate::ParseError;
 use arch::ArchError;
+
+use crate::ParseError;
 
 impl From<ArchError> for ParseError {
     fn from(value: ArchError) -> Self {
@@ -28,10 +29,10 @@ impl From<ArchError> for ParseError {
 ///     }
 /// };
 /// ```
-/// This macro invocation provides an enum SomeTableIdent containing the variants
-/// (SomeInstructinIdent,PossiblyMoreInstructions) which in turn are structs
-/// containing the fields defined in the { } block. All of the fields in SomeTableIdent
-/// implement [`Parse`](crate::Parse).
+/// This macro invocation provides an enum SomeTableIdent containing the
+/// variants (SomeInstructinIdent,PossiblyMoreInstructions) which in turn are
+/// structs containing the fields defined in the { } block. All of the fields in
+/// SomeTableIdent implement [`Parse`](crate::Parse).
 macro_rules! instruction {
     (size $size:ty;
      $(

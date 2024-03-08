@@ -1,5 +1,6 @@
 //! Defines architechture specific helpers, these are not used in this crate
-//! but are provided as a helper for users of this crate and as a supplement for documentation.
+//! but are provided as a helper for users of this crate and as a supplement for
+//! documentation.
 
 /// Application status register.
 pub struct Apsr {

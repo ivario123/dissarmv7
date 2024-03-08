@@ -24,6 +24,7 @@ impl Imm12 {
     pub fn thumb_expand_imm(self) -> u32 {
         self.thumb_expand_imm_c().0
     }
+
     pub fn thumb_expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
         let zero = 0;
@@ -101,6 +102,7 @@ macro_rules! impl_try {
     ($id:ident:$type:ty : $source:ty) => {
         impl TryFrom<$source> for $id {
             type Error = ArchError;
+
             fn try_from(value: $source) -> Result<Self, Self::Error> {
                 if std::mem::size_of::<$source>() * 8 < (<Self as sealed::SignBit>::BIT + 1) {
                     return Err(ArchError::InvalidField("Immediate".to_string()));

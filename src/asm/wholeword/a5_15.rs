@@ -1,9 +1,9 @@
 use super::FullWord;
-use crate::asm::{Mask, Statement};
-
-use crate::prelude::*;
-
-use crate::{ParseError, ToThumb};
+use crate::{
+    asm::{Mask, Statement},
+    prelude::*,
+    ParseError, ToThumb,
+};
 
 /// Defines some maker instructions
 #[derive(Debug)]
@@ -20,6 +20,7 @@ pub enum A5_15 {
 
 impl Parse for A5_15 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

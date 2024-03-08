@@ -1,6 +1,7 @@
-use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
 use arch::{wrapper_types::*, Register};
 use paste::paste;
+
+use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
 
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
@@ -121,6 +122,7 @@ instruction!(
 
 impl Parse for A5_20 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

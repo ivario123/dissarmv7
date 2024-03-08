@@ -1,5 +1,9 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
+use arch::Register;
+use paste::paste;
+use thumb::{self};
+
 use super::{HalfWord, Mask};
 use crate::{
     asm::Statement,
@@ -7,9 +11,6 @@ use crate::{
     prelude::{ImmShift, Shift},
     Parse, ParseError, ToThumb,
 };
-use arch::Register;
-use paste::paste;
-use thumb::{self};
 
 instruction!(
     size u16; A5_2 contains
@@ -79,6 +80,7 @@ instruction!(
 
 impl Parse for A5_2 {
     type Target = Self;
+
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

@@ -26,6 +26,7 @@ pub enum FullWord {}
 
 impl Parse for FullWord {
     type Target = (usize, thumb::Thumb);
+
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

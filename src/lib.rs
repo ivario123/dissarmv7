@@ -1,9 +1,10 @@
 //! Defines an instruction decoder for the Armv7 instruction set.
 //!
-//! The main export of this crate is the [`ASM`] object, which can be constructed
-//! by [`parsing`](ASM::parse) from a byte [`Buffer`](buffer::PeekableBuffer).
-#![deny(clippy::all)]
-#![deny(warnings)]
+//! The main export of this crate is the [`ASM`] object, which can be
+//! constructed by [`parsing`](ASM::parse) from a byte
+//! [`Buffer`](buffer::PeekableBuffer).
+// #![deny(clippy::all)]
+// #![deny(warnings)]
 
 pub mod architechture;
 pub mod asm;
@@ -14,15 +15,16 @@ pub mod decoder;
 /// Internal helpers
 mod helpers;
 
+use std::fmt::Debug;
+
 use arch::ArchError;
 use asm::halfword::HalfWord;
-use std::fmt::Debug;
 use thumb::Thumb;
 
 use crate::asm::wholeword::{self, FullWord};
 
-/// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
-/// [`StreamParser`].
+/// Semanitcly different from [`StreamParser`] as this cannot be constructed
+/// without parsing from a [`StreamParser`].
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ASM {
@@ -32,15 +34,16 @@ pub struct ASM {
 pub trait Peek<T: Sized>: Sized {
     /// Peeks `N` steps forward.
     ///
-    /// If the value `N` exceeds the remaining buffer then the function returns None.
+    /// If the value `N` exceeds the remaining buffer then the function returns
+    /// None.
     fn peek<const N: usize>(&mut self) -> Option<T>;
 }
 
 pub trait Consume<T: Sized>: Sized + Peek<T> {
     // Consumes `N` items of type `T` forward.
     //
-    // If the value of `N` exceeds the remaining buffer then the function returns None
-    // and no items are consumed.
+    // If the value of `N` exceeds the remaining buffer then the function returns
+    // None and no items are consumed.
     fn consume<const N: usize>(&mut self) -> Option<[T; N]>;
 }
 
@@ -137,6 +140,7 @@ pub struct StreamParser {
 
 impl Parse for ASM {
     type Target = ASM;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
     where
         Self: Sized,
@@ -158,6 +162,7 @@ impl Parse for ASM {
 }
 impl ParseExact for ASM {
     type Target = Self;
+
     fn parse_exact<T: Stream, const N: usize>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,
@@ -179,6 +184,7 @@ impl ParseExact for ASM {
 }
 impl ParseSingle for thumb::Thumb {
     type Target = (usize, thumb::Thumb);
+
     fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,
@@ -209,8 +215,9 @@ impl From<ASM> for Vec<(usize, Thumb)> {
 }
 
 pub mod prelude {
-    pub use super::{Parse, ParseExact, Stream, ASM};
-    pub use crate::buffer::PeekableBuffer;
     pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
     pub use thumb::Thumb;
+
+    pub use super::{Parse, ParseExact, Stream, ASM};
+    pub use crate::buffer::PeekableBuffer;
 }

@@ -1,8 +1,8 @@
-use super::{a5_25::A5_25, a5_26::A5_26, a5_27::A5_27};
-use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
+use arch::{wrapper_types::*, Register};
 use paste::paste;
 
-use arch::{wrapper_types::*, Register};
+use super::{a5_25::A5_25, a5_26::A5_26, a5_27::A5_27};
+use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -124,6 +124,7 @@ instruction!(
 
 impl Parse for A5_24 {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
         Self: Sized,

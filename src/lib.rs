@@ -2,16 +2,16 @@
 //!
 //! The main export of this crate is the [`ASM`] object, which can be
 //! constructed by [`parsing`](ASM::parse) from a byte
-//! [`Buffer`](buffer::PeekableBuffer).
+//! [`Stream`](Stream).
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
 
-pub(crate) mod asm;
-pub(crate) mod buffer;
-
+pub mod buffer;
 #[rustfmt::skip]
 pub mod decoder;
+
+pub(crate) mod asm;
 
 /// Internal helpers
 mod helpers;
@@ -137,6 +137,7 @@ pub enum ParseError {
 
 impl Parse for ASM {
     type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
     where
         Self: Sized,
@@ -159,6 +160,7 @@ impl Parse for ASM {
 
 impl Parse for thumb::Thumb {
     type Target = (usize, thumb::Thumb);
+
     fn parse<T: Stream>(iter: &mut T) -> Result<(usize, thumb::Thumb), ParseError>
     where
         Self: Sized,

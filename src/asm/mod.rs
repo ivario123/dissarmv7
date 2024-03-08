@@ -5,7 +5,6 @@ use crate::ParseError;
 pub mod halfword;
 pub mod wholeword;
 
-
 pub(crate) trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -17,7 +16,9 @@ pub(crate) trait Mask {
 impl LocalTryInto<bool> for u8 {
     fn local_try_into(self) -> Result<bool, ParseError> {
         if self > 1 {
-            return Err(ParseError::InvalidField(format!("Invalid masking of bool {self}")))
+            return Err(ParseError::InvalidField(format!(
+                "Invalid masking of bool {self}"
+            )));
         }
         Ok(self != 0)
     }
@@ -25,7 +26,9 @@ impl LocalTryInto<bool> for u8 {
 impl LocalTryInto<bool> for u32 {
     fn local_try_into(self) -> Result<bool, ParseError> {
         if self > 1 {
-            return Err(ParseError::InvalidField(format!("Invalid masking of bool {self}")))
+            return Err(ParseError::InvalidField(format!(
+                "Invalid masking of bool {self}"
+            )));
         }
         Ok(self != 0)
     }

@@ -1,7 +1,13 @@
 use paste::paste;
 
-use crate::{asm::Mask, combine, instruction, prelude::*, ParseError, ToThumb};
-use crate::asm::LocalTryInto;
+use crate::{
+    asm::{LocalTryInto, Mask},
+    combine,
+    instruction,
+    prelude::*,
+    ParseError,
+    ToThumb,
+};
 
 instruction!(
     size u32; A5_12 contains

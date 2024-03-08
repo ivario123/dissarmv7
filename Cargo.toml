@@ -1,4 +1,4 @@
-workspace = { members = [ "arch","thumb"] }
+workspace = { members = [ "arch", "thumb"] }
 [package]
 name = "dissarmv7"
 version = "0.1.0"

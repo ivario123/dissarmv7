@@ -35,7 +35,7 @@ macro_rules! thumb {
             $(
                 #[doc = $comment]
             )*
-            #[derive(Builder,Consumer,Debug,Clone)]
+            #[derive(Builder,Consumer,Debug,Clone,PartialEq)]
             pub struct $name {
                 $(
                     $(
@@ -54,7 +54,7 @@ macro_rules! thumb {
             }
         )*
         /// All of the instructions availiable in the armv7 instruction set.
-        #[derive(Debug,Clone)]
+        #[derive(Debug,Clone,PartialEq)]
         pub enum Thumb {
             $(
                 $(

@@ -122,7 +122,7 @@ macro_rules! impl_try {
 macro_rules! imm {
     ($($id:ident($type:ty)),*) => {
         $(
-            #[derive(Debug,Clone,Copy)]
+            #[derive(Debug,Clone,Copy,PartialEq)]
             pub struct $id {
                 val:$type
             }

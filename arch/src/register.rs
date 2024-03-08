@@ -50,7 +50,7 @@ impl TryFrom<u16> for Register {
 
 /// Register lists lifted from a bit vector to allow
 /// type level representations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RegisterList {
     pub regs: Vec<Register>,
 }

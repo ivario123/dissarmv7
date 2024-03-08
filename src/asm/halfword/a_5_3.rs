@@ -124,7 +124,7 @@ impl ToThumb for A5_3 {
         match self {
             Self::And(and) => thumb::AndRegisterBuilder::new()
                 .set_s(Some(true))
-                .set_rd(Some(and.rdn))
+                .set_rd(None)
                 .set_rn(and.rdn)
                 .set_rm(and.rm)
                 .set_shift(None)
@@ -238,5 +238,270 @@ impl ToThumb for A5_3 {
                 .complete()
                 .into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_and_register() {
+        let bin = [0b01000000u8, 0b00000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::AndRegister::builder()
+            .set_s(Some(true))
+            .set_rd(None)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_eor_register() {
+        let bin = [0b01000000u8, 0b01000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::EorRegister::builder()
+            .set_s(Some(true))
+            .set_rd(None)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_lsl_register() {
+        let bin = [0b01000000u8, 0b10000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::LslRegister::builder()
+            .set_s(Some(true))
+            .set_rd(Register::R3)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_lsr_register() {
+        let bin = [0b01000000u8, 0b11000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::LsrRegister::builder()
+            .set_s(Some(true))
+            .set_rd(Register::R3)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_asr_register() {
+        let bin = [0b01000001u8, 0b00000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::AsrRegister::builder()
+            .set_s(Some(true))
+            .set_rd(Register::R3)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_adc_register() {
+        let bin = [0b01000001u8, 0b01000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::AdcRegister::builder()
+            .set_s(Some(true))
+            .set_rd(None)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sbc_register() {
+        let bin = [0b01000001u8, 0b10000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::SbcRegister::builder()
+            .set_s(Some(true))
+            .set_rd(None)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ror_register() {
+        let bin = [0b01000001u8, 0b11000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::RorRegister::builder()
+            .set_s(Some(true))
+            .set_rd(Register::R3)
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_tst_register() {
+        let bin = [0b01000010u8, 0b00000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::TstRegister::builder()
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_rsb_imm() {
+        let bin = [0b01000010u8, 0b01000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::RsbImmediate::builder()
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rn(Register::R0)
+            .set_imm(0)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_cmp_reg() {
+        let bin = [0b01000010u8, 0b10000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::CmpRegister::builder()
+            .set_rn(Register::R3)
+            .set_rm(Register::R0)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_cmn_reg() {
+        let bin = [0b01000010u8, 0b11000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::CmnRegister::builder()
+            .set_rn(Register::R3)
+            .set_rm(Register::R0)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_orr_reg() {
+        let bin = [0b01000011u8, 0b00000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::OrrRegister::builder()
+            .set_rd(None)
+            .set_s(Some(true))
+            .set_rn(Register::R3)
+            .set_rm(Register::R0)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_mul() {
+        let bin = [0b01000011u8, 0b01000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Mul::builder()
+            .set_rd(Some(Register::R3))
+            .set_s(Some(true))
+            .set_rn(Register::R0)
+            .set_rm(Register::R3)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_bic_reg() {
+        let bin = [0b01000011u8, 0b10000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::BicRegister::builder()
+            .set_rd(Some(Register::R3))
+            .set_s(Some(true))
+            .set_rm(Register::R0)
+            .set_rn(Register::R3)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_mvn_reg() {
+        let bin = [0b01000011u8, 0b11000011u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::MvnRegister::builder()
+            .set_rd(Register::R3)
+            .set_s(Some(true))
+            .set_rm(Register::R0)
+            .set_shift(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
     }
 }

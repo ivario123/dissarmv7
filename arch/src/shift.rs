@@ -32,7 +32,7 @@ impl TryFrom<u8> for Shift {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ImmShift {
     pub shift_n: u8,
     pub shift_t: Shift,

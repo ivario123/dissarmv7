@@ -1,6 +1,6 @@
 use crate::ArchError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Derived from section A7.3
 pub enum Condition {
     /// Exactly equal to, z == 1
@@ -57,7 +57,7 @@ impl Condition {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ITCondition {
     pub conditions: Vec<Condition>,
 }

@@ -1,9 +1,9 @@
-use arch::{Register, Shift};
 use paste::paste;
 
 use crate::{
     asm::Mask, combine, instruction, prelude::*, wholeword::a5_23::A5_23, ParseError, ToThumb,
 };
+
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }

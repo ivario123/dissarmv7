@@ -1,6 +1,6 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use arch::{Condition, Imm4};
+use arch::{Condition};
 use paste::paste;
 use thumb::{self};
 

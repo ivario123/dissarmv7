@@ -1,9 +1,8 @@
 use arch::{Imm12, Register};
 use paste::paste;
 
-use super::FullWord;
 use crate::{
-    asm::{Mask, Statement},
+    asm::{Mask},
     combine, instruction,
     prelude::*,
     ParseError, ToThumb,

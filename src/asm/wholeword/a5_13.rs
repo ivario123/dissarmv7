@@ -1,9 +1,8 @@
 use arch::{Condition, Imm21, Imm25, Register, SignExtend};
 use paste::paste;
 
-use super::FullWord;
 use crate::{
-    asm::{Mask, Statement},
+    asm::{Mask},
     combine, instruction,
     prelude::*,
     wholeword::{a5_14::A5_14, a5_15::A5_15},

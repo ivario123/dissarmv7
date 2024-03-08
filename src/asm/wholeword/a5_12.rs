@@ -1,4 +1,3 @@
-use arch::{Imm12, Register};
 use paste::paste;
 
 use crate::{asm::Mask, combine, instruction, prelude::*, ParseError, ToThumb};

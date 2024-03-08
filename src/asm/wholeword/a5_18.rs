@@ -1,4 +1,4 @@
-use arch::{wrapper_types::*, Register};
+use arch::wrapper_types::*;
 use paste::paste;
 
 use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};

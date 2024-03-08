@@ -1,6 +1,5 @@
-use super::FullWord;
 use crate::{
-    asm::{Mask, Statement},
+    asm::{Mask},
     prelude::*,
     ParseError, ToThumb,
 };

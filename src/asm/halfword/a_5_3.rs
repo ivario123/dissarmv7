@@ -2,8 +2,8 @@ use arch::Register;
 use paste::paste;
 use thumb;
 
-use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError, ToThumb};
+use super::{Mask};
+use crate::{instruction, Parse, ParseError, ToThumb};
 macro_rules! instruction_5_3 {
     ($(
         $opcode:literal@$id:ident : {

@@ -1,8 +1,8 @@
 use arch::{ImmShift, Register, Shift};
 use paste::paste;
 
-use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError, Stream, ToThumb};
+use super::{Mask};
+use crate::{instruction, Parse, ParseError, Stream, ToThumb};
 
 instruction!(
     size u16;  A5_5 contains

@@ -1,8 +1,8 @@
 use arch::{Condition, Imm12, Register, RegisterList, SignExtend};
 use paste::paste;
 
-use super::{HalfWord, Mask};
-use crate::{asm::Statement, instruction, Parse, ParseError, ToThumb};
+use super::{Mask};
+use crate::{instruction, Parse, ParseError, ToThumb};
 
 instruction!(
     size u16;

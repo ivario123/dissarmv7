@@ -220,10 +220,7 @@ impl Convert for Thumb {
                     );
                     let should_jump = match rd {
                         Some(Register::PC) => true,
-                        None => match rn {
-                            Register::PC => true,
-                            _ => false,
-                        },
+                        None =>matches!(rn, Register::PC),
                         _ => false,
                     };
 
@@ -395,7 +392,7 @@ impl Convert for Thumb {
                 }
                 Thumb::BicImmediate(bic) => {
                     consume!((s.unwrap_or(false),rd,rn,imm,carry) from bic);
-                    let (rd, rn, imm) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into(), imm.local_into());
+                    let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
                     let mut ret = vec![];
                     pseudo!(ret.extend[
 
@@ -493,7 +490,7 @@ impl Convert for Thumb {
                     //
                     //
                     // TODO! Change this to use a register read hook to generate symbolic values
-                    let rd_old = clz.rd.clone();
+                    let rd_old = clz.rd;
                     let rd = clz.rd.local_into();
                     vec![
                         Operation::Symbolic { destination: rd.clone(), name: rd_old.to_string() },
@@ -607,7 +604,7 @@ impl Convert for Thumb {
                 }
                 Thumb::EorRegister(eor) => {
                     consume!((s,rd,rn,rm,shift) from eor);
-                    let (rd, rn, rm) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into(), rm.local_into());
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
                     let mut ret = Vec::with_capacity(10);
                     let shifted = Operand::Local("destination".to_owned());
                     ret.extend(match shift {
@@ -681,27 +678,48 @@ impl Convert for Thumb {
                 }
                 Thumb::Ldmdb(ldmdb) => {
                     consume!((rn,w,registers) from ldmdb);
-                    let rn_old = rn.clone();
+                    let rn_old = rn;
                     let rn = rn.local_into();
                     let mut ret = Vec::with_capacity(15);
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 32);
-                    ret.push(Operation::Sub { destination: address_setter.clone(), operand1: rn.clone(), operand2: (4 * (registers.regs.len() as u32)).local_into() });
+                    ret.push(
+                        Operation::Sub { 
+                            destination: address_setter.clone(),
+                            operand1: rn.clone(),
+                            operand2: (4 * (registers.regs.len() as u32)).local_into() 
+                        }
+                    );
                     let mut write_back = w.unwrap_or(false);
                     for register in &registers.regs {
                         if *register == rn_old {
                             write_back = false;
                         }
-                        ret.extend([Operation::Move { destination: register.clone().local_into(), source: address.clone() }, Operation::Add { destination: address_setter.clone(), operand1: address_setter.clone(), operand2: 4.local_into() }]);
+                        ret.extend([
+                                   Operation::Move { 
+                                       destination: register.local_into(), 
+                                       source: address.clone()
+                                   },
+                                   Operation::Add {
+                                       destination: address_setter.clone(),
+                                       operand1: address_setter.clone(),
+                                       operand2: 4.local_into()
+                                   }]);
                     }
                     if write_back {
-                        ret.push(Operation::Sub { destination: rn.clone(), operand1: rn.clone(), operand2: (4 * (registers.regs.len() as u32)).local_into() });
+                        ret.push(
+                            Operation::Sub {
+                                destination: rn.clone(),
+                                operand1: rn.clone(),
+                                operand2: (4 * (registers.regs.len() as u32)).local_into()
+                            }
+                        );
                     }
                     ret
                 }
                 Thumb::LdrImmediate(ldr) => {
                     consume!((index,add,w.unwrap_or(false),rt,rn,imm) from ldr);
-                    let old_rt = rt.clone();
+                    let old_rt = rt;
                     let is_sp = old_rt == Register::SP;
                     let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
 
@@ -738,7 +756,7 @@ impl Convert for Thumb {
                             add
                         ) from ldr
                     );
-                    let new_t = rt.clone().local_into();
+                    let new_t = rt.local_into();
                     pseudo!([
                         let base = Register("PC")/4.local_into();
                         base = base*4.local_into();
@@ -758,7 +776,7 @@ impl Convert for Thumb {
                 Thumb::LdrRegister(ldr) => {
                     consume!((w,rt,rn,rm,shift) from ldr);
                     let _w = w;
-                    let rt_old = rt.clone();
+                    let rt_old = rt;
                     let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
                     let shift = match shift {
                         Some(shift) => shift.shift_n as u32,
@@ -1103,7 +1121,7 @@ impl Convert for Thumb {
                 }
                 Thumb::LslImmediate(lsl) => {
                     consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsl);
-                    let shift: Option<ImmShift> = Some((Shift::Lsl, imm).try_into().unwrap());
+                    let shift: Option<ImmShift> = Some((Shift::Lsl, imm).into());
                     let mut ret = vec![];
                     match s {
                         true => shift!(ret.shift rm -> rd set c for rm),
@@ -1124,7 +1142,7 @@ impl Convert for Thumb {
                 }
                 Thumb::LsrImmediate(lsr) => {
                     consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsr);
-                    let shift: Option<ImmShift> = Some((Shift::Lsr, imm).try_into().unwrap());
+                    let shift: Option<ImmShift> = Some((Shift::Lsr, imm).into());
                     let mut ret = vec![];
                     match s {
                         true => shift!(ret.shift rm -> rd set c for rm),
@@ -1303,7 +1321,7 @@ impl Convert for Thumb {
                     let faultmask = SpecialRegister::FAULTMASK.local_into();
                     pseudo!([
                         if (((sysm>>3) & 0b11111) == 0 && (sysm&0b100 == 0)) {
-                            if (mask & 0b10 == 1) {
+                            if (mask & 0b10 == 2) {
                                 apsr = apsr<27:0>;
                                 let intermediate = rn<31:27><<27.local_into();
                                 apsr |= intermediate;
@@ -1338,7 +1356,7 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Mul(mul) => {
-                    consume!((s,rn, rd.unwrap_or(rn.clone()).local_into(),rm.local_into()) from mul);
+                    consume!((s,rn, rd.unwrap_or(rn).local_into(),rm.local_into()) from mul);
                     let rn = rn.local_into();
                     let mut ret = vec![bin_op!(rd = rn * rm)];
                     if let Some(true) = s {
@@ -1405,7 +1423,7 @@ impl Convert for Thumb {
                 }
                 Thumb::OrnRegister(orn) => {
                     consume!((s,rd, rm.local_into(),rn,shift) from orn);
-                    let (rd, rn) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -1440,7 +1458,7 @@ impl Convert for Thumb {
                 }
                 Thumb::OrrRegister(orr) => {
                     consume!((s,rd, rm.local_into(),rn,shift) from orr);
-                    let (rd, rn) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -1453,7 +1471,7 @@ impl Convert for Thumb {
                 Thumb::Pkh(pkh) => {
                     consume!((rd,shift,rn,rm.local_into(),tb) from pkh);
                     let mut ret = Vec::with_capacity(5);
-                    let (rd, rn) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     local!(shifted);
                     shift!(ret.shift rm -> shifted);
                     let (msh, lsh) = match tb {
@@ -1704,7 +1722,7 @@ impl Convert for Thumb {
                 }
                 Thumb::RsbImmediate(rsb) => {
                     consume!((s,rd,rn,imm.local_into()) from rsb);
-                    let (rd, rn) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let carry = Operand::Flag("c".to_owned());
                     local!(intermediate, old_carry);
                     let one = 1.local_into();
@@ -1733,7 +1751,7 @@ impl Convert for Thumb {
                 }
                 Thumb::RsbRegister(rsb) => {
                     consume!((s,rd,rn,rm.local_into(), shift) from rsb);
-                    let (rd, rn) = (rd.unwrap_or(rn.clone()).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(10);
                     let carry = Operand::Flag("c".to_owned());
                     let one = 1.local_into();

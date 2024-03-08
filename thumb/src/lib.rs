@@ -1,5 +1,5 @@
 use arch::{
-    condition::{Condition,ITCondition},
+    condition::{Condition, ITCondition},
     register::{Register, RegisterList},
     shift::ImmShift,
     wrapper_types::*,
@@ -111,7 +111,7 @@ thumb!(
 
     Clz <rd: Register>, <rm: Register>
 
-    CmnImmediate <rn: Register>, <imm:u32> 
+    CmnImmediate <rn: Register>, <imm:u32>
     CmnRegister <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     CmpImmediate <rn: Register>, <imm: u32> // i32 here might be wrong ?? not sure

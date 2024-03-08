@@ -41,10 +41,10 @@ impl Imm12 {
                 None,
             );
         }
-        let unrotated = (1<<7) + repr.mask::<0,6>() as u32;
-        let ret = unrotated.rotate_right(repr.mask::<10,11>() as u32);
-        let c = ret.mask::<31,31>() == 1;
-        (ret,Some(c))
+        let unrotated = (1 << 7) + repr.mask::<0, 6>() as u32;
+        let ret = unrotated.rotate_right(repr.mask::<10, 11>() as u32);
+        let c = ret.mask::<31, 31>() == 1;
+        (ret, Some(c))
     }
 }
 
@@ -80,7 +80,6 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     }
     let mask: u32 = if sign != 0 { !0 } else { 0 };
     let mask = mask ^ ((1 << (1)) - 1_u32);
-    
 
     mask | *el
 }
@@ -139,7 +138,7 @@ macro_rules! into {
             $(
                 impl From<$source> for $target{
                     fn from(val:$source) -> $target{
-                        
+
                         val.val as $target
                     }
                 }

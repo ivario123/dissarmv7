@@ -8,6 +8,7 @@
 pub mod architechture;
 pub mod asm;
 pub mod buffer;
+#[rustfmt::skip]
 pub mod decoder;
 
 /// Internal helpers
@@ -20,7 +21,6 @@ use thumb::Thumb;
 
 use crate::asm::wholeword::{self, FullWord};
 
-
 /// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
 /// [`StreamParser`].
 #[derive(Debug)]
@@ -28,7 +28,6 @@ use crate::asm::wholeword::{self, FullWord};
 pub struct ASM {
     statements: Vec<(usize, thumb::Thumb)>,
 }
-
 
 pub trait Peek<T: Sized>: Sized {
     /// Peeks `N` steps forward.

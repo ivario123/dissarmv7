@@ -57,7 +57,7 @@ impl Condition {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ITCondition {
     pub conditions: Vec<Condition>,
 }

@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::ParseError;
 use crate::ToThumb;
 
-
 /// Defines some maker instructions
 #[derive(Debug)]
 pub enum A5_14 {
@@ -55,7 +54,6 @@ impl Parse for A5_14 {
         Err(ParseError::Invalid32Bit("A5_14"))
     }
 }
-
 
 impl ToThumb for A5_14 {
     fn encoding_specific_operations(self) -> thumb::Thumb {

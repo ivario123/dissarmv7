@@ -1,9 +1,8 @@
-use crate::prelude::{Condition as ARMCondition, ImmShift, Register,  Shift, Thumb};
+use crate::prelude::{Condition as ARMCondition, ImmShift, Register, Shift, Thumb};
 
 use general_assembly::operand::DataWord;
 use general_assembly::{
-    condition::Condition as Condition, operand::Operand, operation::Operation,
-    shift::Shift as GAShift,
+    condition::Condition, operand::Operand, operation::Operation, shift::Shift as GAShift,
 };
 use paste::paste;
 use transpiler::pseudo;
@@ -156,7 +155,7 @@ macro_rules! bin_op {
     };
 }
 
-pub trait Convert{
+pub trait Convert {
     fn convert(self) -> Vec<Operation>;
 }
 impl Convert for Thumb {
@@ -3539,7 +3538,6 @@ impl Convert for Thumb {
     }
 }
 
-
 mod sealed {
     pub trait Into<T> {
         fn local_into(self) -> T;
@@ -3548,7 +3546,6 @@ mod sealed {
         fn to_string(self) -> String;
     }
 }
-
 
 use sealed::Into;
 
@@ -3593,7 +3590,7 @@ pub enum SpecialRegister {
     PRIMASK,
     CONTROL,
     FAULTMASK,
-    BASEPRI
+    BASEPRI,
 }
 impl Into<Operand> for SpecialRegister {
     fn local_into(self) -> Operand {
@@ -3614,8 +3611,6 @@ impl Into<Operand> for SpecialRegister {
         })
     }
 }
-
-
 
 impl sealed::ToString for Register {
     fn to_string(self) -> String {
@@ -3658,7 +3653,6 @@ impl sealed::Into<GAShift> for Shift {
         }
     }
 }
-
 
 impl Into<Operand> for u32 {
     fn local_into(self) -> Operand {

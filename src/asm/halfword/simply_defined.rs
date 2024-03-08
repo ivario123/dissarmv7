@@ -107,7 +107,7 @@ mod test {
         let target: Thumb = thumb::LdrLiteral::builder()
             .set_add(true)
             .set_rt(Register::R1)
-            .set_imm(0b11010101<<2)
+            .set_imm(0b11010101 << 2)
             .complete()
             .into();
         assert_eq!(instr, target)
@@ -121,7 +121,7 @@ mod test {
         let target: Thumb = thumb::Adr::builder()
             .set_add(true)
             .set_rd(Register::R1)
-            .set_imm(0b11010101<<2)
+            .set_imm(0b11010101 << 2)
             .complete()
             .into();
         assert_eq!(instr, target)
@@ -134,7 +134,7 @@ mod test {
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
         let target: Thumb = thumb::AddSPImmediate::builder()
             .set_rd(Some(Register::R1))
-            .set_imm(0b11010101<<2)
+            .set_imm(0b11010101 << 2)
             .set_s(Some(false))
             .complete()
             .into();

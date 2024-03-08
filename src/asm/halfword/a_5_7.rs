@@ -48,10 +48,7 @@ impl Parse for A5_7 {
 impl ToThumb for A5_7 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::It(it) => thumb::It::builder()
-                .set_conds((it.firstcond, it.mask).into())
-                .complete()
-                .into(),
+            Self::It(it) => thumb::It::builder().set_conds((it.firstcond, it.mask).into()).complete().into(),
             Self::Nop(_) => thumb::Nop::builder().complete().into(),
             Self::Yield(_) => thumb::Yield::builder().complete().into(),
             Self::Wfe(_) => thumb::Wfe::builder().complete().into(),

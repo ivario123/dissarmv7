@@ -166,9 +166,6 @@ macro_rules! translate {
 }
 impl ToThumb for A5_26 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
-        translate!(
-            self, Uadd16, Uasx, Usax, Usub16, Uadd8, Usub8, Uqadd16, Uqasx, Uqsax, Uqsub16, Uqadd8,
-            Uqsub8, Uhadd16, Uhasx, Uhsax, Uhsub16, Uhadd8, Uhsub8
-        )
+        translate!(self, Uadd16, Uasx, Usax, Usub16, Uadd8, Usub8, Uqadd16, Uqasx, Uqsax, Uqsub16, Uqadd8, Uqsub8, Uhadd16, Uhasx, Uhsax, Uhsub16, Uhadd8, Uhsub8)
     }
 }

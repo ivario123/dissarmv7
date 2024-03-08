@@ -169,125 +169,22 @@ impl Parse for A5_28 {
 impl ToThumb for A5_28 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Mla(el) => thumb::Mla::builder()
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Mul(el) => thumb::Mul::builder()
-                .set_s(Some(false))
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Mls(el) => thumb::Mls::builder()
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smla(el) => thumb::Smla::builder()
-                .set_n_high(el.n)
-                .set_m_high(el.m)
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smul(el) => thumb::Smul::builder()
-                .set_n_high(el.n)
-                .set_m_high(el.m)
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlad(el) => thumb::Smlad::builder()
-                .set_x(Some(el.m))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smuad(el) => thumb::Smuad::builder()
-                .set_m_swap(Some(el.m))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlaw(el) => thumb::Smlaw::builder()
-                .set_m_high(el.m)
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smulw(el) => thumb::Smulw::builder()
-                .set_m_high(el.m)
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlsd(el) => thumb::Smlsd::builder()
-                .set_m_swap(Some(el.m))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smusd(el) => thumb::Smusd::builder()
-                .set_m_swap(Some(el.m))
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smmla(el) => thumb::Smmla::builder()
-                .set_round(Some(el.r))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Smmul(el) => thumb::Smmul::builder()
-                .set_round(Some(el.r))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smmls(el) => thumb::Smmls::builder()
-                .set_round(Some(el.r))
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Usada8(el) => thumb::Usada8::builder()
-                .set_rd(el.rd)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_ra(el.ra)
-                .complete()
-                .into(),
-            Self::Usad8(el) => thumb::Usad8::builder()
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
+            Self::Mla(el) => thumb::Mla::builder().set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Mul(el) => thumb::Mul::builder().set_s(Some(false)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Mls(el) => thumb::Mls::builder().set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smla(el) => thumb::Smla::builder().set_n_high(el.n).set_m_high(el.m).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smul(el) => thumb::Smul::builder().set_n_high(el.n).set_m_high(el.m).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlad(el) => thumb::Smlad::builder().set_x(Some(el.m)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smuad(el) => thumb::Smuad::builder().set_m_swap(Some(el.m)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlaw(el) => thumb::Smlaw::builder().set_m_high(el.m).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smulw(el) => thumb::Smulw::builder().set_m_high(el.m).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlsd(el) => thumb::Smlsd::builder().set_m_swap(Some(el.m)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smusd(el) => thumb::Smusd::builder().set_m_swap(Some(el.m)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smmla(el) => thumb::Smmla::builder().set_round(Some(el.r)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Smmul(el) => thumb::Smmul::builder().set_round(Some(el.r)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smmls(el) => thumb::Smmls::builder().set_round(Some(el.r)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Usada8(el) => thumb::Usada8::builder().set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).set_ra(el.ra).complete().into(),
+            Self::Usad8(el) => thumb::Usad8::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
         }
     }
 }

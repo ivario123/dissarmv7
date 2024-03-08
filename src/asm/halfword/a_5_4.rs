@@ -73,34 +73,17 @@ impl ToThumb for A5_4 {
                 let (dn, rdn) = (el.dn, el.rdn);
                 let reg: Register = combine!(dn:rdn,3,u8).try_into().unwrap();
 
-                thumb::AddRegister::builder()
-                    .set_s(None)
-                    .set_rd(Some(reg))
-                    .set_rn(reg)
-                    .set_rm(el.rm)
-                    .set_shift(None)
-                    .complete()
-                    .into()
+                thumb::AddRegister::builder().set_s(None).set_rd(Some(reg)).set_rn(reg).set_rm(el.rm).set_shift(None).complete().into()
             }
             Self::Cmp(el) => {
                 let (n, rn) = (el.n, el.rn);
                 let reg: Register = combine!(n:rn,3,u8).try_into().unwrap();
-                thumb::CmpRegister::builder()
-                    .set_rn(reg)
-                    .set_rm(el.rm)
-                    .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0u8)).unwrap()))
-                    .complete()
-                    .into()
+                thumb::CmpRegister::builder().set_rn(reg).set_rm(el.rm).set_shift(Some(ImmShift::try_from((Shift::Lsl, 0u8)).unwrap())).complete().into()
             }
             Self::Mov(el) => {
                 let (d, rd) = (el.d, el.rd);
                 let reg: Register = combine!(d:rd,3,u8).try_into().unwrap();
-                thumb::MovReg::builder()
-                    .set_s(Some(false))
-                    .set_rd(reg)
-                    .set_rm(el.rm)
-                    .complete()
-                    .into()
+                thumb::MovReg::builder().set_s(Some(false)).set_rd(reg).set_rm(el.rm).complete().into()
             }
             Self::Bx(el) => thumb::Bx::builder().set_rm(el.rm).complete().into(),
             Self::Blx(el) => thumb::Blx::builder().set_rm(el.rm).complete().into(),

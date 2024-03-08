@@ -3,13 +3,13 @@
 //! The main export of this crate is the [`ASM`] object, which can be
 //! constructed by [`parsing`](ASM::parse) from a byte
 //! [`Buffer`](buffer::PeekableBuffer).
-// #![deny(clippy::all)]
-// #![deny(warnings)]
+#![deny(clippy::all)]
+#![deny(warnings)]
 
 pub mod architechture;
 pub mod asm;
 pub mod buffer;
-#[rustfmt::skip]
+// #[rustfmt::skip]
 pub mod decoder;
 
 /// Internal helpers
@@ -149,12 +149,7 @@ impl Parse for ASM {
         while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
             match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
-                Err(e) => {
-                    return Err(ParseError::PartiallyParsed(
-                        Box::new(e),
-                        stmts.into_iter().map(|el| el.1).collect(),
-                    ))
-                }
+                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts.into_iter().map(|el| el.1).collect())),
             };
         }
         Ok(stmts.into())
@@ -171,12 +166,7 @@ impl ParseExact for ASM {
         for _ in 0..N {
             match Thumb::parse_single(iter) {
                 Ok(el) => stmts.push(el),
-                Err(e) => {
-                    return Err(ParseError::PartiallyParsed(
-                        Box::new(e),
-                        stmts.into_iter().map(|el| el.1).collect(),
-                    ))
-                }
+                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts.into_iter().map(|el| el.1).collect())),
             };
         }
         Ok(stmts.into())

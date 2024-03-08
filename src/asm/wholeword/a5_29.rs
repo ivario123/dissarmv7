@@ -133,78 +133,16 @@ impl Parse for A5_29 {
 impl ToThumb for A5_29 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Smull(el) => thumb::Smull::builder()
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Sdiv(el) => thumb::Sdiv::builder()
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Umull(el) => thumb::Umull::builder()
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Udiv(el) => thumb::Udiv::builder()
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlal(el) => thumb::Smlal::builder()
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::SmlalXY(el) => thumb::SmlalSelective::builder()
-                .set_n_high(el.m)
-                .set_m_high(el.m)
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Umlal(el) => thumb::Umlal::builder()
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlald(el) => thumb::Smlald::builder()
-                .set_x(Some(el.m))
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Smlsld(el) => thumb::Smlsld::builder()
-                .set_m_swap(Some(el.m))
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
-            Self::Umaal(el) => thumb::Umaal::builder()
-                .set_rdlo(el.rdlo)
-                .set_rdhi(el.rdhi)
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .complete()
-                .into(),
+            Self::Smull(el) => thumb::Smull::builder().set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Sdiv(el) => thumb::Sdiv::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Umull(el) => thumb::Umull::builder().set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Udiv(el) => thumb::Udiv::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlal(el) => thumb::Smlal::builder().set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::SmlalXY(el) => thumb::SmlalSelective::builder().set_n_high(el.m).set_m_high(el.m).set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Umlal(el) => thumb::Umlal::builder().set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlald(el) => thumb::Smlald::builder().set_x(Some(el.m)).set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Smlsld(el) => thumb::Smlsld::builder().set_m_swap(Some(el.m)).set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
+            Self::Umaal(el) => thumb::Umaal::builder().set_rdlo(el.rdlo).set_rdhi(el.rdhi).set_rn(el.rn).set_rm(el.rm).complete().into(),
         }
     }
 }

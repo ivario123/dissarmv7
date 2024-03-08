@@ -126,98 +126,32 @@ impl Parse for A5_21 {
 impl ToThumb for A5_21 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::StrbT2(el) => thumb::StrbImmediate::builder()
-                .set_w(Some(false))
-                .set_index(Some(true))
-                .set_add(true)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(el.imm12.into())
-                .complete()
-                .into(),
-            Self::StrbT3(el) => thumb::StrbImmediate::builder()
-                .set_w(Some(el.w))
-                .set_index(Some(el.p))
-                .set_add(el.u)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(el.imm8 as u32)
-                .complete()
-                .into(),
+            Self::StrbT2(el) => thumb::StrbImmediate::builder().set_w(Some(false)).set_index(Some(true)).set_add(true).set_rt(el.rt).set_rn(el.rn).set_imm(el.imm12.into()).complete().into(),
+            Self::StrbT3(el) => thumb::StrbImmediate::builder().set_w(Some(el.w)).set_index(Some(el.p)).set_add(el.u).set_rt(el.rt).set_rn(el.rn).set_imm(el.imm8 as u32).complete().into(),
             Self::StrbReg(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
                     Ok(el) => Some(el),
                     _ => None,
                 };
-                thumb::StrbRegister::builder()
-                    .set_rt(el.rt)
-                    .set_rn(el.rn)
-                    .set_rm(el.rm)
-                    .set_shift(shift)
-                    .complete()
-                    .into()
+                thumb::StrbRegister::builder().set_rt(el.rt).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
             }
-            Self::StrhIT2(el) => thumb::StrhImmediate::builder()
-                .set_w(false)
-                .set_index(true)
-                .set_add(true)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(Some(el.imm12.into()))
-                .complete()
-                .into(),
-            Self::StrhIT3(el) => thumb::StrhImmediate::builder()
-                .set_w(el.w)
-                .set_index(el.p)
-                .set_add(el.u)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(Some(el.imm8 as u32))
-                .complete()
-                .into(),
+            Self::StrhIT2(el) => thumb::StrhImmediate::builder().set_w(false).set_index(true).set_add(true).set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm12.into())).complete().into(),
+            Self::StrhIT3(el) => thumb::StrhImmediate::builder().set_w(el.w).set_index(el.p).set_add(el.u).set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm8 as u32)).complete().into(),
             Self::StrhReg(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
                     Ok(el) => Some(el),
                     _ => None,
                 };
-                thumb::StrhRegister::builder()
-                    .set_rt(el.rt)
-                    .set_rn(el.rn)
-                    .set_rm(el.rm)
-                    .set_shift(shift)
-                    .complete()
-                    .into()
+                thumb::StrhRegister::builder().set_rt(el.rt).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
             }
-            Self::StrIT3(el) => thumb::StrImmediate::builder()
-                .set_w(Some(false))
-                .set_index(Some(true))
-                .set_add(true)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(el.imm12.into())
-                .complete()
-                .into(),
-            Self::StrIT4(el) => thumb::StrImmediate::builder()
-                .set_w(Some(el.w))
-                .set_index(Some(el.p))
-                .set_add(el.u)
-                .set_rt(el.rt)
-                .set_rn(el.rn)
-                .set_imm(el.imm8 as u32)
-                .complete()
-                .into(),
+            Self::StrIT3(el) => thumb::StrImmediate::builder().set_w(Some(false)).set_index(Some(true)).set_add(true).set_rt(el.rt).set_rn(el.rn).set_imm(el.imm12.into()).complete().into(),
+            Self::StrIT4(el) => thumb::StrImmediate::builder().set_w(Some(el.w)).set_index(Some(el.p)).set_add(el.u).set_rt(el.rt).set_rn(el.rn).set_imm(el.imm8 as u32).complete().into(),
             Self::StrReg(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
                     Ok(el) => Some(el),
                     _ => None,
                 };
-                thumb::StrRegister::builder()
-                    .set_rt(el.rt)
-                    .set_rn(el.rn)
-                    .set_rm(el.rm)
-                    .set_shift(shift)
-                    .complete()
-                    .into()
+                thumb::StrRegister::builder().set_rt(el.rt).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
             }
         }
     }

@@ -38,7 +38,11 @@ impl Parse for A5_8 {
 impl ToThumb for A5_8 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::B(el) => thumb::B::builder().set_condition(el.cond).set_imm(sign_extend_u32::<8>(&((el.imm8 as u32) << 1))).complete().into(),
+            Self::B(el) => thumb::B::builder()
+                .set_condition(el.cond)
+                .set_imm(sign_extend_u32::<8>(&((el.imm8 as u32) << 1)))
+                .complete()
+                .into(),
             Self::Svc(_el) => todo!("This is missing from the thumb enum"),
         }
     }

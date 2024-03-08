@@ -253,83 +253,178 @@ impl ToThumb for A5_10 {
             And(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::AndImmediateBuilder::new().set_rn(el.rn).set_imm(imm).set_rd(Some(el.rd)).set_s(Some(el.s)).set_carry(carry).complete().into()
+                thumb::AndImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Tst(el) => {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: Imm12 = Imm12::try_into(imm).unwrap();
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::TstImmediateBuilder::new().set_rn(el.rn).set_imm(imm).set_carry(carry).complete().into()
+                thumb::TstImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Bic(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::BicImmediateBuilder::new().set_rn(el.rn).set_imm(imm).set_rd(Some(el.rd)).set_s(Some(el.s)).set_carry(carry).complete().into()
+                thumb::BicImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Orr(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::OrrImmediateBuilder::new().set_rn(el.rn).set_imm(imm).set_rd(Some(el.rd)).set_s(Some(el.s)).set_carry(carry).complete().into()
+                thumb::OrrImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_rd(Some(el.rd))
+                    .set_s(Some(el.s))
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Mov(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::MovImmediateBuilder::new().set_s(Some(el.s)).set_rd(el.rd).set_imm(imm).set_carry(carry).complete().into()
+                thumb::MovImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(el.rd)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Orn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::OrnImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).set_carry(carry).complete().into()
+                thumb::OrnImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Mvn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::MvnImmediateBuilder::new().set_s(Some(el.s)).set_rd(el.rd).set_imm(imm).set_carry(carry).complete().into()
+                thumb::MvnImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(el.rd)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Eor(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::EorImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).set_carry(carry).complete().into()
+                thumb::EorImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Teq(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::TeqImmediateBuilder::new().set_rn(el.rn).set_imm(imm).set_carry(carry).complete().into()
+                thumb::TeqImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .set_carry(carry)
+                    .complete()
+                    .into()
             }
             Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::AddImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::AddImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Cmn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::CmnImmediateBuilder::new().set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::CmnImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Adc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::AdcImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::AdcImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Sbc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::SbcImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::SbcImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::SubImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::SubImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Cmp(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::CmpImmediateBuilder::new().set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::CmpImmediateBuilder::new()
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Rsb(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::RsbImmediateBuilder::new().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::RsbImmediateBuilder::new()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
         }
     }

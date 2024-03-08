@@ -170,24 +170,51 @@ impl ToThumb for A5_12 {
         match self {
             Self::Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::AddImmediateBuilder::new().set_s(Some(false)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm.into()).complete().into()
+                thumb::AddImmediateBuilder::new()
+                    .set_s(Some(false))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm.into())
+                    .complete()
+                    .into()
             }
             Self::Adr(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::AdrBuilder::new().set_rd(el.rd).set_add(el.add).set_imm(imm.into()).complete().into()
+                thumb::AdrBuilder::new()
+                    .set_rd(el.rd)
+                    .set_add(el.add)
+                    .set_imm(imm.into())
+                    .complete()
+                    .into()
             }
             Self::Mov(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::MovImmediateBuilder::new().set_s(Some(false)).set_rd(el.rd).set_imm(imm.into()).set_carry(None).complete().into()
+                thumb::MovImmediateBuilder::new()
+                    .set_s(Some(false))
+                    .set_rd(el.rd)
+                    .set_imm(imm.into())
+                    .set_carry(None)
+                    .complete()
+                    .into()
             }
             Self::Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.into();
-                thumb::SubImmediateBuilder::new().set_s(Some(false)).set_rd(Some(el.rd)).set_rn(el.rn).set_imm(imm).complete().into()
+                thumb::SubImmediateBuilder::new()
+                    .set_s(Some(false))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Self::Movt(el) => {
                 let imm: u16 = combine_wrapper!(el : {imm4:i,1:imm3,3:imm8,8,u16});
-                thumb::MovtBuilder::new().set_rd(el.rd).set_imm(imm).complete().into()
+                thumb::MovtBuilder::new()
+                    .set_rd(el.rd)
+                    .set_imm(imm)
+                    .complete()
+                    .into()
             }
             Self::Ssat(el) => {
                 let (imm3, imm2, sh) = (el.imm3, el.imm2, el.sh << 1);
@@ -195,17 +222,34 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                thumb::SsatBuilder::new().set_rd(el.rd).set_imm(el.sat_imm as u32).set_rn(el.rn).set_shift(Some(shift)).complete().into()
+                thumb::SsatBuilder::new()
+                    .set_rd(el.rd)
+                    .set_imm(el.sat_imm as u32)
+                    .set_rn(el.rn)
+                    .set_shift(Some(shift))
+                    .complete()
+                    .into()
             }
             Self::Bfi(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                thumb::BfiBuilder::new().set_rd(el.rd).set_rn(el.rn).set_lsb(lsb).set_msb(msb as u32).complete().into()
+                thumb::BfiBuilder::new()
+                    .set_rd(el.rd)
+                    .set_rn(el.rn)
+                    .set_lsb(lsb)
+                    .set_msb(msb as u32)
+                    .complete()
+                    .into()
             }
             Self::Bfc(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                thumb::BfcBuilder::new().set_rd(el.rd).set_lsb(lsb).set_msb(msb as u32).complete().into()
+                thumb::BfcBuilder::new()
+                    .set_rd(el.rd)
+                    .set_lsb(lsb)
+                    .set_msb(msb as u32)
+                    .complete()
+                    .into()
             }
             Self::Usat(el) => {
                 let (imm3, imm2, sh) = (el.imm3, el.imm2, el.sh << 1);
@@ -213,25 +257,53 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                thumb::UsatBuilder::new().set_rd(el.rd).set_imm(el.sat_imm as u32).set_rn(el.rn).set_shift(Some(shift)).complete().into()
+                thumb::UsatBuilder::new()
+                    .set_rd(el.rd)
+                    .set_imm(el.sat_imm as u32)
+                    .set_rn(el.rn)
+                    .set_shift(Some(shift))
+                    .complete()
+                    .into()
             }
             Self::Sbfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                thumb::SbfxBuilder::new().set_rd(el.rd).set_rn(el.rn).set_lsb(lsbit as u32).set_width(el.widthm1 as u32 + 1).complete().into()
+                thumb::SbfxBuilder::new()
+                    .set_rd(el.rd)
+                    .set_rn(el.rn)
+                    .set_lsb(lsbit as u32)
+                    .set_width(el.widthm1 as u32 + 1)
+                    .complete()
+                    .into()
             }
             Self::Ubfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                thumb::UbfxBuilder::new().set_rd(el.rd).set_rn(el.rn).set_lsb(lsbit as u32).set_width(el.widthm1 as u32 + 1).complete().into()
+                thumb::UbfxBuilder::new()
+                    .set_rd(el.rd)
+                    .set_rn(el.rn)
+                    .set_lsb(lsbit as u32)
+                    .set_width(el.widthm1 as u32 + 1)
+                    .complete()
+                    .into()
             }
             Self::Ssat16(el) => {
                 let saturate_to = el.sat_imm + 1;
-                thumb::Ssat16Builder::new().set_rd(el.rd).set_rn(el.rn).set_imm(saturate_to as u32).complete().into()
+                thumb::Ssat16Builder::new()
+                    .set_rd(el.rd)
+                    .set_rn(el.rn)
+                    .set_imm(saturate_to as u32)
+                    .complete()
+                    .into()
             }
             Self::Usat16(el) => {
                 let saturate_to = el.sat_imm + 1;
-                thumb::Usat16Builder::new().set_rd(el.rd).set_rn(el.rn).set_imm(saturate_to as u32).complete().into()
+                thumb::Usat16Builder::new()
+                    .set_rd(el.rd)
+                    .set_rn(el.rn)
+                    .set_imm(saturate_to as u32)
+                    .complete()
+                    .into()
             }
         }
     }

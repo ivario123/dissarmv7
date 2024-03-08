@@ -220,47 +220,151 @@ impl Parse for A5_20 {
 impl ToThumb for A5_20 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::LdrbLiteral(el) => thumb::LdrbLiteral::builder().set_add(Some(el.u)).set_rt(el.rt).set_imm(el.imm12.into()).complete().into(),
-            Self::LdrbImmediateT2(el) => thumb::LdrbImmediate::builder().set_w(Some(false)).set_add(Some(true)).set_rt(el.rt).set_index(true).set_rn(el.rn).set_imm(Some(el.imm12.into())).complete().into(),
-            Self::LdrbImmediateT3(el) => thumb::LdrbImmediate::builder().set_w(Some(el.w)).set_add(Some(el.u)).set_index(el.p).set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm8 as u32)).complete().into(),
-            Self::Ldrbt(el) => thumb::Ldrbt::builder().set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm8 as u32)).complete().into(),
+            Self::LdrbLiteral(el) => thumb::LdrbLiteral::builder()
+                .set_add(Some(el.u))
+                .set_rt(el.rt)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::LdrbImmediateT2(el) => thumb::LdrbImmediate::builder()
+                .set_w(Some(false))
+                .set_add(Some(true))
+                .set_rt(el.rt)
+                .set_index(true)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm12.into()))
+                .complete()
+                .into(),
+            Self::LdrbImmediateT3(el) => thumb::LdrbImmediate::builder()
+                .set_w(Some(el.w))
+                .set_add(Some(el.u))
+                .set_index(el.p)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm8 as u32))
+                .complete()
+                .into(),
+            Self::Ldrbt(el) => thumb::Ldrbt::builder()
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm8 as u32))
+                .complete()
+                .into(),
             Self::LdrbRegister(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
                     Ok(s) => Some(s),
                     _ => None,
                 };
-                thumb::LdrbRegister::builder().set_add(Some(true)).set_shift(shift).set_rt(el.rt).set_rn(el.rn).set_rm(el.rm).complete().into()
+                thumb::LdrbRegister::builder()
+                    .set_add(Some(true))
+                    .set_shift(shift)
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .complete()
+                    .into()
             }
-            Self::LdrsbLiteral(el) => thumb::LdrsbLiteral::builder().set_rt(el.rt).set_add(el.u).set_imm(el.imm12.into()).complete().into(),
-            Self::LdrsbImmediateT1(el) => thumb::LdrsbImmediate::builder().set_add(true).set_index(true).set_wback(false).set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm12.into())).complete().into(),
-            Self::LdrsbImmediateT2(el) => thumb::LdrsbImmediate::builder().set_add(el.u).set_index(el.p).set_wback(el.w).set_rt(el.rt).set_rn(el.rn).set_imm(Some(el.imm8 as u32)).complete().into(),
-            Self::Ldrsbt(el) => thumb::Ldrsbt::builder().set_rt(el.rt).set_rn(el.rn).set_imm(el.imm8 as u32).complete().into(),
+            Self::LdrsbLiteral(el) => thumb::LdrsbLiteral::builder()
+                .set_rt(el.rt)
+                .set_add(el.u)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::LdrsbImmediateT1(el) => thumb::LdrsbImmediate::builder()
+                .set_add(true)
+                .set_index(true)
+                .set_wback(false)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm12.into()))
+                .complete()
+                .into(),
+            Self::LdrsbImmediateT2(el) => thumb::LdrsbImmediate::builder()
+                .set_add(el.u)
+                .set_index(el.p)
+                .set_wback(el.w)
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(Some(el.imm8 as u32))
+                .complete()
+                .into(),
+            Self::Ldrsbt(el) => thumb::Ldrsbt::builder()
+                .set_rt(el.rt)
+                .set_rn(el.rn)
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
             Self::LdrsbRegister(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
                     Ok(s) => Some(s),
                     _ => None,
                 };
-                thumb::LdrsbRegister::builder().set_rt(el.rt).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::LdrsbRegister::builder()
+                    .set_rt(el.rt)
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
-            Self::PldLiteral(el) => thumb::PldLiteral::builder().set_add(Some(el.u)).set_imm(el.imm12.into()).complete().into(),
-            Self::PldImmediateT1(el) => thumb::PldImmediate::builder().set_add(Some(true)).set_rn(el.rn).set_imm(el.imm12.into()).complete().into(),
-            Self::PldImmediateT2(el) => thumb::PldImmediate::builder().set_add(Some(false)).set_rn(el.rn).set_imm(el.imm8 as u32).complete().into(),
+            Self::PldLiteral(el) => thumb::PldLiteral::builder()
+                .set_add(Some(el.u))
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::PldImmediateT1(el) => thumb::PldImmediate::builder()
+                .set_add(Some(true))
+                .set_rn(el.rn)
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::PldImmediateT2(el) => thumb::PldImmediate::builder()
+                .set_add(Some(false))
+                .set_rn(el.rn)
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
             Self::PldRegister(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
                     Ok(s) => Some(s),
                     _ => None,
                 };
-                thumb::PldRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::PldRegister::builder()
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
-            Self::PliImmediateT1(el) => thumb::PliImmediate::builder().set_add(Some(true)).set_rn(Some(el.rn)).set_imm(el.imm12.into()).complete().into(),
-            Self::PliImmediateT2(el) => thumb::PliImmediate::builder().set_add(Some(false)).set_rn(Some(el.rn)).set_imm(el.imm8 as u32).complete().into(),
-            Self::PliImmediateT3(el) => thumb::PliImmediate::builder().set_add(Some(el.u)).set_rn(Some(Register::try_from(15_u8).unwrap())).set_imm(el.imm12.into()).complete().into(),
+            Self::PliImmediateT1(el) => thumb::PliImmediate::builder()
+                .set_add(Some(true))
+                .set_rn(Some(el.rn))
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
+            Self::PliImmediateT2(el) => thumb::PliImmediate::builder()
+                .set_add(Some(false))
+                .set_rn(Some(el.rn))
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
+            Self::PliImmediateT3(el) => thumb::PliImmediate::builder()
+                .set_add(Some(el.u))
+                .set_rn(Some(Register::try_from(15_u8).unwrap()))
+                .set_imm(el.imm12.into())
+                .complete()
+                .into(),
             Self::PliRegister(el) => {
                 let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
                     Ok(s) => Some(s),
                     _ => None,
                 };
-                thumb::PliRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::PliRegister::builder()
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
         }
     }

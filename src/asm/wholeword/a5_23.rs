@@ -91,12 +91,46 @@ macro_rules! imm {
 impl ToThumb for A5_23 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Mov(el) => thumb::MovReg::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).complete().into(),
-            Self::Lsl(el) => thumb::LslImmediate::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).set_imm(imm!(el).try_into().unwrap()).complete().into(),
-            Self::Lsr(el) => thumb::LsrImmediate::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).set_imm(imm!(el).try_into().unwrap()).complete().into(),
-            Self::Asr(el) => thumb::AsrImmediate::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).set_imm(imm!(el).try_into().unwrap()).complete().into(),
-            Self::Rrx(el) => thumb::Rrx::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).complete().into(),
-            Self::Ror(el) => thumb::RorImmediate::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).set_imm(imm!(el).try_into().unwrap()).complete().into(),
+            Self::Mov(el) => thumb::MovReg::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Lsl(el) => thumb::LslImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Lsr(el) => thumb::LsrImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Asr(el) => thumb::AsrImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
+            Self::Rrx(el) => thumb::Rrx::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Ror(el) => thumb::RorImmediate::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_imm(imm!(el).try_into().unwrap())
+                .complete()
+                .into(),
         }
     }
 }

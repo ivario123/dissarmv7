@@ -174,22 +174,112 @@ impl Parse for A5_24 {
 impl ToThumb for A5_24 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Lsl(el) => thumb::LslRegister::builder().set_s(Some(el.s)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
-            Self::Lsr(el) => thumb::LsrRegister::builder().set_s(Some(el.s)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
-            Self::Asr(el) => thumb::AsrRegister::builder().set_s(Some(el.s)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
-            Self::Ror(el) => thumb::RorRegister::builder().set_s(Some(el.s)).set_rd(el.rd).set_rn(el.rn).set_rm(el.rm).complete().into(),
-            Self::Sxtah(el) => thumb::Sxtah::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Sxth(el) => thumb::Sxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxtah(el) => thumb::Uxtah::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxth(el) => thumb::Uxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Sxtab16(el) => thumb::Sxtab16::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Sxtb16(el) => thumb::Sxtb16::builder().set_rd(Some(el.rd)).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxtab16(el) => thumb::Uxtab16::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxtb16(el) => thumb::Uxtb16::builder().set_rd(Some(el.rd)).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Sxtab(el) => thumb::Sxtab::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Sxtb(el) => thumb::Sxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxtab(el) => thumb::Uxtab::builder().set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
-            Self::Uxtb(el) => thumb::Uxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3)).complete().into(),
+            Self::Lsl(el) => thumb::LslRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Lsr(el) => thumb::LsrRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Asr(el) => thumb::AsrRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Ror(el) => thumb::RorRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Sxtah(el) => thumb::Sxtah::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxth(el) => thumb::Sxth::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxtah(el) => thumb::Uxtah::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxth(el) => thumb::Uxth::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtab16(el) => thumb::Sxtab16::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtb16(el) => thumb::Sxtb16::builder()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxtab16(el) => thumb::Uxtab16::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxtb16(el) => thumb::Uxtb16::builder()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtab(el) => thumb::Sxtab::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtb(el) => thumb::Sxtb::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxtab(el) => thumb::Uxtab::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Uxtb(el) => thumb::Uxtb::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
             Self::SubtableA5_25(el) => el.encoding_specific_operations(),
             Self::SubtableA5_26(el) => el.encoding_specific_operations(),
             Self::SubtableA5_27(el) => el.encoding_specific_operations(),

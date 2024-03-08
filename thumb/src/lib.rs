@@ -1,3 +1,4 @@
+#[rustfmt::skip]
 use arch::{
     condition::{Condition, ITCondition},
     register::{Register, RegisterList},

@@ -115,24 +115,89 @@ impl ToThumb for A5_2 {
         match self {
             Self::Lsl(lsl) => {
                 let shift = arch::shift::ImmShift::try_from((Shift::Lsl, lsl.imm)).unwrap();
-                thumb::LslImmediateBuilder::new().set_s(Some(true)).set_rd(lsl.rd).set_rm(lsl.rm).set_imm(shift.shift_n.try_into().unwrap()).complete().into()
+                thumb::LslImmediateBuilder::new()
+                    .set_s(Some(true))
+                    .set_rd(lsl.rd)
+                    .set_rm(lsl.rm)
+                    .set_imm(shift.shift_n.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Lsr(lsr) => {
                 let shift = ImmShift::try_from((Shift::Lsr, lsr.imm)).unwrap();
-                thumb::LsrImmediateBuilder::new().set_s(Some(true)).set_rd(lsr.rd).set_rm(lsr.rm).set_imm(shift.shift_n).complete().into()
+                thumb::LsrImmediateBuilder::new()
+                    .set_s(Some(true))
+                    .set_rd(lsr.rd)
+                    .set_rm(lsr.rm)
+                    .set_imm(shift.shift_n)
+                    .complete()
+                    .into()
             }
             Self::Asr(asr) => {
                 let shift = ImmShift::from((Shift::Asr, asr.imm5));
-                thumb::LsrImmediateBuilder::new().set_s(Some(true)).set_rd(asr.rd).set_rm(asr.rm).set_imm(shift.shift_n.try_into().unwrap()).complete().into()
+                thumb::LsrImmediateBuilder::new()
+                    .set_s(Some(true))
+                    .set_rd(asr.rd)
+                    .set_rm(asr.rm)
+                    .set_imm(shift.shift_n.try_into().unwrap())
+                    .complete()
+                    .into()
             }
-            Self::Add(add) => thumb::AddRegisterBuilder::new().set_s(Some(true)).set_rd(Some(add.rd)).set_rn(add.rn).set_rm(add.rm).set_shift(None).complete().into(),
-            Self::Sub(sub) => thumb::SubRegisterBuilder::new().set_s(Some(true)).set_rd(Some(sub.rd)).set_rn(sub.rn).set_rm(sub.rm).set_shift(None).complete().into(),
-            Self::AddImmediate3(add) => thumb::AddImmediateBuilder::new().set_s(Some(true)).set_rd(Some(add.rd)).set_rn(add.rn).set_imm(add.imm as u32).complete().into(),
-            Self::SubImmediate3(sub) => thumb::SubImmediateBuilder::new().set_s(Some(true)).set_rd(Some(sub.rd)).set_rn(sub.rn).set_imm(sub.imm as u32).complete().into(),
-            Self::Mov(mov) => thumb::MovImmediatePlainBuilder::new().set_s(Some(true)).set_rd(mov.rd).set_imm(mov.imm as u32).complete().into(),
-            Self::Cmp(cmp) => thumb::CmpImmediateBuilder::new().set_rn(cmp.rn).set_imm(cmp.imm as u32).complete().into(),
-            Self::AddImmediate8(add) => thumb::AddImmediateBuilder::new().set_s(Some(true)).set_rd(None).set_rn(add.rdn).set_imm(add.imm as u32).complete().into(),
-            Self::SubImmediate8(sub) => thumb::SubImmediateBuilder::new().set_s(Some(true)).set_rd(None).set_rn(sub.rdn).set_imm(sub.imm as u32).complete().into(),
+            Self::Add(add) => thumb::AddRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(add.rd))
+                .set_rn(add.rn)
+                .set_rm(add.rm)
+                .set_shift(None)
+                .complete()
+                .into(),
+            Self::Sub(sub) => thumb::SubRegisterBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(sub.rd))
+                .set_rn(sub.rn)
+                .set_rm(sub.rm)
+                .set_shift(None)
+                .complete()
+                .into(),
+            Self::AddImmediate3(add) => thumb::AddImmediateBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(add.rd))
+                .set_rn(add.rn)
+                .set_imm(add.imm as u32)
+                .complete()
+                .into(),
+            Self::SubImmediate3(sub) => thumb::SubImmediateBuilder::new()
+                .set_s(Some(true))
+                .set_rd(Some(sub.rd))
+                .set_rn(sub.rn)
+                .set_imm(sub.imm as u32)
+                .complete()
+                .into(),
+            Self::Mov(mov) => thumb::MovImmediatePlainBuilder::new()
+                .set_s(Some(true))
+                .set_rd(mov.rd)
+                .set_imm(mov.imm as u32)
+                .complete()
+                .into(),
+            Self::Cmp(cmp) => thumb::CmpImmediateBuilder::new()
+                .set_rn(cmp.rn)
+                .set_imm(cmp.imm as u32)
+                .complete()
+                .into(),
+            Self::AddImmediate8(add) => thumb::AddImmediateBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(add.rdn)
+                .set_imm(add.imm as u32)
+                .complete()
+                .into(),
+            Self::SubImmediate8(sub) => thumb::SubImmediateBuilder::new()
+                .set_s(Some(true))
+                .set_rd(None)
+                .set_rn(sub.rdn)
+                .set_imm(sub.imm as u32)
+                .complete()
+                .into(),
         }
     }
 }

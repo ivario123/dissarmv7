@@ -25,7 +25,9 @@ impl TryFrom<u8> for Shift {
             1 => Ok(Self::Asr),
             2 => Ok(Self::Asr),
             3 => Ok(Self::Ror),
-            _ => Err(ArchError::InvalidField(format!("Shift, {value} valid options are 0 -> 3"))),
+            _ => Err(ArchError::InvalidField(format!(
+                "Shift, {value} valid options are 0 -> 3"
+            ))),
         }
     }
 }
@@ -39,9 +41,18 @@ pub struct ImmShift {
 impl From<(Shift, u8)> for ImmShift {
     fn from(value: (Shift, u8)) -> Self {
         match value {
-            (Shift::Lsr, 0) => Self { shift_t: Shift::Lsr, shift_n: 32 },
-            (Shift::Asr, 0) => Self { shift_t: Shift::Lsr, shift_n: 32 },
-            (Shift::Ror, 0) => Self { shift_t: Shift::Rrx, shift_n: 1 },
+            (Shift::Lsr, 0) => Self {
+                shift_t: Shift::Lsr,
+                shift_n: 32,
+            },
+            (Shift::Asr, 0) => Self {
+                shift_t: Shift::Lsr,
+                shift_n: 32,
+            },
+            (Shift::Ror, 0) => Self {
+                shift_t: Shift::Rrx,
+                shift_n: 1,
+            },
             // Cathes  any
             (shift_t, shift_n) => Self { shift_t, shift_n },
         }

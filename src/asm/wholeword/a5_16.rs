@@ -93,34 +93,60 @@ impl ToThumb for A5_16 {
             Self::Stm(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Stm::builder().set_w(Some(el.w)).set_rn(el.rn).set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Stm::builder()
+                    .set_w(Some(el.w))
+                    .set_rn(el.rn)
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Ldm(el) => {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
-                thumb::Ldm::builder().set_w(Some(el.w)).set_rn(el.rn).set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Ldm::builder()
+                    .set_w(Some(el.w))
+                    .set_rn(el.rn)
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Pop(el) => {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
 
-                thumb::Pop::builder().set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Pop::builder()
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Stmdb(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Stmdb::builder().set_w(Some(el.w)).set_rn(el.rn).set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Stmdb::builder()
+                    .set_w(Some(el.w))
+                    .set_rn(el.rn)
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Push(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Push::builder().set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Push::builder()
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
             Self::Ldmdb(el) => {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
 
-                thumb::Ldmdb::builder().set_w(Some(el.w)).set_rn(el.rn).set_registers(registers.try_into().unwrap()).complete().into()
+                thumb::Ldmdb::builder()
+                    .set_w(Some(el.w))
+                    .set_rn(el.rn)
+                    .set_registers(registers.try_into().unwrap())
+                    .complete()
+                    .into()
             }
         }
     }

@@ -45,9 +45,18 @@ impl ToThumb for A5_15 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Clrex => thumb::ClrexBuilder::new().complete().into(),
-            Self::Dsb(opt) => thumb::DsbBuilder::new().set_option(Some(opt)).complete().into(),
-            Self::Dmb(opt) => thumb::DmbBuilder::new().set_option(Some(opt)).complete().into(),
-            Self::Isb(opt) => thumb::IsbBuilder::new().set_option(Some(opt.try_into().unwrap())).complete().into(),
+            Self::Dsb(opt) => thumb::DsbBuilder::new()
+                .set_option(Some(opt))
+                .complete()
+                .into(),
+            Self::Dmb(opt) => thumb::DmbBuilder::new()
+                .set_option(Some(opt))
+                .complete()
+                .into(),
+            Self::Isb(opt) => thumb::IsbBuilder::new()
+                .set_option(Some(opt.try_into().unwrap()))
+                .complete()
+                .into(),
         }
     }
 }

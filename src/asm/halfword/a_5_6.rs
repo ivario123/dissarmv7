@@ -146,32 +146,99 @@ impl Parse for A5_6 {
 impl ToThumb for A5_6 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Cps(el) => thumb::Cps::builder().set_enable(el.im == 0).set_disable(el.im == 1).set_affect_pri(el.i == 1).set_affect_fault(el.f == 1).complete().into(),
-            Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder().set_s(Some(false)).set_rd(Some(13u8.try_into().unwrap())).set_imm((el.imm7 as u32) << 2).complete().into(),
-            Self::SubImmediateFromSp(el) => thumb::SubSpMinusImmediate::builder().set_s(Some(false)).set_rd(Some(13u8.try_into().unwrap())).set_imm((el.imm7 as u32) << 2).complete().into(),
-            Self::Cbz(el) => thumb::Cbz::builder().set_non(Some(el.op == 1)).set_rn(el.rn).set_imm((el.imm5 as u32) << 1).complete().into(),
-            Self::Sxth(el) => thumb::Sxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
-            Self::Sxtb(el) => thumb::Sxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
-            Self::Uxth(el) => thumb::Uxth::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
-            Self::Uxtb(el) => thumb::Uxtb::builder().set_rd(el.rd).set_rm(el.rm).set_rotation(None).complete().into(),
+            Self::Cps(el) => thumb::Cps::builder()
+                .set_enable(el.im == 0)
+                .set_disable(el.im == 1)
+                .set_affect_pri(el.i == 1)
+                .set_affect_fault(el.f == 1)
+                .complete()
+                .into(),
+            Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder()
+                .set_s(Some(false))
+                .set_rd(Some(13u8.try_into().unwrap()))
+                .set_imm((el.imm7 as u32) << 2)
+                .complete()
+                .into(),
+            Self::SubImmediateFromSp(el) => thumb::SubSpMinusImmediate::builder()
+                .set_s(Some(false))
+                .set_rd(Some(13u8.try_into().unwrap()))
+                .set_imm((el.imm7 as u32) << 2)
+                .complete()
+                .into(),
+            Self::Cbz(el) => thumb::Cbz::builder()
+                .set_non(Some(el.op == 1))
+                .set_rn(el.rn)
+                .set_imm((el.imm5 as u32) << 1)
+                .complete()
+                .into(),
+            Self::Sxth(el) => thumb::Sxth::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(None)
+                .complete()
+                .into(),
+            Self::Sxtb(el) => thumb::Sxtb::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(None)
+                .complete()
+                .into(),
+            Self::Uxth(el) => thumb::Uxth::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(None)
+                .complete()
+                .into(),
+            Self::Uxtb(el) => thumb::Uxtb::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_rotation(None)
+                .complete()
+                .into(),
             Self::Push(el) => {
                 let mut el = el;
                 if el.m == 1 {
                     el.register_list.regs.push(Register::LR);
                 }
-                thumb::Push::builder().set_registers(el.register_list).complete().into()
+                thumb::Push::builder()
+                    .set_registers(el.register_list)
+                    .complete()
+                    .into()
             }
-            Self::Rev(el) => thumb::Rev::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
-            Self::Rev16(el) => thumb::Rev16::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
-            Self::Revsh(el) => thumb::Revsh::builder().set_rd(el.rd).set_rm(el.rm).complete().into(),
-            Self::Cbnz(el) => thumb::Cbz::builder().set_non(Some(el.op == 1)).set_rn(el.rn).set_imm((el.imm5 as u32) << 1).complete().into(),
+            Self::Rev(el) => thumb::Rev::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Rev16(el) => thumb::Rev16::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Revsh(el) => thumb::Revsh::builder()
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .complete()
+                .into(),
+            Self::Cbnz(el) => thumb::Cbz::builder()
+                .set_non(Some(el.op == 1))
+                .set_rn(el.rn)
+                .set_imm((el.imm5 as u32) << 1)
+                .complete()
+                .into(),
             Self::Pop(el) => {
                 let registers = el.register_list;
                 let p = el.p;
                 let registers = combine!(p:0,7:registers,8,u16).try_into().unwrap();
-                thumb::Pop::builder().set_registers(registers).complete().into()
+                thumb::Pop::builder()
+                    .set_registers(registers)
+                    .complete()
+                    .into()
             }
-            Self::Bkpt(el) => thumb::Bkpt::builder().set_imm(el.imm8 as u32).complete().into(),
+            Self::Bkpt(el) => thumb::Bkpt::builder()
+                .set_imm(el.imm8 as u32)
+                .complete()
+                .into(),
             Self::SubtableA5_7(el) => el.encoding_specific_operations(),
         }
     }

@@ -1,7 +1,9 @@
 use arch::{Register, Shift};
 use paste::paste;
 
-use crate::{asm::Mask, combine, instruction, prelude::*, wholeword::a5_23::A5_23, ParseError, ToThumb};
+use crate::{
+    asm::Mask, combine, instruction, prelude::*, wholeword::a5_23::A5_23, ParseError, ToThumb,
+};
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }
@@ -278,7 +280,14 @@ impl ToThumb for A5_22 {
                     Ok(w) => Some(w),
                     _ => None,
                 };
-                thumb::AndRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::AndRegister::builder()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
             Self::Tst(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
@@ -286,7 +295,12 @@ impl ToThumb for A5_22 {
                     Ok(w) => Some(w),
                     _ => None,
                 };
-                thumb::TstRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::TstRegister::builder()
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
             Self::Bic(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
@@ -294,7 +308,14 @@ impl ToThumb for A5_22 {
                     Ok(w) => Some(w),
                     _ => None,
                 };
-                thumb::BicRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::BicRegister::builder()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
             Self::Orr(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
@@ -302,13 +323,45 @@ impl ToThumb for A5_22 {
                     Ok(w) => Some(w),
                     _ => None,
                 };
-                thumb::OrrRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::OrrRegister::builder()
+                    .set_s(Some(el.s))
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
             Self::SubtableA5_23(el) => el.encoding_specific_operations(),
-            Self::Orn(el) => thumb::OrnRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Mvn(el) => thumb::MvnRegister::builder().set_s(Some(el.s)).set_rd(el.rd).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Eor(el) => thumb::EorRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Teq(el) => thumb::TeqRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
+            Self::Orn(el) => thumb::OrnRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Mvn(el) => thumb::MvnRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(el.rd)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Eor(el) => thumb::EorRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Teq(el) => thumb::TeqRegister::builder()
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
             Self::Pkh(el) => {
                 let (tb, _t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
                 let ty = Shift::try_from((tb as u8) << 1).unwrap();
@@ -316,15 +369,67 @@ impl ToThumb for A5_22 {
                     Ok(w) => Some(w),
                     _ => None,
                 };
-                thumb::Pkh::builder().set_tb(tb).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift).complete().into()
+                thumb::Pkh::builder()
+                    .set_tb(tb)
+                    .set_rd(Some(el.rd))
+                    .set_rn(el.rn)
+                    .set_rm(el.rm)
+                    .set_shift(shift)
+                    .complete()
+                    .into()
             }
-            Self::Add(el) => thumb::AddRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Cmn(el) => thumb::CmnRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Adc(el) => thumb::AdcRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Sbc(el) => thumb::SbcRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Sub(el) => thumb::SubRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Cmp(el) => thumb::CmpRegister::builder().set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
-            Self::Rsb(el) => thumb::RsbRegister::builder().set_s(Some(el.s)).set_rd(Some(el.rd)).set_rn(el.rn).set_rm(el.rm).set_shift(shift!(el)).complete().into(),
+            Self::Add(el) => thumb::AddRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Cmn(el) => thumb::CmnRegister::builder()
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Adc(el) => thumb::AdcRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Sbc(el) => thumb::SbcRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Sub(el) => thumb::SubRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Cmp(el) => thumb::CmpRegister::builder()
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
+            Self::Rsb(el) => thumb::RsbRegister::builder()
+                .set_s(Some(el.s))
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_shift(shift!(el))
+                .complete()
+                .into(),
         }
     }
 }

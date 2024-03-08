@@ -148,6 +148,9 @@ impl<T: Iterator<Item = u8> + Debug> Stream for PeekableBuffer<u8, T> {}
 
 impl<I: Sized, T: Iterator<Item = I>> From<T> for PeekableBuffer<I, T> {
     fn from(itter: T) -> Self {
-        Self { itter, peeked_elements: Vec::new() }
+        Self {
+            itter,
+            peeked_elements: Vec::new(),
+        }
     }
 }

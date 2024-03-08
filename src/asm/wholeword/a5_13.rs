@@ -123,18 +123,39 @@ impl ToThumb for A5_13 {
         match self {
             Self::BT3(el) => {
                 let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);
-                let mut imm: Imm21 = combine!(s:j2,1:j1,1:imm6,6:imm11,11:0,1,u32).try_into().unwrap();
+                let mut imm: Imm21 = combine!(s:j2,1:j1,1:imm6,6:imm11,11:0,1,u32)
+                    .try_into()
+                    .unwrap();
 
-                thumb::BBuilder::new().set_condition(el.cond).set_imm(imm.sign_extend()).complete().into()
+                thumb::BBuilder::new()
+                    .set_condition(el.cond)
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
             }
             Self::BT4(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
-                let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32).try_into().unwrap();
+                let mut imm: Imm25 = combine!(s:j2,1:j1,1:imm10,10:imm11,11:0,1,u32)
+                    .try_into()
+                    .unwrap();
 
-                thumb::BBuilder::new().set_condition(Condition::None).set_imm(imm.sign_extend()).complete().into()
+                thumb::BBuilder::new()
+                    .set_condition(Condition::None)
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
             }
-            Self::Msr(el) => thumb::Msr::builder().set_rn(el.rn).set_mask(el.mask).set_sysm(el.sysm).complete().into(),
-            Self::Mrs(el) => thumb::Mrs::builder().set_rd(el.rd).set_sysm(el.sysm).complete().into(),
+            Self::Msr(el) => thumb::Msr::builder()
+                .set_rn(el.rn)
+                .set_mask(el.mask)
+                .set_sysm(el.sysm)
+                .complete()
+                .into(),
+            Self::Mrs(el) => thumb::Mrs::builder()
+                .set_rd(el.rd)
+                .set_sysm(el.sysm)
+                .complete()
+                .into(),
             Self::Bl(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
                 let (i1, i2) = (!(j1 ^ s), !(j2 ^ s));
@@ -148,7 +169,10 @@ impl ToThumb for A5_13 {
                     })
                     .unwrap();
 
-                thumb::BlBuilder::new().set_imm(imm.sign_extend()).complete().into()
+                thumb::BlBuilder::new()
+                    .set_imm(imm.sign_extend())
+                    .complete()
+                    .into()
             }
             Self::SubtableA5_14(table) => table.encoding_specific_operations(),
             Self::SubtableA5_15(table) => table.encoding_specific_operations(),

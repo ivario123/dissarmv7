@@ -123,16 +123,61 @@ impl ToThumb for A5_27 {
         use A5_27::*;
 
         match self {
-            Qadd(el) => thumb::QaddBuilder::new().set_rd(Some(el.rd)).set_rm(el.rm).set_rn(el.rn).complete().into(),
-            Qdadd(el) => thumb::QdaddBuilder::new().set_rd(Some(el.rd)).set_rm(el.rm).set_rn(el.rn).complete().into(),
-            Qsub(el) => thumb::QsubBuilder::new().set_rd(Some(el.rd)).set_rm(el.rm).set_rn(el.rn).complete().into(),
-            Qdsub(el) => thumb::QdsubBuilder::new().set_rd(Some(el.rd)).set_rm(el.rm).set_rn(el.rn).complete().into(),
-            Sel(el) => thumb::SelBuilder::new().set_rd(Some(el.rd)).set_rm(el.rm).set_rn(el.rn).complete().into(),
-            Rev(el) => thumb::RevBuilder::new().set_rd(el.rd).set_rm(el.rd).complete().into(),
-            Rev16(el) => thumb::Rev16Builder::new().set_rd(el.rd).set_rm(el.rd).complete().into(),
-            Rbit(el) => thumb::RbitBuilder::new().set_rd(el.rd).set_rm(el.rd).complete().into(),
-            Revsh(el) => thumb::RevshBuilder::new().set_rd(el.rd).set_rm(el.rd).complete().into(),
-            Clz(el) => thumb::ClzBuilder::new().set_rd(el.rd).set_rm(el.rd).complete().into(),
+            Qadd(el) => thumb::QaddBuilder::new()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rn(el.rn)
+                .complete()
+                .into(),
+            Qdadd(el) => thumb::QdaddBuilder::new()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rn(el.rn)
+                .complete()
+                .into(),
+            Qsub(el) => thumb::QsubBuilder::new()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rn(el.rn)
+                .complete()
+                .into(),
+            Qdsub(el) => thumb::QdsubBuilder::new()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rn(el.rn)
+                .complete()
+                .into(),
+            Sel(el) => thumb::SelBuilder::new()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rn(el.rn)
+                .complete()
+                .into(),
+            Rev(el) => thumb::RevBuilder::new()
+                .set_rd(el.rd)
+                .set_rm(el.rd)
+                .complete()
+                .into(),
+            Rev16(el) => thumb::Rev16Builder::new()
+                .set_rd(el.rd)
+                .set_rm(el.rd)
+                .complete()
+                .into(),
+            Rbit(el) => thumb::RbitBuilder::new()
+                .set_rd(el.rd)
+                .set_rm(el.rd)
+                .complete()
+                .into(),
+            Revsh(el) => thumb::RevshBuilder::new()
+                .set_rd(el.rd)
+                .set_rm(el.rd)
+                .complete()
+                .into(),
+            Clz(el) => thumb::ClzBuilder::new()
+                .set_rd(el.rd)
+                .set_rm(el.rd)
+                .complete()
+                .into(),
         }
     }
 }

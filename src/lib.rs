@@ -2,7 +2,7 @@
 //!
 //! The main export of this crate is the [`ASM`] object, which can be
 //! constructed by [`parsing`](ASM::parse) from a byte
-//! [`Stream`](Stream).
+//! [`Stream`].
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
@@ -24,8 +24,10 @@ use thumb::Thumb;
 
 use crate::asm::wholeword::{self, FullWord};
 
-/// Semanitcly different from [`StreamParser`] as this cannot be constructed
-/// without parsing from a [`StreamParser`].
+/// Representation of a armv7 program.
+///
+/// This struct is constructed via 
+/// [`ASM`](ASM::parse).
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ASM {

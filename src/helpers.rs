@@ -18,7 +18,7 @@ impl From<ArchError> for ParseError {
 ///
 /// ## Usage
 ///
-/// ```ignore
+/// ```text
 /// instruction!{
 ///     size 32; SomeTableIdent contains
 ///         SomeInstructinIdent : {

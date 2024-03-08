@@ -1,22 +1,7 @@
 use paste::paste;
 
 use crate::{asm::Mask, combine, instruction, prelude::*, ParseError, ToThumb};
-
-pub trait LocalTryInto<T> {
-    fn local_try_into(self) -> Result<T, ParseError>;
-}
-impl LocalTryInto<bool> for u8 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
-impl LocalTryInto<bool> for u32 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
+use crate::asm::LocalTryInto;
 
 instruction!(
     size u32; A5_12 contains

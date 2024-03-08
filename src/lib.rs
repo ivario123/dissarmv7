@@ -6,9 +6,9 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 
-pub mod architechture;
-pub mod asm;
-pub mod buffer;
+pub(crate) mod asm;
+pub(crate) mod buffer;
+
 #[rustfmt::skip]
 pub mod decoder;
 

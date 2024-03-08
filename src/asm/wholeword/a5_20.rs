@@ -1,28 +1,13 @@
 use arch::wrapper_types::*;
 use paste::paste;
 
-use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
-
-pub trait LocalTryInto<T> {
-    fn local_try_into(self) -> Result<T, ParseError>;
-}
-impl LocalTryInto<bool> for u8 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
-impl LocalTryInto<bool> for u32 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
-impl<T> LocalTryInto<T> for T {
-    fn local_try_into(self) -> Result<T, ParseError> {
-        Ok(self)
-    }
-}
+use crate::{
+    asm::{LocalTryInto, Mask},
+    instruction,
+    prelude::*,
+    ParseError,
+    ToThumb,
+};
 
 instruction!(
     size u32; A5_20 contains
@@ -168,6 +153,9 @@ impl Parse for A5_20 {
             if op1 == 2 && op2 >> 2 == 0b1100 {
                 return Ok(Self::PliImmediateT2(PliImmediateT2::parse(iter)?));
             }
+            if op1 == 2 && op2 == 0 {
+                return Ok(Self::PliRegister(PliRegister::parse(iter)?));
+            }
             return Err(ParseError::Invalid32Bit("A5_20"));
         }
         // first half of table
@@ -193,10 +181,10 @@ impl Parse for A5_20 {
             return Err(ParseError::Invalid32Bit("A5_20"));
         }
         if op1 == 1 {
-            return Ok(Self::LdrsbImmediateT2(LdrsbImmediateT2::parse(iter)?));
+            return Ok(Self::LdrbImmediateT2(LdrbImmediateT2::parse(iter)?));
         }
         if op1 == 3 {
-            return Ok(Self::LdrsbLiteral(LdrsbLiteral::parse(iter)?));
+            return Ok(Self::LdrsbImmediateT1(LdrsbImmediateT1::parse(iter)?));
         }
         //  All other opcodes are 2
         if op2 == 0 {

@@ -1,14 +1,13 @@
 use paste::paste;
 
-use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
-pub trait LocalTryInto<T> {
-    fn local_try_into(self) -> Result<T, ParseError>;
-}
-impl LocalTryInto<bool> for u8 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        Ok(self != 0)
-    }
-}
+use crate::{
+    asm::{LocalTryInto, Mask},
+    instruction,
+    prelude::*,
+    ParseError,
+    ToThumb,
+};
+
 instruction!(
     size u32; A5_17 contains
     Strex : {

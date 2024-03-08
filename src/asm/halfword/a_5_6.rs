@@ -105,6 +105,9 @@ impl Parse for A5_6 {
         if opcode & 0b1111110 == 0b10010 {
             p!(Sxtb from iter);
         }
+        if opcode & 0b1111110 == 0b10100 {
+            p!(Uxth from iter);
+        }
         if opcode & 0b1111110 == 0b10110 {
             p!(Uxtb from iter);
         }

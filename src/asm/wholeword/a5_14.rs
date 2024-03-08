@@ -11,9 +11,9 @@ pub enum A5_14 {
     /// Yield
     Yield,
     /// Wait for event
-    WFE,
+    Wfe,
     /// Wait for interrupt
-    WFI,
+    Wfi,
     /// Send event
     Sev,
     /// Debug
@@ -40,8 +40,8 @@ impl Parse for A5_14 {
         match op2 {
             0 => return Ok(Self::Nop),
             1 => return Ok(Self::Yield),
-            2 => return Ok(Self::WFE),
-            3 => return Ok(Self::WFI),
+            2 => return Ok(Self::Wfe),
+            3 => return Ok(Self::Wfi),
             4 => return Ok(Self::Sev),
             _ => {}
         }
@@ -58,8 +58,8 @@ impl ToThumb for A5_14 {
         match self {
             Self::Nop => thumb::NopBuilder::new().complete().into(),
             Self::Yield => thumb::YieldBuilder::new().complete().into(),
-            Self::WFE => thumb::WfeBuilder::new().complete().into(),
-            Self::WFI => thumb::WfiBuilder::new().complete().into(),
+            Self::Wfe => thumb::WfeBuilder::new().complete().into(),
+            Self::Wfi => thumb::WfiBuilder::new().complete().into(),
             Self::Sev => thumb::SevBuilder::new().complete().into(),
             Self::Dbg(el) => thumb::DbgBuilder::new().set_option(el).complete().into(),
         }

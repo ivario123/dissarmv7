@@ -2,27 +2,13 @@ use arch::wrapper_types::*;
 use paste::paste;
 
 use super::{a5_25::A5_25, a5_26::A5_26, a5_27::A5_27};
-use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
-pub trait LocalTryInto<T> {
-    fn local_try_into(self) -> Result<T, ParseError>;
-}
-impl LocalTryInto<bool> for u8 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
-impl LocalTryInto<bool> for u32 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        // A so called "fulhack"
-        Ok(self != 0)
-    }
-}
-impl<T> LocalTryInto<T> for T {
-    fn local_try_into(self) -> Result<T, ParseError> {
-        Ok(self)
-    }
-}
+use crate::{
+    asm::{LocalTryInto, Mask},
+    instruction,
+    prelude::*,
+    ParseError,
+    ToThumb,
+};
 
 // Data processing for registers
 instruction!(

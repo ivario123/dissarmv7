@@ -1,14 +1,14 @@
 use paste::paste;
 
-use crate::{asm::Mask, combine, instruction, prelude::*, ParseError, ToThumb};
-pub trait LocalTryInto<T> {
-    fn local_try_into(self) -> Result<T, ParseError>;
-}
-impl LocalTryInto<bool> for u8 {
-    fn local_try_into(self) -> Result<bool, ParseError> {
-        Ok(self != 0)
-    }
-}
+use crate::{
+    asm::{LocalTryInto, Mask},
+    combine,
+    instruction,
+    prelude::*,
+    ParseError,
+    ToThumb,
+};
+
 instruction!(
     size u32; A5_16 contains
     Stm : {
@@ -77,7 +77,7 @@ impl Parse for A5_16 {
             return Err(ParseError::Invalid32Bit("A5_16"));
         }
         if l {
-            return Ok(Self::Ldm(Ldm::parse(iter)?));
+            return Ok(Self::Ldmdb(Ldmdb::parse(iter)?));
         }
         if wrn == 0b11101 {
             return Ok(Self::Push(Push::parse(iter)?));

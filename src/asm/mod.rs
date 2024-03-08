@@ -1,12 +1,34 @@
 //! Defines the statements availiable in armv7
 
+use crate::ParseError;
+
 pub mod halfword;
 pub mod wholeword;
 
-pub trait Statement: std::fmt::Debug {}
+
+pub(crate) trait LocalTryInto<T> {
+    fn local_try_into(self) -> Result<T, ParseError>;
+}
 
 pub(crate) trait Mask {
     fn mask<const START: usize, const END: usize>(&self) -> Self;
+}
+
+impl LocalTryInto<bool> for u8 {
+    fn local_try_into(self) -> Result<bool, ParseError> {
+        if self > 1 {
+            return Err(ParseError::InvalidField(format!("Invalid masking of bool {self}")))
+        }
+        Ok(self != 0)
+    }
+}
+impl LocalTryInto<bool> for u32 {
+    fn local_try_into(self) -> Result<bool, ParseError> {
+        if self > 1 {
+            return Err(ParseError::InvalidField(format!("Invalid masking of bool {self}")))
+        }
+        Ok(self != 0)
+    }
 }
 impl Mask for u16 {
     fn mask<const START: usize, const END: usize>(&self) -> u16 {

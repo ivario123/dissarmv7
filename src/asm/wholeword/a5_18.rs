@@ -121,7 +121,7 @@ impl ToThumb for A5_18 {
                 .complete()
                 .into(),
             Self::LdrRegister(el) => {
-                let shift = ImmShift::try_from((Shift::Lsl, el.imm2.into())).unwrap();
+                let shift = ImmShift::from((Shift::Lsl, el.imm2.into()));
 
                 thumb::LdrRegister::builder()
                     .set_w(None)

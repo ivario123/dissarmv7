@@ -28,12 +28,11 @@ impl<T: Sized + Iterator<Item = u8>> PeekableBuffer<u8, T> {
     fn peek_count(&mut self) -> bool {
         let mut ret = [0_u8; 2];
         let mut counter = 0;
-        ret.iter_mut().for_each(|t| match self.itter.next() {
-            Some(el) => {
-                *t = el.clone();
+        ret.iter_mut().for_each(|t| {
+            if let Some(el) = self.itter.next() {
+                *t = el;
                 counter += 1;
             }
-            _ => {}
         });
         // Convert to bytes in this machines order
         let intermediate = &u16::from_le_bytes(ret).to_ne_bytes()[0..counter];
@@ -47,7 +46,9 @@ where
     Self: Peek<u16>,
 {
     fn peek<const N: usize>(&mut self) -> Option<u32> {
-        let ret = (((self.peek::<1>()? as u16) as u32) << 16) | ((self.peek::<2>()? as u16) as u32);
+        let first: u16 = self.peek::<1>()?;
+        let second: u16 = self.peek::<2>()?;
+        let ret = ((first as u32) << 16) | (second as u32);
 
         // Get the new byte and return it as a u16
         Some(ret)
@@ -127,7 +128,7 @@ impl<T: Iterator<Item = u8> + Debug> Consume<u8> for PeekableBuffer<u8, T> {
     fn consume<const N: usize>(&mut self) -> Option<[u8; N]> {
         <Self as Peek<u8>>::peek::<N>(self)?;
         if N == 1 {
-            return match self.peeked_elements.get(0) {
+            return match self.peeked_elements.first() {
                 Some(_val) => Some([self.peeked_elements.remove(0); N]),
                 None => {
                     let _: u8 = self.peek::<1>()?;

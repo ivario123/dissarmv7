@@ -1,7 +1,7 @@
 use arch::{ImmShift, Register, Shift};
 use paste::paste;
 
-use super::{Mask};
+use super::Mask;
 use crate::{instruction, Parse, ParseError, Stream, ToThumb};
 
 instruction!(
@@ -89,19 +89,7 @@ instruction!(
         rt as u8 : Register : 8->10 try_into
     }
 );
-macro_rules! match_iter {
-    ($op2:ident $iter:ident $($option:ident)+) => {
-        {
-            let mut counter = 0;
-            $(
-                if counter == $op2{
-                    return Ok(Self::$option($option::parse($iter)?))
-                }
-                counter += 1;
-            )+
-        };
-    };
-}
+
 impl Parse for A5_5 {
     type Target = Self;
 
@@ -171,21 +159,21 @@ impl ToThumb for A5_5 {
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Strh(el) => thumb::StrhRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Strb(el) => thumb::StrbRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Ldr(el) => thumb::LdrRegister::builder()
@@ -193,28 +181,28 @@ impl ToThumb for A5_5 {
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Ldrh(el) => thumb::LdrhRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Ldrsb(el) => thumb::LdrsbRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::Ldrb(el) => thumb::LdrbRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .set_add(Some(true))
                 .complete()
                 .into(),
@@ -222,7 +210,7 @@ impl ToThumb for A5_5 {
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
-                .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0)).unwrap()))
+                .set_shift(Some(ImmShift::from((Shift::Lsl, 0))))
                 .complete()
                 .into(),
             Self::StrI(el) => thumb::StrImmediate::builder()

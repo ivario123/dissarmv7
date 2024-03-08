@@ -1,7 +1,13 @@
 use paste::paste;
 
 use crate::{
-    asm::Mask, combine, instruction, prelude::*, wholeword::a5_23::A5_23, ParseError, ToThumb,
+    asm::Mask,
+    combine,
+    instruction,
+    prelude::*,
+    wholeword::a5_23::A5_23,
+    ParseError,
+    ToThumb,
 };
 
 pub trait LocalTryInto<T> {
@@ -262,10 +268,7 @@ macro_rules! shift {
     ($el:ident) => {
         {
             let (ty, imm3, imm2) = ($el.ty, $el.imm3, $el.imm2);
-            let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                Ok(w) => Some(w),
-                _ => None,
-            };
+            let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
             shift
         }
 
@@ -276,10 +279,8 @@ impl ToThumb for A5_22 {
         match self {
             Self::And(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                    Ok(w) => Some(w),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+
                 thumb::AndRegister::builder()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
@@ -291,10 +292,8 @@ impl ToThumb for A5_22 {
             }
             Self::Tst(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                    Ok(w) => Some(w),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+
                 thumb::TstRegister::builder()
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -304,10 +303,8 @@ impl ToThumb for A5_22 {
             }
             Self::Bic(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                    Ok(w) => Some(w),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+
                 thumb::BicRegister::builder()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
@@ -319,10 +316,7 @@ impl ToThumb for A5_22 {
             }
             Self::Orr(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                    Ok(w) => Some(w),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
                 thumb::OrrRegister::builder()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
@@ -365,10 +359,8 @@ impl ToThumb for A5_22 {
             Self::Pkh(el) => {
                 let (tb, _t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
                 let ty = Shift::try_from((tb as u8) << 1).unwrap();
-                let shift = match ImmShift::try_from((ty, combine!(imm3:imm2,2,u8))) {
-                    Ok(w) => Some(w),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+
                 thumb::Pkh::builder()
                     .set_tb(tb)
                     .set_rd(Some(el.rd))

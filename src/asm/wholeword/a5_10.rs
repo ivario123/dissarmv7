@@ -1,12 +1,6 @@
-use arch::{Imm12, Register};
 use paste::paste;
 
-use crate::{
-    asm::{Mask},
-    combine, instruction,
-    prelude::*,
-    ParseError, ToThumb,
-};
+use crate::{asm::Mask, combine, instruction, prelude::*, ParseError, ToThumb};
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;
 }

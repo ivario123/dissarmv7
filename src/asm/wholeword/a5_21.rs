@@ -145,10 +145,7 @@ impl ToThumb for A5_21 {
                 .complete()
                 .into(),
             Self::StrbReg(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
-                    Ok(el) => Some(el),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
                 thumb::StrbRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
@@ -176,10 +173,7 @@ impl ToThumb for A5_21 {
                 .complete()
                 .into(),
             Self::StrhReg(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
-                    Ok(el) => Some(el),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
                 thumb::StrhRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
@@ -207,10 +201,7 @@ impl ToThumb for A5_21 {
                 .complete()
                 .into(),
             Self::StrReg(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm)) {
-                    Ok(el) => Some(el),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
                 thumb::StrRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)

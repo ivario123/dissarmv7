@@ -1,8 +1,4 @@
-use crate::{
-    asm::{Mask},
-    prelude::*,
-    ParseError, ToThumb,
-};
+use crate::{asm::Mask, prelude::*, ParseError, ToThumb};
 
 /// Defines some maker instructions
 #[derive(Debug)]

@@ -176,10 +176,7 @@ impl ToThumb for A5_19 {
                 .complete()
                 .into(),
             Self::LdrhRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(el) => Some(el),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::LdrhRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
@@ -213,10 +210,7 @@ impl ToThumb for A5_19 {
                 .complete()
                 .into(),
             Self::LdrshRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(el) => Some(el),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::LdrshRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)

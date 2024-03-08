@@ -1,7 +1,7 @@
 use arch::{Condition, Imm12, Register, RegisterList, SignExtend};
 use paste::paste;
 
-use super::{Mask};
+use super::Mask;
 use crate::{instruction, Parse, ParseError, ToThumb};
 
 instruction!(

@@ -2,6 +2,7 @@ imports_granularity =  "crate"
 reorder_impl_items = true
 group_imports = "StdExternalCrate"
 wrap_comments = true
+imports_layout = "HorizontalVertical"
 # error_on_line_overflow = true
 
 use_field_init_shorthand = true

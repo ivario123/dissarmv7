@@ -100,14 +100,14 @@ impl ToThumb for A5_23 {
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rm(el.rm)
-                .set_imm(imm!(el).try_into().unwrap())
+                .set_imm(imm!(el))
                 .complete()
                 .into(),
             Self::Lsr(el) => thumb::LsrImmediate::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rm(el.rm)
-                .set_imm(imm!(el).try_into().unwrap())
+                .set_imm(imm!(el))
                 .complete()
                 .into(),
             Self::Asr(el) => thumb::AsrImmediate::builder()

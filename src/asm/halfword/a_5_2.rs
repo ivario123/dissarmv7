@@ -7,7 +7,9 @@ use super::Mask;
 use crate::{
     instruction,
     prelude::{ImmShift, Shift},
-    Parse, ParseError, ToThumb,
+    Parse,
+    ParseError,
+    ToThumb,
 };
 
 instruction!(
@@ -112,17 +114,17 @@ impl ToThumb for A5_2 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
             Self::Lsl(lsl) => {
-                let shift = arch::shift::ImmShift::try_from((Shift::Lsl, lsl.imm)).unwrap();
+                let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
                 thumb::LslImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsl.rd)
                     .set_rm(lsl.rm)
-                    .set_imm(shift.shift_n.try_into().unwrap())
+                    .set_imm(shift.shift_n)
                     .complete()
                     .into()
             }
             Self::Lsr(lsr) => {
-                let shift = ImmShift::try_from((Shift::Lsr, lsr.imm)).unwrap();
+                let shift = ImmShift::from((Shift::Lsr, lsr.imm));
                 thumb::LsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsr.rd)
@@ -137,7 +139,7 @@ impl ToThumb for A5_2 {
                     .set_s(Some(true))
                     .set_rd(asr.rd)
                     .set_rm(asr.rm)
-                    .set_imm(shift.shift_n.try_into().unwrap())
+                    .set_imm(shift.shift_n)
                     .complete()
                     .into()
             }

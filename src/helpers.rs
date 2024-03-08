@@ -76,7 +76,7 @@ macro_rules! instruction {
                     )+
                     Ok(Self{
                         $(
-                            $field_id: $field_id,
+                            $field_id,
                         )+
                     })
                 }
@@ -159,7 +159,7 @@ macro_rules! instruction {
                         )*
                         let ret = Self{
                             $(
-                                $field_id: $field_id,
+                                $field_id,
                             )*
                         };
                         Ok(ret)
@@ -195,7 +195,7 @@ macro_rules! combine {
             #[allow(unused_assignments)]
             {
                 $(
-                    counter = counter - $size;
+                    counter -= $size;
                     sum |= (($id as $ret_ty) << counter) as $ret_ty;
                 )*
             }

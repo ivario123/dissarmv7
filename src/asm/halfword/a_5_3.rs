@@ -1,8 +1,7 @@
 use arch::Register;
 use paste::paste;
-use thumb;
 
-use super::{Mask};
+use super::Mask;
 use crate::{instruction, Parse, ParseError, ToThumb};
 macro_rules! instruction_5_3 {
     ($(

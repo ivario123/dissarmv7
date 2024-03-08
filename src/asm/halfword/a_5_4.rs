@@ -1,7 +1,7 @@
 use arch::{ImmShift, Register, Shift};
 use paste::paste;
 
-use super::{Mask};
+use super::Mask;
 use crate::{combine, instruction, Parse, ParseError, Stream, ToThumb};
 instruction!(
     size u16;  A5_4 contains
@@ -88,7 +88,7 @@ impl ToThumb for A5_4 {
                 thumb::CmpRegister::builder()
                     .set_rn(reg)
                     .set_rm(el.rm)
-                    .set_shift(Some(ImmShift::try_from((Shift::Lsl, 0u8)).unwrap()))
+                    .set_shift(Some(ImmShift::from((Shift::Lsl, 0u8))))
                     .complete()
                     .into()
             }

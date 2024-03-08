@@ -1597,15 +1597,13 @@ impl Convert for Thumb {
                     consume!((rd.local_into(),rm.local_into()) from rev);
                     local!(int1, int2, int3, int4);
                     let mut ret = vec![];
-                    let m = u8::MAX as u32;
-                    let mask = |m: u32, n: u32| (m << n * 8).local_into();
                     let zero = 0.local_into();
                     pseudo!(
                         ret.extend[
-                            int1 = rm & mask(m,0);
-                            int2 = rm & mask(m,1);
-                            int3 = rm & mask(m,2);
-                            int4 = rm & mask(m,3);
+                            int1 = rm<7:0>;
+                            int2 = rm<15:8>;
+                            int3 = rm<23:16>;
+                            int4 = rm<31:24>;
                             int1 = int1 << (24).local_into();
                             int2 = int2 << (8).local_into();
                             int3 = int3 >> (8).local_into();
@@ -1624,19 +1622,17 @@ impl Convert for Thumb {
                     consume!((rd.local_into(),rm.local_into()) from rev);
                     local!(int1, int2, int3, int4);
                     let mut ret = vec![];
-                    let m = u8::MAX as u32;
-                    let mask = |m: u32, n: u32| (m << n * 8).local_into();
                     let zero = 0.local_into();
                     pseudo!(
                         ret.extend[
-                            int1 = rm & mask(m,0);
-                            int2 = rm & mask(m,1);
-                            int3 = rm & mask(m,2);
-                            int4 = rm & mask(m,3);
-                            int1 = int1 << (8).local_into();
-                            int2 = int2 >> (8).local_into();
-                            int3 = int3 << (8).local_into();
-                            int4 = int4 >> (8).local_into();
+                            int1 = rm<7:0>;
+                            int2 = rm<15:8>;
+                            int3 = rm<23:16>;
+                            int4 = rm<31:24>;
+                            int1 = int1 << 8.local_into();
+                            int2 = int2 >> 8.local_into();
+                            int3 = int3 << 8.local_into();
+                            int4 = int4 >> 8.local_into();
                             rd = zero;
                             rd = rd | int1;
                             rd = rd | int2;
@@ -1650,15 +1646,13 @@ impl Convert for Thumb {
                     consume!((rd.local_into(),rm.local_into()) from revsh);
                     local!(int1, int2);
                     let mut ret = vec![];
-                    let m = u8::MAX as u32;
-                    let mask = |m: u32, n: u32| (m << n * 8).local_into();
                     let zero = 0.local_into();
                     pseudo!(
                         ret.extend[
-                            int1 = rm & mask(m,0);
-                            int2 = rm & mask(m,1);
-                            int1 = int1 << (8).local_into();
-                            int2 = int2 >> (8).local_into();
+                            int1 = rm<7:0>;
+                            int2 = rm<15:8>;
+                            int1 = int1 << 8.local_into();
+                            int2 = int2 >> 8.local_into();
                             rd = zero;
                         ]
                     );

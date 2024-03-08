@@ -1,7 +1,7 @@
 use arch::{wrapper_types::sign_extend_u32, Condition};
 use paste::paste;
 
-use super::{Mask};
+use super::Mask;
 use crate::{instruction, Parse, ParseError, Stream, ToThumb};
 
 instruction!(

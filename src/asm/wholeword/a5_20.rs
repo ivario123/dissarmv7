@@ -165,10 +165,8 @@ impl Parse for A5_20 {
                 }
                 return Err(ParseError::Invalid32Bit("A5_20"));
             }
-            if op1 == 2 {
-                if op2 >> 2 == 0b1100 {
-                    return Ok(Self::PliImmediateT2(PliImmediateT2::parse(iter)?));
-                }
+            if op1 == 2 && op2 >> 2 == 0b1100 {
+                return Ok(Self::PliImmediateT2(PliImmediateT2::parse(iter)?));
             }
             return Err(ParseError::Invalid32Bit("A5_20"));
         }
@@ -251,10 +249,7 @@ impl ToThumb for A5_20 {
                 .complete()
                 .into(),
             Self::LdrbRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(s) => Some(s),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::LdrbRegister::builder()
                     .set_add(Some(true))
                     .set_shift(shift)
@@ -295,10 +290,7 @@ impl ToThumb for A5_20 {
                 .complete()
                 .into(),
             Self::LdrsbRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(s) => Some(s),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::LdrsbRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
@@ -325,10 +317,7 @@ impl ToThumb for A5_20 {
                 .complete()
                 .into(),
             Self::PldRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(s) => Some(s),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::PldRegister::builder()
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -355,10 +344,7 @@ impl ToThumb for A5_20 {
                 .complete()
                 .into(),
             Self::PliRegister(el) => {
-                let shift = match ImmShift::try_from((Shift::Lsl, el.imm2.into())) {
-                    Ok(s) => Some(s),
-                    _ => None,
-                };
+                let shift = Some(ImmShift::from((Shift::Lsl, el.imm2.into())));
                 thumb::PliRegister::builder()
                     .set_rn(el.rn)
                     .set_rm(el.rm)

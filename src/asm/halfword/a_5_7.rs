@@ -1,8 +1,7 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use arch::{Condition};
+use arch::Condition;
 use paste::paste;
-use thumb::{self};
 
 use super::Mask;
 use crate::{instruction, Parse, ParseError, ToThumb};

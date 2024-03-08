@@ -93,3 +93,95 @@ impl ToThumb for B {
             .into()
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_ldr() {
+        let bin = [0b01001001u8, 0b11010101u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::LdrLiteral::builder()
+            .set_add(true)
+            .set_rt(Register::R1)
+            .set_imm(0b11010101<<2)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_adr() {
+        let bin = [0b10100001u8, 0b11010101u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Adr::builder()
+            .set_add(true)
+            .set_rd(Register::R1)
+            .set_imm(0b11010101<<2)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_add_sp_p_imm() {
+        let bin = [0b10101001u8, 0b11010101u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::AddSPImmediate::builder()
+            .set_rd(Some(Register::R1))
+            .set_imm(0b11010101<<2)
+            .set_s(Some(false))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_stm() {
+        let bin = [0b11000001u8, 0b11010101u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let registers = RegisterList::try_from(0b11010101).unwrap();
+        let target: Thumb = thumb::Stm::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R1)
+            .set_registers(registers)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ldm() {
+        let bin = [0b11000001u8, 0b11010101u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let registers = RegisterList::try_from(0b11010101).unwrap();
+        let target: Thumb = thumb::Stm::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R1)
+            .set_registers(registers)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_b() {
+        let bin = [0b11100100u8, 0b01111111u8];
+        let mut stream = PeekableBuffer::from(bin.into_iter().rev());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let mut number: Imm12 = Imm12::try_from(0b100011111110u16).unwrap();
+        let target: Thumb = thumb::B::builder()
+            .set_condition(Condition::None)
+            .set_imm(number.sign_extend())
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+}

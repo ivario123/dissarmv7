@@ -1,6 +1,4 @@
-use arch::Register;
 use paste::paste;
-
 use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
 
 pub trait LocalTryInto<T> {

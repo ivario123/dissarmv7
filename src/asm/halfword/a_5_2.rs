@@ -2,11 +2,9 @@
 #![allow(dead_code)]
 use arch::Register;
 use paste::paste;
-use thumb::{self};
 
-use super::{HalfWord, Mask};
+use super::Mask;
 use crate::{
-    asm::Statement,
     instruction,
     prelude::{ImmShift, Shift},
     Parse, ParseError, ToThumb,

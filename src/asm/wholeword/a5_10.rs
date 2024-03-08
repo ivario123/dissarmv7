@@ -1,10 +1,9 @@
-use crate::asm::Mask;
-use crate::asm::Statement;
-use crate::combine;
-use crate::instruction;
-use crate::prelude::*;
-use crate::ParseError;
-use crate::ToThumb;
+use crate::{
+    asm::{Mask, Statement},
+    combine, instruction,
+    prelude::*,
+    ParseError, ToThumb,
+};
 use arch::{Imm12, Register};
 use paste::paste;
 

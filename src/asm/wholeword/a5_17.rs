@@ -1,7 +1,4 @@
-use crate::asm::Mask;
-use crate::instruction;
-use crate::prelude::*;
-use crate::ToThumb;
+use crate::{asm::Mask, instruction, prelude::*, ToThumb};
 use arch::Register;
 
 use crate::ParseError;

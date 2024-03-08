@@ -1,7 +1,5 @@
-use super::a_5_7::A5_7;
-use super::{HalfWord, Mask};
-use crate::{asm::Statement, Parse, ParseError, ToThumb};
-use crate::{combine, instruction};
+use super::{a_5_7::A5_7, HalfWord, Mask};
+use crate::{asm::Statement, combine, instruction, Parse, ParseError, ToThumb};
 use arch::{Register, RegisterList};
 use paste::paste;
 

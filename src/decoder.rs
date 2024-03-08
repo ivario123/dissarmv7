@@ -15,7 +15,7 @@ macro_rules! consume {
                 let consumer = $name.consumer();
                 $(
                     let ($id,consumer) = consumer.[<consume_ $id>]();
-                    let $id = $id$($(.$e)?)*;
+                    $(let $id = $id$(.$e)+;)?
                 )*
                 consumer.consume();
             );
@@ -716,8 +716,8 @@ impl Convert for Thumb {
                         vec![Operation::Shift {
                             destination: shifted.clone(),
                             operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
+                            shift_n,
+                            shift_t,
                         }]
                     }
                     // If no shift is applied just move the value in to the register
@@ -808,8 +808,8 @@ impl Convert for Thumb {
                         vec![Operation::Shift {
                             destination: shifted.clone(),
                             operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
+                            shift_n,
+                            shift_t,
                         }]
                     }
                     // If no shift is applied just move the value in to the register
@@ -949,8 +949,8 @@ impl Convert for Thumb {
                         vec![Operation::Shift {
                             destination: shifted.clone(),
                             operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
+                            shift_n,
+                            shift_t,
                         },
                         flag_setter
                         ]
@@ -2461,7 +2461,7 @@ impl Convert for Thumb {
             Thumb::Smlsd(_) => todo!("Need to revisit SInt"),
             Thumb::Smlsld(_) => todo!("Need to revisit SInt"),
             Thumb::Smmla(_) => todo!("Need to revisit SInt"),
-            Thumb::Smmls(smmls) => {
+            Thumb::Smmls(_) => {
                 todo!()
             },
             Thumb::Smmul(_) => todo!("Need to revisit SInt"),
@@ -2495,32 +2495,6 @@ impl Convert for Thumb {
                         rn += (4*bc).local_into();
                     }
                 ])
-                
-
-
-
-                // pseudo!(
-                //     ret.extend[
-                //         let address = rn;
-                //     ]
-                // );
-                // let n = registers.regs.len() as u32;
-                // for register in registers.regs{
-                //     pseudo!(
-                //         ret.extend[
-                //             LocalAddress("address",32) = register.local_into();
-                //             address = address + 4.local_into();
-                //         ]
-                //     );
-                // }
-                // if w {
-                //     pseudo!(
-                //         ret.extend[
-                //             rn = rn + n.local_into();
-                //         ]
-                //     );
-                // }
-                // ret
             },
             Thumb::Stmdb(stmdb) => {
                 consume!((
@@ -2585,7 +2559,10 @@ impl Convert for Thumb {
                     rn.local_into(),
                     rm.local_into(),
                     shift) from str);
-                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
+                let shift_n = match shift{
+                    Some(shift) => shift.shift_n as u32,
+                    None => 0
+                }.local_into();
                 let mut ret = vec![];
                 pseudo!(ret.extend[
                     // Shift will allways be LSL on the v7
@@ -2631,15 +2608,16 @@ impl Convert for Thumb {
                     rm.local_into(),
                     shift
                 ) from strb);
-                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
-                let mut ret = vec![];
-                pseudo!(ret.extend[
+                let shift_n = match shift{
+                    Some(shift) => shift.shift_n as u32,
+                    None => 0
+                }.local_into();
+                pseudo!([
                     // Shift will allways be LSL on the v7
                     let offset = rm << shift_n;
                     let address = rn + offset;
                     LocalAddress("address", 8) = rt;
-                ]);
-                ret
+                ])
             },
             Thumb::Strbt(strbt) => {
                 consume!((
@@ -3636,10 +3614,7 @@ impl sealed::ToString for Register {
 }
 impl sealed::Into<Option<Operand>> for Option<Register> {
     fn local_into(self) -> Option<Operand> {
-        if self.is_none() {
-            return None;
-        }
-        Some(Operand::Register(self.unwrap().to_string()))
+        Some(Operand::Register(self?.to_string()))
     }
 }
 impl sealed::Into<GAShift> for Shift {
@@ -3660,6 +3635,5 @@ impl Into<Operand> for u32 {
     }
 }
 fn mask_dyn(start: u32, end: u32) -> u32 {
-    let mask = ((1 << (end - start + 1) as u32) as u32) - 1 as u32;
-    mask
+    (1 << (end - start + 1)) - 1
 }

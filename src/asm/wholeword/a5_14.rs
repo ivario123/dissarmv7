@@ -1,10 +1,7 @@
 //! Defines marker instructions
 //!
 //! These have one or no fields but might have side-effects
-use crate::asm::Mask;
-use crate::prelude::*;
-use crate::ParseError;
-use crate::ToThumb;
+use crate::{asm::Mask, prelude::*, ParseError, ToThumb};
 
 /// Defines some maker instructions
 #[derive(Debug)]

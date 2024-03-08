@@ -1,12 +1,7 @@
-use crate::asm::Mask;
-use crate::combine;
-use crate::instruction;
-use crate::prelude::*;
-use crate::ToThumb;
+use crate::{asm::Mask, combine, instruction, prelude::*, ToThumb};
 use arch::{Register, Shift};
 
-use crate::wholeword::a5_23::A5_23;
-use crate::ParseError;
+use crate::{wholeword::a5_23::A5_23, ParseError};
 use paste::paste;
 pub trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;

@@ -1,11 +1,9 @@
 use super::FullWord;
-use crate::asm::Mask;
-use crate::asm::Statement;
+use crate::asm::{Mask, Statement};
 
 use crate::prelude::*;
 
-use crate::ParseError;
-use crate::ToThumb;
+use crate::{ParseError, ToThumb};
 
 /// Defines some maker instructions
 #[derive(Debug)]

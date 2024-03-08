@@ -1,15 +1,15 @@
-use crate::asm::Mask;
-use crate::asm::Statement;
-use crate::combine;
-use crate::instruction;
-use crate::prelude::*;
+use crate::{
+    asm::{Mask, Statement},
+    combine, instruction,
+    prelude::*,
+};
 
 use arch::{Condition, Imm21, Imm25, Register, SignExtend};
 
-use crate::wholeword::a5_14::A5_14;
-use crate::wholeword::a5_15::A5_15;
-use crate::ParseError;
-use crate::ToThumb;
+use crate::{
+    wholeword::{a5_14::A5_14, a5_15::A5_15},
+    ParseError, ToThumb,
+};
 use paste::paste;
 
 use super::FullWord;

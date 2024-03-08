@@ -1,9 +1,7 @@
-use crate::asm::Mask;
-use crate::ToThumb;
+use crate::{asm::Mask, ToThumb};
 use arch::{wrapper_types::*, Register};
 
-use crate::instruction;
-use crate::prelude::*;
+use crate::{instruction, prelude::*};
 
 use crate::ParseError;
 use paste::paste;

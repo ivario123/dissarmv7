@@ -184,13 +184,13 @@ impl ParseSingle for thumb::Thumb {
         Self: Sized,
     {
         let halfword: Option<u16> = iter.peek::<1>();
-        if let None = halfword {
+        if halfword.is_none() {
             return Err(ParseError::IncompleteProgram);
         }
         let halfword = halfword.unwrap();
 
         Ok(match halfword >> 11 {
-            0b11101 | 0b11110 | 0b11111 => FullWord::parse(iter)?,
+            0b11101..=0b11111 => FullWord::parse(iter)?,
             _ => HalfWord::parse(iter)?,
         })
     }
@@ -211,11 +211,6 @@ impl From<ASM> for Vec<(usize, Thumb)> {
 pub mod prelude {
     pub use super::{Parse, ParseExact, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
-    pub use arch::wrapper_types::*;
-    pub use arch::Condition;
-    pub use arch::ImmShift;
-    pub use arch::Register;
-    pub use arch::RegisterList;
-    pub use arch::Shift;
+    pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
     pub use thumb::Thumb;
 }

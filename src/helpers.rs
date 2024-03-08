@@ -62,7 +62,7 @@ macro_rules! instruction {
             impl Parse for $id{
                 type Target = Self;
                 // #[allow(unused_variables)]
-                fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
+                fn parse<T: $crate::Stream>(iter: &mut T) -> Result<Self::Target, $crate::ParseError>
                 where
                     Self: Sized {
                     let word: $size = match iter.consume::<1>(){
@@ -145,7 +145,7 @@ macro_rules! instruction {
                 impl Parse for $id{
                     type Target = Self;
                     #[allow(unused_variables)]
-                    fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, crate::ParseError>
+                    fn parse<T: $crate::Stream>(iter: &mut T) -> Result<Self::Target, $crate::ParseError>
                     where
                         Self: Sized {
                         // Consume a word from the buffer

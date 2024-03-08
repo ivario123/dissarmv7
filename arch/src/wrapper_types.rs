@@ -1,6 +1,5 @@
 //! Creates a few helper types to make translations clearer
-use crate::ArchError;
-use crate::Mask;
+use crate::{ArchError, Mask};
 
 macro_rules! combine {
     ($first_id:ident:$($id:expr,$size:literal):*,$ret_ty:ty) => {

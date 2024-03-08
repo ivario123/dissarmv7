@@ -1,11 +1,5 @@
-use super::a5_25::A5_25;
-use super::a5_26::A5_26;
-use super::a5_27::A5_27;
-use crate::asm::Mask;
-use crate::instruction;
-use crate::prelude::*;
-use crate::ParseError;
-use crate::ToThumb;
+use super::{a5_25::A5_25, a5_26::A5_26, a5_27::A5_27};
+use crate::{asm::Mask, instruction, prelude::*, ParseError, ToThumb};
 use paste::paste;
 
 use arch::{wrapper_types::*, Register};

@@ -108,13 +108,20 @@ impl Parse for A5_12 {
     where
         Self: Sized,
     {
+        // NOTE! Only read half the word here to avoid adding to the mask
         let word: u16 = match iter.peek::<1>() {
             Some(word) => Ok(word),
             None => Err(ParseError::IncompleteProgram),
         }?;
         let rn = word.mask::<0, 3>();
         let op = word.mask::<4, 8>();
+
+        let word: u16 = match iter.peek::<2>() {
+            Some(word) => Ok(word),
+            None => Err(ParseError::IncompleteProgram),
+        }?;
         let second_halfword_req = word.mask::<6, 7>() == 0 && word.mask::<12, 14>() == 0;
+
         match (op, rn, second_halfword_req) {
             (0, 0b1111, _) => Ok(Self::Adr(Adr::parse(iter)?)),
             (0, _, _) => Ok(Self::Add(Add::parse(iter)?)),
@@ -441,4 +448,150 @@ mod test {
             .into();
         assert_eq!(instr, target)
     }
+
+    #[test]
+    fn test_parse_ssat_16() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b00100010u8].into_iter().rev());
+        bin.extend([0b00000010u8, 0b00000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Ssat16::builder()
+            .set_rn(Register::R2)
+            .set_rd(Register::R2)
+            .set_imm(0b00100 + 1)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sbfx() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b01000010u8].into_iter().rev());
+        bin.extend([0b00100001u8, 0b01000010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Sbfx::builder()
+            .set_rn(Register::R2)
+            .set_rd(Register::R1)
+            .set_lsb(0b01001)
+            .set_width(0b00010 + 1)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_bfi() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b01100010u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Bfi::builder()
+            .set_rn(Register::R2)
+            .set_rd(Register::R1)
+            .set_lsb(0b00101)
+            .set_msb(0b00100)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_bfc() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Bfc::builder()
+            .set_rd(Register::R1)
+            .set_lsb(0b00101)
+            .set_msb(0b00100)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_usat() {
+        todo!();
+        // let mut bin = vec![];
+        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
+        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+        //
+        // let mut stream = PeekableBuffer::from(bin.into_iter());
+        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+        //     .unwrap()
+        //     .thumb_expand_imm_c();
+        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        // let target: Thumb = thumb::Bfc::builder()
+        //     .set_rd(Register::R1)
+        //     .set_lsb(0b00101)
+        //     .set_msb(0b00100)
+        //     .complete()
+        //     .into();
+        // assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_usat16() {
+        todo!()
+        // let mut bin = vec![];
+        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
+        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+        //
+        // let mut stream = PeekableBuffer::from(bin.into_iter());
+        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+        //     .unwrap()
+        //     .thumb_expand_imm_c();
+        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        // let target: Thumb = thumb::Bfc::builder()
+        //     .set_rd(Register::R1)
+        //     .set_lsb(0b00101)
+        //     .set_msb(0b00100)
+        //     .complete()
+        //     .into();
+        // assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ubfx() {
+        todo!()
+        // let mut bin = vec![];
+        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
+        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+        //
+        // let mut stream = PeekableBuffer::from(bin.into_iter());
+        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+        //     .unwrap()
+        //     .thumb_expand_imm_c();
+        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        // let target: Thumb = thumb::Bfc::builder()
+        //     .set_rd(Register::R1)
+        //     .set_lsb(0b00101)
+        //     .set_msb(0b00100)
+        //     .complete()
+        //     .into();
+        // assert_eq!(instr, target)
+    }
+
 }

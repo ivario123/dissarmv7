@@ -13,7 +13,6 @@ pub mod decoder;
 
 pub(crate) mod asm;
 
-
 /// Internal helpers
 mod helpers;
 
@@ -27,7 +26,7 @@ use crate::asm::wholeword::{self, FullWord};
 
 /// Representation of a armv7 program.
 ///
-/// This struct is constructed via 
+/// This struct is constructed via
 /// [`ASM`](ASM::parse).
 #[derive(Debug)]
 #[allow(dead_code)]

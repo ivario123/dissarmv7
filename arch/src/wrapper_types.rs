@@ -49,7 +49,6 @@ impl Imm12 {
     }
 }
 
-
 mod sealed {
     pub trait SignBit {
         /// Bit index in the source value

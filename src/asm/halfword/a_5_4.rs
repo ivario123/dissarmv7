@@ -164,10 +164,7 @@ mod test {
         let bin = [0b01000111u8, 0b00001000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Bx::builder()
-            .set_rm(Register::R1)
-            .complete()
-            .into();
+        let target: Thumb = thumb::Bx::builder().set_rm(Register::R1).complete().into();
         assert_eq!(instr, target)
     }
 
@@ -176,10 +173,7 @@ mod test {
         let bin = [0b01000111u8, 0b10001000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Blx::builder()
-            .set_rm(Register::R1)
-            .complete()
-            .into();
+        let target: Thumb = thumb::Blx::builder().set_rm(Register::R1).complete().into();
         assert_eq!(instr, target)
     }
 }

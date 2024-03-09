@@ -67,7 +67,6 @@ mod test {
         let condition: Condition = Condition::try_from(0b0010u8).unwrap();
         let imm = 0b11111111_11111111_11111111_10101010;
         let target: Thumb = thumb::B::builder()
-
             .set_condition(condition)
             .set_imm(imm)
             .complete()

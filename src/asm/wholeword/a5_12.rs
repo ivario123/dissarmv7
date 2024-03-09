@@ -114,25 +114,22 @@ impl Parse for A5_12 {
         }?;
         let rn = word.mask::<0, 3>();
         let op = word.mask::<4, 8>();
-        match (op, rn) {
-            (0, 0b1111) => Ok(Self::Adr(Adr::parse(iter)?)),
-            (0, _) => Ok(Self::Add(Add::parse(iter)?)),
-            (0b00100, _) => Ok(Self::Mov(Mov::parse(iter)?)),
-            (0b01010, 0b1111) => Ok(Self::Adr(Adr::parse(iter)?)),
-            (0b01010, _) => Ok(Self::Sub(Sub::parse(iter)?)),
-            (0b01100, _) => Ok(Self::Movt(Movt::parse(iter)?)),
-            // TODO! Validate the a foot note here
-            (0b10000, _) /* | (0b10010, _) */ => Ok(Self::Ssat(Ssat::parse(iter)?)),
-            // TODO! Look in to the b foot note here
-            (0b10010, _) => Ok(Self::Ssat16(Ssat16::parse(iter)?)),
-            (0b10100, _) => Ok(Self::Sbfx(Sbfx::parse(iter)?)),
-            (0b10110, 0b1111) => Ok(Self::Bfc(Bfc::parse(iter)?)),
-            (0b10110, _) => Ok(Self::Bfi(Bfi::parse(iter)?)),
-            // TODO! Look in to the a footnote
-            (0b11000, _) /* | (0b11010, _) */ => Ok(Self::Usat(Usat::parse(iter)?)),
-            // TODO! Look in to the b footnote
-            (0b11010, _) => Ok(Self::Usat16(Usat16::parse(iter)?)),
-            (0b11100, _) => Ok(Self::Ubfx(Ubfx::parse(iter)?)),
+        let second_halfword_req = word.mask::<6, 7>() == 0 && word.mask::<12, 14>() == 0;
+        match (op, rn, second_halfword_req) {
+            (0, 0b1111, _) => Ok(Self::Adr(Adr::parse(iter)?)),
+            (0, _, _) => Ok(Self::Add(Add::parse(iter)?)),
+            (0b00100, _, _) => Ok(Self::Mov(Mov::parse(iter)?)),
+            (0b01010, 0b1111, _) => Ok(Self::Adr(Adr::parse(iter)?)),
+            (0b01010, _, _) => Ok(Self::Sub(Sub::parse(iter)?)),
+            (0b01100, _, _) => Ok(Self::Movt(Movt::parse(iter)?)),
+            (0b10000, _, _) | (0b10010, _, false) => Ok(Self::Ssat(Ssat::parse(iter)?)),
+            (0b10010, _, true) => Ok(Self::Ssat16(Ssat16::parse(iter)?)),
+            (0b10100, _, _) => Ok(Self::Sbfx(Sbfx::parse(iter)?)),
+            (0b10110, 0b1111, _) => Ok(Self::Bfc(Bfc::parse(iter)?)),
+            (0b10110, _, _) => Ok(Self::Bfi(Bfi::parse(iter)?)),
+            (0b11000, _, _) | (0b11010, _, false) => Ok(Self::Usat(Usat::parse(iter)?)),
+            (0b11010, _, true) => Ok(Self::Usat16(Usat16::parse(iter)?)),
+            (0b11100, _, _) => Ok(Self::Ubfx(Ubfx::parse(iter)?)),
             _ => Err(ParseError::Invalid32Bit("A5_12")),
         }
     }
@@ -172,7 +169,7 @@ impl ToThumb for A5_12 {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 thumb::AdrBuilder::new()
                     .set_rd(el.rd)
-                    .set_add(el.add)
+                    .set_add(!el.add)
                     .set_imm(imm.into())
                     .complete()
                     .into()
@@ -214,7 +211,7 @@ impl ToThumb for A5_12 {
                 let shift = ImmShift::from((shift, shift_n));
                 thumb::SsatBuilder::new()
                     .set_rd(el.rd)
-                    .set_imm(el.sat_imm as u32)
+                    .set_imm(el.sat_imm as u32 + 1)
                     .set_rn(el.rn)
                     .set_shift(Some(shift))
                     .complete()
@@ -296,5 +293,152 @@ impl ToThumb for A5_12 {
                     .into()
             }
         }
+    }
+}
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_add_immediate() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b00000010u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::AddImmediate::builder()
+            .set_imm(0b100110001000u32)
+            .set_s(Some(false))
+            .set_rn(Register::R2)
+            .set_rd(Some(Register::R1))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_adr_t3() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b00001111u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Adr::builder()
+            .set_imm(0b100110001000u32)
+            .set_rd(Register::R1)
+            .set_add(true)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_adr_t2() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Adr::builder()
+            .set_imm(0b100110001000u32)
+            .set_rd(Register::R1)
+            .set_add(false)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_mov_imm() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b01000100u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b10001001u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::MovImmediate::builder()
+            .set_imm(0b0100110001001u32)
+            .set_rd(Register::R1)
+            .set_s(Some(false))
+            .set_carry(None)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sub_immediate() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b10100010u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::SubImmediate::builder()
+            .set_imm(0b100110001000u32)
+            .set_s(Some(false))
+            .set_rn(Register::R2)
+            .set_rd(Some(Register::R1))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_movt() {
+        let mut bin = vec![];
+        bin.extend([0b11110110u8, 0b11000010u8].into_iter().rev());
+        bin.extend([0b00010010u8, 0b10001000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Movt::builder()
+            .set_imm(0b0010100110001000u16)
+            .set_rd(Register::R2)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ssat() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b00100010u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b11000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let shift = Shift::try_from(0b10).unwrap();
+        let shift = ImmShift::from((shift, 0b00111u8));
+        let target: Thumb = thumb::Ssat::builder()
+            .set_rn(Register::R2)
+            .set_rd(Register::R1)
+            .set_imm(0b00100 + 1)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
     }
 }

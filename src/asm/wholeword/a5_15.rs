@@ -55,3 +55,72 @@ impl ToThumb for A5_15 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_clrex() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10111111u8].into_iter().rev());
+        bin.extend([0b10001111u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Clrex::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_dsb() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10111111u8].into_iter().rev());
+        bin.extend([0b10001111u8, 0b01000010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Dsb::builder()
+            .set_option(Some(0b0010))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_dmb() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10111111u8].into_iter().rev());
+        bin.extend([0b10001111u8, 0b01010010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Dmb::builder()
+            .set_option(Some(0b0010))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_isb() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10111111u8].into_iter().rev());
+        bin.extend([0b10001111u8, 0b01100010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Isb::builder()
+            .set_option(Some(
+                Imm4::try_from(0b0010u8).expect("Malformed test, imm too large"),
+            ))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+}

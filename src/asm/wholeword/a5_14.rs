@@ -65,3 +65,87 @@ impl ToThumb for A5_14 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_nop() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b00000000u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Nop::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_yield() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b00000001u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Yield::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_wfe() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b00000010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Wfe::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_wfi() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b00000011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Wfi::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sev() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b00000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Sev::builder().complete().into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_dbg() {
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10101111u8].into_iter().rev());
+        bin.extend([0b10000000u8, 0b11110010u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::Dbg::builder().set_option(0b0010).complete().into();
+        assert_eq!(instr, target)
+    }
+}

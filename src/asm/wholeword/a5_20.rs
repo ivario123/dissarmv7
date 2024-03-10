@@ -343,3 +343,69 @@ impl ToThumb for A5_20 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_ldrb_lit() {
+        let mut bin = vec![];
+        bin.extend([0b1111_1000u8, 0b1001_1111u8].into_iter().rev());
+        bin.extend([0b0011_0011u8, 0b0010_1111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::LdrbLiteral::builder()
+            .set_rt(Register::R3)
+            .set_imm(0b0011_0010_1111)
+            .set_add(Some(true))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ldrb_imm_t2() {
+        let mut bin = vec![];
+        bin.extend([0b1111_1000u8, 0b1001_0011u8].into_iter().rev());
+        bin.extend([0b0011_0011u8, 0b0010_1111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::LdrbImmediate::builder()
+            .set_rt(Register::R3)
+            .set_rn(Register::R3)
+            .set_imm(Some(0b0011_0010_1111))
+            .set_add(Some(true))
+            .set_w(Some(false))
+            .set_index(true)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ldrb_imm_t3() {
+        let mut bin = vec![];
+        bin.extend([0b1111_1000u8, 0b0001_0011u8].into_iter().rev());
+        bin.extend([0b0011_1111u8, 0b0010_1111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let target: Thumb = thumb::LdrbImmediate::builder()
+            .set_rt(Register::R3)
+            .set_rn(Register::R3)
+            .set_imm(Some(0b0010_1111))
+            .set_add(Some(true))
+            .set_w(Some(true))
+            .set_index(true)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+}

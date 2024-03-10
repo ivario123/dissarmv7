@@ -291,7 +291,7 @@ impl ToThumb for A5_12 {
                     .into()
             }
             Self::Usat16(el) => {
-                let saturate_to = el.sat_imm + 1;
+                let saturate_to = el.sat_imm;
                 thumb::Usat16Builder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
@@ -533,65 +533,67 @@ mod test {
 
     #[test]
     fn test_parse_usat() {
-        todo!();
-        // let mut bin = vec![];
-        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
-        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
-        //
-        // let mut stream = PeekableBuffer::from(bin.into_iter());
-        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
-        //     .unwrap()
-        //     .thumb_expand_imm_c();
-        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        // let target: Thumb = thumb::Bfc::builder()
-        //     .set_rd(Register::R1)
-        //     .set_lsb(0b00101)
-        //     .set_msb(0b00100)
-        //     .complete()
-        //     .into();
-        // assert_eq!(instr, target)
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10100010u8].into_iter().rev());
+        bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let shift: Shift = Shift::try_from(0b10).unwrap();
+        let shift = ImmShift::from((shift, 0b00101));
+        let target: Thumb = thumb::Usat::builder()
+            .set_rd(Register::R1)
+            .set_imm(0b00100)
+            .set_rn(Register::R2)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
     }
 
     #[test]
     fn test_parse_usat16() {
-        todo!()
-        // let mut bin = vec![];
-        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
-        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
-        //
-        // let mut stream = PeekableBuffer::from(bin.into_iter());
-        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
-        //     .unwrap()
-        //     .thumb_expand_imm_c();
-        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        // let target: Thumb = thumb::Bfc::builder()
-        //     .set_rd(Register::R1)
-        //     .set_lsb(0b00101)
-        //     .set_msb(0b00100)
-        //     .complete()
-        //     .into();
-        // assert_eq!(instr, target)
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b10100010u8].into_iter().rev());
+        bin.extend([0b00000001u8, 0b00000100u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        // let shift: Shift = Shift::try_from(0b10).unwrap();
+        // let shift = ImmShift::from((shift, 0b00101));
+        let target: Thumb = thumb::Usat16::builder()
+            .set_rd(Register::R1)
+            .set_imm(0b00100)
+            .set_rn(Register::R2)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
     }
 
     #[test]
     fn test_parse_ubfx() {
-        todo!()
-        // let mut bin = vec![];
-        // bin.extend([0b11110011u8, 0b01101111u8].into_iter().rev());
-        // bin.extend([0b00010001u8, 0b01000100u8].into_iter().rev());
-        //
-        // let mut stream = PeekableBuffer::from(bin.into_iter());
-        // let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
-        //     .unwrap()
-        //     .thumb_expand_imm_c();
-        // let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        // let target: Thumb = thumb::Bfc::builder()
-        //     .set_rd(Register::R1)
-        //     .set_lsb(0b00101)
-        //     .set_msb(0b00100)
-        //     .complete()
-        //     .into();
-        // assert_eq!(instr, target)
-    }
+        let mut bin = vec![];
+        bin.extend([0b11110011u8, 0b11000010u8].into_iter().rev());
+        bin.extend([0b00100001u8, 0b01000010u8].into_iter().rev());
 
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
+            .unwrap()
+            .thumb_expand_imm_c();
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let target: Thumb = thumb::Ubfx::builder()
+            .set_rn(Register::R2)
+            .set_rd(Register::R1)
+            .set_lsb(0b01001)
+            .set_width(0b00010 + 1)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
 }

@@ -207,10 +207,7 @@ mod test {
 
         let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Pop::builder()
-            .set_registers(list)
-            .complete()
-            .into();
+        let target: Thumb = thumb::Pop::builder().set_registers(list).complete().into();
         assert_eq!(instr, target)
     }
 
@@ -245,10 +242,7 @@ mod test {
 
         let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Push::builder()
-            .set_registers(list)
-            .complete()
-            .into();
+        let target: Thumb = thumb::Push::builder().set_registers(list).complete().into();
         assert_eq!(instr, target)
     }
 

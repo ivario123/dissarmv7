@@ -115,8 +115,8 @@ impl ToThumb for A5_13 {
             }
             Self::BT4(el) => {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
-                let i1 = ! (j1 ^ s);
-                let i2 = ! (j2 ^ s);
+                let i1 = !(j1 ^ s);
+                let i2 = !(j2 ^ s);
                 let mut imm: Imm25 = combine!(s:i1,1:i2,1:imm10,10:imm11,11:0,1,u32)
                     .try_into()
                     .unwrap();
@@ -263,10 +263,7 @@ mod test {
             .expect("Malformed test, invalid imm field")
             .sign_extend();
 
-        let target: Thumb = thumb::Bl::builder()
-            .set_imm(imm)
-            .complete()
-            .into();
+        let target: Thumb = thumb::Bl::builder().set_imm(imm).complete().into();
         assert_eq!(instr, target)
     }
 }

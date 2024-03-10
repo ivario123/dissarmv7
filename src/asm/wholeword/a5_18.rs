@@ -200,8 +200,8 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        
-        let shift:ImmShift = ImmShift::from((Shift::Lsl,0b10u8));
+
+        let shift: ImmShift = ImmShift::from((Shift::Lsl, 0b10u8));
         let target: Thumb = thumb::LdrRegister::builder()
             .set_rn(Register::R2)
             .set_rt(Register::R3)
@@ -221,7 +221,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        
+
         let target: Thumb = thumb::LdrLiteral::builder()
             .set_rt(Register::R3)
             .set_add(true)

@@ -302,6 +302,7 @@ impl ToThumb for A5_12 {
         }
     }
 }
+
 #[cfg(test)]
 mod test {
 

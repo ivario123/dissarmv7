@@ -150,3 +150,125 @@ impl ToThumb for A5_16 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_stm() {
+        let mut bin = vec![];
+        bin.extend([0b11101000u8, 0b10100010u8].into_iter().rev());
+        bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Stm::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R2)
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ldm() {
+        let mut bin = vec![];
+        bin.extend([0b11101000u8, 0b10110010u8].into_iter().rev());
+        bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Ldm::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R2)
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_pop() {
+        let mut bin = vec![];
+        bin.extend([0b11101000u8, 0b10111101u8].into_iter().rev());
+        bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Pop::builder()
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_stmdb() {
+        let mut bin = vec![];
+        bin.extend([0b11101001u8, 0b00100010u8].into_iter().rev());
+        bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Stmdb::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R2)
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_push() {
+        let mut bin = vec![];
+        bin.extend([0b11101001u8, 0b00101101u8].into_iter().rev());
+        bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Push::builder()
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_ldmdb() {
+        let mut bin = vec![];
+        bin.extend([0b11101001u8, 0b00110010u8].into_iter().rev());
+        bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
+
+        let target: Thumb = thumb::Ldmdb::builder()
+            .set_w(Some(true))
+            .set_rn(Register::R2)
+            .set_registers(list)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+}

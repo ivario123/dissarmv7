@@ -1217,7 +1217,7 @@ impl Convert for Thumb {
                     }
                     ret
                 }
-                Thumb::MovReg(mov) => {
+                Thumb::MovRegister(mov) => {
                     // This might cause some issues, we will disregard BX cases here as we have no
                     // way of changing the instruciton set
                     consume!((s,rd, rm.local_into()) from mov);
@@ -2415,7 +2415,7 @@ impl Convert for Thumb {
                         }
                     ])
                 }
-                Thumb::SubSpMinusReg(sub) => {
+                Thumb::SubSpMinusRegister(sub) => {
                     let rn = Register::SP.local_into();
                     consume!((
                         s.unwrap_or(false),

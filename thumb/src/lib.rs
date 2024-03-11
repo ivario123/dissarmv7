@@ -214,7 +214,7 @@ thumb!(
     MovImmediate {s:bool}, <rd: Register>, <imm:u32>, {carry:bool}
     MovImmediatePlain {s:bool}, <rd: Register>, <imm:u32>
 
-    MovReg {s:bool}, <rd: Register>, <rm: Register>
+    MovRegister {s:bool}, <rd: Register>, <rm: Register>
 
     Movt <rd: Register>, <imm:u16>
 
@@ -377,7 +377,7 @@ thumb!(
     SubImmediate        {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
     SubRegister         {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
     SubSpMinusImmediate  {s: bool}, {rd: Register}, <imm:u32>
-    SubSpMinusReg       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
+    SubSpMinusRegister       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
 
     Sxtab   {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}
     Sxtab16 {rd: Register}, <rn: Register>, <rm: Register>, {rotation: u32}

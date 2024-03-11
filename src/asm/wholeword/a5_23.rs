@@ -90,7 +90,7 @@ macro_rules! imm {
 impl ToThumb for A5_23 {
     fn encoding_specific_operations(self) -> thumb::Thumb {
         match self {
-            Self::Mov(el) => thumb::MovReg::builder()
+            Self::Mov(el) => thumb::MovRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rm(el.rm)
@@ -160,7 +160,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::MovReg::builder()
+        let target: Thumb = thumb::MovRegister::builder()
             .set_s(Some(true))
             .set_rd(Register::R3)
             .set_rm(Register::R3)

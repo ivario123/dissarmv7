@@ -409,3 +409,371 @@ impl ToThumb for A5_22 {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::prelude::*;
+
+    #[test]
+    fn test_parse_and_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0001_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::AndRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_tst_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0001_0011u8].into_iter().rev());
+        bin.extend([0b0010_1111u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::TstRegister::builder()
+            .set_rn(Register::R3)
+            // .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_bic_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0011_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::BicRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_orr_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0101_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::OrrRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_orn_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0111_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::OrnRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_mvn_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b0111_1111u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::MvnRegister::builder()
+            .set_s(Some(true))
+            .set_rd(Register::R3)
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_eor_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b1001_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::EorRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_teq_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b1001_0011u8].into_iter().rev());
+        bin.extend([0b0010_1111u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::TeqRegister::builder()
+            .set_rn(Register::R3)
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_pkh() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1010u8, 0b1101_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::Pkh::builder()
+            .set_rn(Register::R3)
+            // .set_s(Some(true)) // This is encoded but never used
+            //                    // T is also encoded but never used
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .set_tb(true)
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_add_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b0001_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::AddRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_cmn_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b0001_0011u8].into_iter().rev());
+        bin.extend([0b0010_1111u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::CmnRegister::builder()
+            .set_rn(Register::R3)
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_adc_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b0101_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::AdcRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sbc_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b0111_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::SbcRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_sub_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b1011_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::SubRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_cmp_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b1011_0011u8].into_iter().rev());
+        bin.extend([0b0010_1111u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::CmpRegister::builder()
+            .set_rn(Register::R3)
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+
+    #[test]
+    fn test_parse_rsb_reg() {
+        let mut bin = vec![];
+        bin.extend([0b1110_1011u8, 0b1101_0011u8].into_iter().rev());
+        bin.extend([0b0010_0011u8, 0b1010_0011u8].into_iter().rev());
+
+        let mut stream = PeekableBuffer::from(bin.into_iter());
+        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+
+        let shift = Shift::try_from(0b10u8).expect("Malformed test");
+        let shift = ImmShift::from((shift, 0b01010));
+
+        let target: Thumb = thumb::RsbRegister::builder()
+            .set_rn(Register::R3)
+            .set_s(Some(true))
+            .set_rd(Some(Register::R3))
+            .set_rm(Register::R3)
+            .set_shift(Some(shift))
+            .complete()
+            .into();
+        assert_eq!(instr, target)
+    }
+}

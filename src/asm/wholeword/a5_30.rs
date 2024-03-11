@@ -213,3 +213,8 @@ impl ToThumb for A5_30 {
         todo!("Encodings");
     }
 }
+
+#[cfg(test)]
+mod test {
+    // TODO! Add in tests when ever the thumb set supports these instructions
+}

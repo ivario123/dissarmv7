@@ -294,7 +294,7 @@ thumb!(
 
     Revsh <rd: Register>, <rm: Register>
 
-    RorImmediate {s:bool}, <rd: Register>, <rm: Register>, <imm:Imm5>
+    RorImmediate {s:bool}, <rd: Register>, <rm: Register>, <imm: u32>
 
     RorRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
 

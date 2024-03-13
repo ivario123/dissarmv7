@@ -11,7 +11,7 @@ instruction!(
         cond as u8 : Condition : 8->11 try_into
     },
     Svc : {
-        imm8 as u8 :u8 : 0->7
+        _imm8 as u8 :u8 : 0->7
     }
 );
 

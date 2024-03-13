@@ -28,12 +28,13 @@ impl Imm12 {
 
     pub fn thumb_expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
+        println!("Value to be expaned : 0b{repr:012b}");
         let zero = 0;
         if repr.mask::<10, 11>() == 0 {
             let bits = repr.mask::<0, 7>();
             return (
                 match repr.mask::<8, 9>() {
-                    0 => repr.into(),
+                    0 => bits.into(),
                     1 => combine!(zero:bits,8:zero,8:bits,8,u32),
                     2 => combine!(bits:zero,8:bits,8:zero,8,u32),
                     3 => combine!(bits:bits,8:bits,8:bits,8,u32),
@@ -42,8 +43,8 @@ impl Imm12 {
                 None,
             );
         }
-        let unrotated = (1 << 7) + repr.mask::<0, 6>() as u32;
-        let ret = unrotated.rotate_right(repr.mask::<10, 11>() as u32);
+        let unrotated = (1 << 7) | repr.mask::<0, 6>() as u32;
+        let ret = unrotated.rotate_right(repr.mask::<7, 11>() as u32);
         let c = ret.mask::<31, 31>() == 1;
         (ret, Some(c))
     }

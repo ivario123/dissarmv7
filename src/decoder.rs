@@ -70,8 +70,8 @@ macro_rules! shift_imm {
                 GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
                 GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
                 GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
+                GAShift::Rrx => todo!(),
+                GAShift::Ror => todo!()
             });)?
             $ret.push(
                 Operation::Shift {
@@ -168,25 +168,63 @@ impl Convert for Thumb {
                 Thumb::AdcImmediate(adc) => {
                     // Ensure that all fields are used
                     consume!((s,rd,rn,imm) from adc);
-                    let (rd, rn, imm): (Option<Operand>, Operand, Operand) = (rd.local_into(), rn.local_into(), imm.local_into());
+                    let (rd, rn, imm): (Option<Operand>, Operand, Operand) = (rd.assign(), rn.non_assign(), imm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
                     let (mut ret, backup_rn) = backup!(rn);
-                    ret.extend([Operation::Adc { destination: rd.clone(), operand1: imm.clone(), operand2: rn.clone() }]);
+                    ret.extend([Operation::Adc {
+                        destination: rd.clone(),
+                        operand1: imm.clone(),
+                        operand2: rn.clone(),
+                    }]);
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlag { operand1: backup_rn.clone(), operand2: imm.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: backup_rn.clone(), operand2: imm.clone(), sub: false, carry: true }]);
+                        ret.extend([
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetCFlag {
+                                operand1: backup_rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                            Operation::SetVFlag {
+                                operand1: backup_rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                        ]);
                     }
                     ret
                 }
                 Thumb::AdcRegister(adc) => {
                     consume!((s,rd,rn,rm,shift) from adc);
-                    let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
+                    let (rd, rn, rm) = (rd.assign(), rn.non_assign(), rm.non_assign());
                     let rd = rd.unwrap_or(rn.clone());
                     local!(shifted);
                     let (mut ret, local_rn, local_rm) = backup!(rn, rm);
                     shift!(ret.shift rm -> shifted);
-                    ret.extend([Operation::Adc { destination: rd.clone(), operand1: rm.clone(), operand2: rn.clone() }]);
+                    ret.extend([Operation::Adc {
+                        destination: rd.clone(),
+                        operand1: rm.clone(),
+                        operand2: rn.clone(),
+                    }]);
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlag { operand1: local_rn.clone(), operand2: local_rm.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: local_rn, operand2: local_rm, sub: false, carry: true }]);
+                        ret.extend([
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetCFlag {
+                                operand1: local_rn.clone(),
+                                operand2: local_rm.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                            Operation::SetVFlag {
+                                operand1: local_rn,
+                                operand2: local_rm,
+                                sub: false,
+                                carry: true,
+                            },
+                        ]);
                     }
                     ret
                 }
@@ -196,8 +234,9 @@ impl Convert for Thumb {
                           rd,
                           rn,
                           imm
-                          ) from add);
-                    let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
+                          ) from add
+                    );
+                    let (rd, rn, imm) = (rd.unwrap_or(rn).assign(), rn.non_assign(), imm.local_into());
                     pseudo!([
                         let result = imm + rn;
                         rd = result;
@@ -221,12 +260,12 @@ impl Convert for Thumb {
                     );
                     let should_jump = match rd {
                         Some(Register::PC) => true,
-                        None =>matches!(rn, Register::PC),
+                        None => matches!(rn, Register::PC),
                         _ => false,
                     };
 
-                    let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
+                    let (rd, rn, rm) = (rd.assign(), rn.non_assign(), rm.non_assign());
 
                     let mut ret = vec![];
                     local!(shifted);
@@ -249,15 +288,26 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::AddSPImmediate(add) => {
-                    consume!((s,rd,imm) from add);
-                    let (rd, rn, imm) = (rd.unwrap_or(Register::SP).local_into(), Register::SP.local_into(), imm.local_into());
-                    let (mut ret, local_rn) = backup!(rn);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            imm
+                        ) from add
+                    );
+                    let (rd, imm) = (rd.unwrap_or(Register::SP).assign(), imm.local_into());
+                    let sp = Register::SP.non_assign();
 
-                    ret.push(Operation::Add { destination: rd.clone(), operand1: rn.clone(), operand2: imm.clone() });
-                    if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlag { operand1: local_rn.clone(), operand2: imm.clone(), sub: false, carry: false }, Operation::SetVFlag { operand1: local_rn, operand2: imm, sub: false, carry: false }]);
-                    }
-                    ret
+                    pseudo!([
+                        let result = sp + imm;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            SetCFlag(sp,imm,false,false);
+                            SetVFlag(sp,imm,false,false);
+                        }
+                        rd = result;
+                    ])
                 }
                 Thumb::AddSPRegister(add) => {
                     consume!((s,rd,rm,shift) from add);
@@ -267,23 +317,43 @@ impl Convert for Thumb {
                         _ => s,
                     };
 
-                    let (rd, rn, rm) = (rd.unwrap_or(Register::SP).local_into(), Register::SP.local_into(), rm.local_into());
+                    let (rd, rn, rm) = (rd.unwrap_or(Register::SP).assign(), Register::SP.non_assign(), rm.non_assign());
                     let (mut ret, local_rn) = backup!(rn);
                     local!(shifted);
 
                     shift!(ret.shift rm -> shifted);
-                    ret.extend([Operation::Adc { destination: rd.clone(), operand1: shifted.clone(), operand2: rn.clone() }]);
+                    ret.extend([Operation::Adc {
+                        destination: rd.clone(),
+                        operand1: shifted.clone(),
+                        operand2: rn.clone(),
+                    }]);
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlag { operand1: local_rn.clone(), operand2: shifted.clone(), sub: false, carry: false }, Operation::SetVFlag { operand1: local_rn, operand2: shifted, sub: false, carry: false }]);
+                        ret.extend([
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetCFlag {
+                                operand1: local_rn.clone(),
+                                operand2: shifted.clone(),
+                                sub: false,
+                                carry: false,
+                            },
+                            Operation::SetVFlag {
+                                operand1: local_rn,
+                                operand2: shifted,
+                                sub: false,
+                                carry: false,
+                            },
+                        ]);
                     }
                     ret
                 }
                 Thumb::Adr(adr) => {
                     consume!((rd,imm,add) from adr);
-                    let (rd, imm) = (rd.local_into(), imm.local_into());
+                    let (rd, imm) = (rd.assign(), imm.local_into());
+                    let pc = Register::PC.non_assign();
                     pseudo!([
                         // Alling to 4
-                        let aligned = Register("PC")  / 4.local_into();
+                        let aligned = pc  / 4.local_into();
                         aligned = aligned * 4.local_into();
 
                         let result = aligned - imm;
@@ -297,8 +367,8 @@ impl Convert for Thumb {
                     consume!(
                         (
                             s.unwrap_or(false),
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
                             imm.local_into(),
                             carry
                         ) from and
@@ -317,24 +387,28 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::AndRegister(and) => {
-                    consume!((s,rd,rn,rm,shift) from and);
-                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
-                    let mut ret = match shift {
-                        Some(shift) => {
-                            let (shift_t, shift_n) = (shift.shift_t.local_into(), (shift.shift_n as u32).local_into());
-                            let flag_setter = match shift_t {
-                                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Asr => Operation::SetCFlagSra { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Lsr => Operation::SetCFlagSrl { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed"),
-                            };
-                            vec![flag_setter, Operation::Shift { destination: rm.clone(), operand: rm.clone(), shift_n, shift_t }]
-                        }
-                        None => vec![],
-                    };
-                    ret.push(Operation::And { destination: rd.clone(), operand1: rn, operand2: rm });
-                    if let Some(true) = s {
+                    consume!((
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                            ) from and
+                    );
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).assign(), rn.non_assign(), rm.non_assign());
+                    let mut ret = vec![];
+                    if s {
+                        shift!(ret.shift rm -> rm set c for rm);
+                    } else {
+                        shift!(ret.shift rm -> rm);
+                    }
+
+                    ret.push(Operation::And {
+                        destination: rd.clone(),
+                        operand1: rn,
+                        operand2: rm,
+                    });
+                    if s {
                         // The shift should already set the shift carry bit
                         ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
                     }
@@ -342,8 +416,12 @@ impl Convert for Thumb {
                 }
                 Thumb::AsrImmediate(asr) => {
                     consume!((s,rd,rm,imm) from asr);
-                    let (rd, rm, imm) = (rd.local_into(), rm.local_into(), imm.local_into());
-                    let mut ret = vec![Operation::Sra { destination: rd.clone(), operand: rm.clone(), shift: imm.clone() }];
+                    let (rd, rm, imm) = (rd.assign(), rm.non_assign(), imm.local_into());
+                    let mut ret = vec![Operation::Sra {
+                        destination: rd.clone(),
+                        operand: rm.clone(),
+                        shift: imm.clone(),
+                    }];
                     if let Some(true) = s {
                         ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlagSra { operand: rm, shift: imm }]);
                     }
@@ -351,15 +429,26 @@ impl Convert for Thumb {
                 }
                 Thumb::AsrRegister(asr) => {
                     consume!((s,rd,rm,rn) from asr);
-                    let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
+                    let (rd, rm, rn) = (rd.assign(), rm.non_assign(), rn.non_assign());
                     let intermediate = Operand::Local("intermediate".to_owned());
                     let mut ret = vec![
                         // Extract 8- least significant bits
-                        Operation::And { destination: intermediate.clone(), operand1: rm.clone(), operand2: Operand::Immidiate(DataWord::Word32(u8::MAX as u32)) },
-                        Operation::Sra { destination: rd.clone(), operand: rn.clone(), shift: intermediate.clone() },
+                        Operation::And {
+                            destination: intermediate.clone(),
+                            operand1: rm.clone(),
+                            operand2: Operand::Immidiate(DataWord::Word32(u8::MAX as u32)),
+                        },
+                        Operation::Sra {
+                            destination: rd.clone(),
+                            operand: rn.clone(),
+                            shift: intermediate.clone(),
+                        },
                     ];
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlagSra { operand: rm, shift: intermediate }]);
+                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone()), Operation::SetCFlagSra {
+                            operand: rm,
+                            shift: intermediate,
+                        }]);
                     }
                     ret
                 }
@@ -367,20 +456,26 @@ impl Convert for Thumb {
                     consume!((condition,imm) from b);
                     let imm = imm + 2;
                     let (condition, imm) = (condition.local_into(), imm.local_into());
+                    let pc = Register::PC.assign();
                     pseudo!([
-                        let target = Register("PC") + imm;
+                        let target = pc + imm;
+                        target = target<31:1> << 1.local_into();
                         Jump(target,condition);
                     ])
                 }
                 Thumb::Bfc(bfc) => {
                     consume!((rd,lsb,msb) from bfc);
-                    let rd = rd.local_into();
+                    let rd = rd.assign();
                     let mask = !mask_dyn(lsb, msb);
-                    vec![Operation::And { destination: rd.clone(), operand1: rd, operand2: Operand::Immidiate(DataWord::Word32(mask)) }]
+                    vec![Operation::And {
+                        destination: rd.clone(),
+                        operand1: rd,
+                        operand2: Operand::Immidiate(DataWord::Word32(mask)),
+                    }]
                 }
                 Thumb::Bfi(bfi) => {
                     consume!((rd,rn,lsb,msb) from bfi);
-                    let (rd, rn) = (rd.local_into(), rn.local_into());
+                    let (rd, rn) = (rd.assign(), rn.non_assign());
                     let diff = msb - lsb;
                     pseudo!([
                         // Assume happy case here
@@ -392,8 +487,15 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::BicImmediate(bic) => {
-                    consume!((s.unwrap_or(false),rd,rn,imm,carry) from bic);
-                    let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
+                    consume!((
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            imm,
+                            carry
+                        ) from bic
+                    );
+                    let (rd, rn, imm) = (rd.unwrap_or(rn).assign(), rn.non_assign(), imm.local_into());
                     let mut ret = vec![];
                     pseudo!(ret.extend[
 
@@ -416,16 +518,34 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::BicRegister(bic) => {
-                    consume!((s,rd,rn,rm,shift) from bic);
+                    consume!(
+                        (
+                            s,
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from bic
+                    );
 
-                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).assign(), rn.non_assign(), rm.non_assign());
                     let mut ret = vec![];
                     local!(shifted);
 
-                    shift!(ret.shift rn -> shifted set c for shifted);
+                    shift!(ret.shift rn -> shifted set c for rn);
 
                     let intermediate = Operand::Local("intermediate".to_owned());
-                    ret.extend([Operation::Not { destination: intermediate.clone(), operand: rm.clone() }, Operation::And { destination: rd.clone(), operand1: rn.clone(), operand2: intermediate.clone() }]);
+                    ret.extend([
+                        Operation::Not {
+                            destination: intermediate.clone(),
+                            operand: rm.clone(),
+                        },
+                        Operation::And {
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: intermediate.clone(),
+                        },
+                    ]);
                     if let Some(true) = s {
                         ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd.clone())]);
                     }
@@ -434,49 +554,57 @@ impl Convert for Thumb {
                 Thumb::Bkpt(_) => vec![Operation::Nop],
                 Thumb::Bl(bl) => {
                     consume!((imm.local_into()) from bl);
+                    let pc_assign = Register::PC.assign();
+                    let pc_non_assign = Register::PC.non_assign();
+
                     pseudo!([
-                            let next_instr_addr = Register("PC");
+                            let next_instr_addr = pc_assign;
                             Register("LR") = next_instr_addr<31:1> << 1.local_into();
                             Register("LR") |= 0b1.local_into();
-                            next_instr_addr = Register("PC") + imm;
+
+                            next_instr_addr = pc_non_assign + imm;
+                            next_instr_addr = next_instr_addr<31:1> << 1.local_into();
                             Jump(next_instr_addr);
                     ])
                 }
                 Thumb::Blx(blx) => {
                     consume!((rm) from blx);
-                    let rm = rm.local_into();
+                    let rm = rm.non_assign();
+                    // let pc_assign = register::PC.assign();
+                    let pc_non_assign = Register::PC.non_assign();
                     pseudo!([
                         let target = rm;
-                        let next_instr_addr = Register("PC") - 2.local_into();
+                        let next_instr_addr = pc_non_assign - 2.local_into();
                         Register("LR") = next_instr_addr<31:1> << 1.local_into();
                         Register("LR") |= 1.local_into();
                         Register("EPSR") = Register("EPSR") | (1 << 27).local_into();
-                        Register("PC") = target;
+                        Jump(target);
                     ])
                 }
 
                 Thumb::Bx(bx) => {
-                    let rm = bx.rm.local_into();
-                    // Simply implements https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
+                    let rm = bx.rm.assign();
                     pseudo!([
                         let next_addr = rm;
                         next_addr = next_addr<31:1> << 1.local_into();
-                        Register("PC") = next_addr;
+                        Jump(next_addr);
                     ])
                 }
                 Thumb::Cbz(cbz) => {
                     consume!((
                         non.unwrap_or(false), 
-                        rn.local_into(),
+                        rn.non_assign(),
                         imm.local_into()
                         ) from cbz);
                     let cond = match non {
                         false => Condition::EQ,
                         true => Condition::NE,
                     };
+                    let pc = Register::PC.assign();
                     pseudo!([
                         SetZFlag(rn);
-                        let dest = Register("PC+") + imm;
+                        let dest = pc + imm;
+                        dest = dest<31:1> << 1.local_into();
                         Jump(dest,cond);
                     ])
                 }
@@ -492,84 +620,243 @@ impl Convert for Thumb {
                     //
                     // TODO! Change this to use a register read hook to generate symbolic values
                     let rd_old = clz.rd;
-                    let rd = clz.rd.local_into();
+                    let rd = clz.rd.assign();
                     vec![
-                        Operation::Symbolic { destination: rd.clone(), name: rd_old.to_string() },
+                        Operation::Symbolic {
+                            destination: rd.clone(),
+                            name: rd_old.to_string(),
+                        },
                         // No value larger than 2^5 is valid
-                        Operation::And { destination: rd.clone(), operand1: rd, operand2: 32.local_into() },
+                        Operation::And {
+                            destination: rd.clone(),
+                            operand1: rd,
+                            operand2: 32.local_into(),
+                        },
                     ]
                 }
                 Thumb::CmnImmediate(cmn) => {
                     consume!((rn,imm) from cmn);
-                    let (rn, imm) = (rn.local_into(), imm.local_into());
+                    let (rn, imm) = (rn.non_assign(), imm.local_into());
                     let flag = Operand::Flag("v".to_owned());
                     let intermediate = Operand::Local("v_intermediate".to_owned());
                     let result = Operand::Local("result".to_owned());
 
-                    vec![Operation::Move { destination: intermediate.clone(), source: flag.clone() }, Operation::Move { destination: flag.clone(), source: 0.local_into() }, Operation::Adc { destination: result.clone(), operand1: rn.clone(), operand2: imm.clone() }, Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn, operand2: imm, sub: false, carry: true }]
+                    vec![
+                        Operation::Move {
+                            destination: intermediate.clone(),
+                            source: flag.clone(),
+                        },
+                        Operation::Move {
+                            destination: flag.clone(),
+                            source: 0.local_into(),
+                        },
+                        Operation::Adc {
+                            destination: result.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm.clone(),
+                        },
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetCFlag {
+                            operand1: rn.clone(),
+                            operand2: imm.clone(),
+                            sub: false,
+                            carry: true,
+                        },
+                        Operation::SetVFlag {
+                            operand1: rn,
+                            operand2: imm,
+                            sub: false,
+                            carry: true,
+                        },
+                    ]
                 }
                 Thumb::CmnRegister(cmn) => {
                     consume!((rn,rm,shift) from cmn);
                     let (rn, rm) = (rn.local_into(), rm.local_into());
+
                     let shifted = Operand::Local("destination".to_owned());
                     let mut ret = match shift {
                         Some(shift) => {
                             let (shift_t, shift_n) = (shift.shift_t.local_into(), (shift.shift_n as u32).local_into());
-                            vec![Operation::Shift { destination: shifted.clone(), operand: rm.clone(), shift_n, shift_t }]
+                            vec![Operation::Shift {
+                                destination: shifted.clone(),
+                                operand: rm.clone(),
+                                shift_n,
+                                shift_t,
+                            }]
                         }
                         // If no shift is applied just move the value in to the register
-                        None => vec![Operation::Move { destination: shifted.clone(), source: rm.clone() }],
+                        None => vec![Operation::Move {
+                            destination: shifted.clone(),
+                            source: rm.clone(),
+                        }],
                     };
                     let result = Operand::Local("result".to_owned());
-                    ret.extend([Operation::Move { destination: Operand::Flag("v".to_owned()), source: 0.local_into() }, Operation::Adc { destination: result.clone(), operand1: rn.clone(), operand2: shifted.clone() }, Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: shifted.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn, operand2: shifted, sub: false, carry: true }]);
+                    ret.extend([
+                        Operation::Move {
+                            destination: Operand::Flag("v".to_owned()),
+                            source: 0.local_into(),
+                        },
+                        Operation::Adc {
+                            destination: result.clone(),
+                            operand1: rn.clone(),
+                            operand2: shifted.clone(),
+                        },
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetCFlag {
+                            operand1: rn.clone(),
+                            operand2: shifted.clone(),
+                            sub: false,
+                            carry: true,
+                        },
+                        Operation::SetVFlag {
+                            operand1: rn,
+                            operand2: shifted,
+                            sub: false,
+                            carry: true,
+                        },
+                    ]);
                     ret
                 }
                 Thumb::CmpImmediate(cmp) => {
                     consume!((rn,imm) from cmp);
-                    let (rn, imm) = (rn.local_into(), imm.local_into());
+                    let (rn, imm) = (rn.non_assign(), imm.local_into());
                     let flag = Operand::Flag("v".to_owned());
                     let intermediate = Operand::Local("v_intermediate".to_owned());
                     let result = Operand::Local("result".to_owned());
                     let imm_intermediate = Operand::Local("imm_intermediate".to_owned());
-                    vec![Operation::Not { destination: imm_intermediate.clone(), operand: imm }, Operation::Move { destination: intermediate.clone(), source: flag.clone() }, Operation::Move { destination: flag.clone(), source: 1.local_into() }, Operation::Adc { destination: result.clone(), operand1: rn.clone(), operand2: imm_intermediate.clone() }, Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: imm_intermediate.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn, operand2: imm_intermediate, sub: false, carry: true }]
+                    vec![
+                        Operation::Not {
+                            destination: imm_intermediate.clone(),
+                            operand: imm,
+                        },
+                        Operation::Move {
+                            destination: intermediate.clone(),
+                            source: flag.clone(),
+                        },
+                        Operation::Move {
+                            destination: flag.clone(),
+                            source: 1.local_into(),
+                        },
+                        Operation::Adc {
+                            destination: result.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm_intermediate.clone(),
+                        },
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetCFlag {
+                            operand1: rn.clone(),
+                            operand2: imm_intermediate.clone(),
+                            sub: false,
+                            carry: true,
+                        },
+                        Operation::SetVFlag {
+                            operand1: rn,
+                            operand2: imm_intermediate,
+                            sub: false,
+                            carry: true,
+                        },
+                    ]
                 }
                 Thumb::CmpRegister(cmp) => {
                     consume!((rn,rm,shift) from cmp);
-                    let (rn, rm) = (rn.local_into(), rm.local_into());
+                    let (rn, rm) = (rn.non_assign(), rm.non_assign());
                     let shifted = Operand::Local("destination".to_owned());
                     let mut ret = match shift {
                         Some(shift) => {
                             let (shift_t, shift_n) = (shift.shift_t.local_into(), (shift.shift_n as u32).local_into());
-                            vec![Operation::Shift { destination: shifted.clone(), operand: rm.clone(), shift_n, shift_t }]
+                            vec![Operation::Shift {
+                                destination: shifted.clone(),
+                                operand: rm.clone(),
+                                shift_n,
+                                shift_t,
+                            }]
                         }
                         // If no shift is applied just move the value in to the register
-                        None => vec![Operation::Move { destination: shifted.clone(), source: rm.clone() }],
+                        None => vec![Operation::Move {
+                            destination: shifted.clone(),
+                            source: rm.clone(),
+                        }],
                     };
                     let result = Operand::Local("result".to_owned());
-                    ret.extend([Operation::Not { destination: shifted.clone(), operand: shifted.clone() }, Operation::Move { destination: Operand::Flag("v".to_owned()), source: 1.local_into() }, Operation::Adc { destination: result.clone(), operand1: rn.clone(), operand2: shifted.clone() }, Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: shifted.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn, operand2: shifted, sub: false, carry: true }]);
+                    ret.extend([
+                        Operation::Not {
+                            destination: shifted.clone(),
+                            operand: shifted.clone(),
+                        },
+                        Operation::Move {
+                            destination: Operand::Flag("v".to_owned()),
+                            source: 1.local_into(),
+                        },
+                        Operation::Adc {
+                            destination: result.clone(),
+                            operand1: rn.clone(),
+                            operand2: shifted.clone(),
+                        },
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetCFlag {
+                            operand1: rn.clone(),
+                            operand2: shifted.clone(),
+                            sub: false,
+                            carry: true,
+                        },
+                        Operation::SetVFlag {
+                            operand1: rn,
+                            operand2: shifted,
+                            sub: false,
+                            carry: true,
+                        },
+                    ]);
                     ret
                 }
                 Thumb::Cps(cps) => {
-                    consume!((enable,disable,affect_pri,affect_fault) from cps);
+                    consume!(
+                        (
+                            enable,
+                            disable,
+                            affect_pri,
+                            affect_fault
+                        ) from cps
+                    );
                     assert!(enable != disable);
                     let mut ret = Vec::with_capacity(2);
                     if enable {
                         if affect_pri {
                             // force lsb to 0
-                            ret.push(Operation::And { destination: SpecialRegister::PRIMASK.local_into(), operand1: SpecialRegister::PRIMASK.local_into(), operand2: ((!(0b1u32)).local_into()) })
+                            ret.push(Operation::And {
+                                destination: SpecialRegister::PRIMASK.local_into(),
+                                operand1: SpecialRegister::PRIMASK.local_into(),
+                                operand2: ((!(0b1u32)).local_into()),
+                            })
                         }
                         if affect_fault {
                             // force lsb to 0
-                            ret.push(Operation::And { destination: SpecialRegister::FAULTMASK.local_into(), operand1: SpecialRegister::FAULTMASK.local_into(), operand2: ((!(0b1u32)).local_into()) })
+                            ret.push(Operation::And {
+                                destination: SpecialRegister::FAULTMASK.local_into(),
+                                operand1: SpecialRegister::FAULTMASK.local_into(),
+                                operand2: ((!(0b1u32)).local_into()),
+                            })
                         }
                     } else {
                         if affect_pri {
                             // force lsb to 1
-                            ret.push(Operation::And { destination: SpecialRegister::PRIMASK.local_into(), operand1: SpecialRegister::PRIMASK.local_into(), operand2: ((0b1u32).local_into()) })
+                            ret.push(Operation::And {
+                                destination: SpecialRegister::PRIMASK.local_into(),
+                                operand1: SpecialRegister::PRIMASK.local_into(),
+                                operand2: ((0b1u32).local_into()),
+                            })
                         }
                         if affect_fault {
                             // force lsb to 1
-                            ret.push(Operation::And { destination: SpecialRegister::FAULTMASK.local_into(), operand1: SpecialRegister::FAULTMASK.local_into(), operand2: ((0b1u32).local_into()) })
+                            ret.push(Operation::And {
+                                destination: SpecialRegister::FAULTMASK.local_into(),
+                                operand1: SpecialRegister::FAULTMASK.local_into(),
+                                operand2: ((0b1u32).local_into()),
+                            })
                         }
                     }
                     ret
@@ -585,8 +872,8 @@ impl Convert for Thumb {
                     consume!(
                         (
                             s.unwrap_or(false),
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
                             imm.local_into(),
                             carry
                         ) from eor
@@ -604,8 +891,16 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::EorRegister(eor) => {
-                    consume!((s,rd,rn,rm,shift) from eor);
-                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
+                    consume!(
+                        (
+                            s,
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from eor
+                    );
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).assign(), rn.non_assign(), rm.non_assign());
                     let mut ret = Vec::with_capacity(10);
                     let shifted = Operand::Local("destination".to_owned());
                     ret.extend(match shift {
@@ -613,35 +908,67 @@ impl Convert for Thumb {
                             let (shift_t, shift_n) = (shift.shift_t.local_into(), (shift.shift_n as u32).local_into());
 
                             let mut flag_setter = match shift_t {
-                                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Asr => Operation::SetCFlagSra { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Lsr => Operation::SetCFlagSrl { operand: rm.clone(), shift: shift_n.clone() },
-                                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed"),
+                                GAShift::Lsl => Operation::SetCFlagShiftLeft {
+                                    operand: rm.clone(),
+                                    shift: shift_n.clone(),
+                                },
+                                GAShift::Asr => Operation::SetCFlagSra {
+                                    operand: rm.clone(),
+                                    shift: shift_n.clone(),
+                                },
+                                GAShift::Lsr => Operation::SetCFlagSrl {
+                                    operand: rm.clone(),
+                                    shift: shift_n.clone(),
+                                },
+                                GAShift::Rrx => todo!(),
+                                GAShift::Ror => todo!(),
                             };
                             if let Some(true) = s {
                                 flag_setter = Operation::Nop;
                             }
-                            vec![Operation::Shift { destination: shifted.clone(), operand: rm.clone(), shift_n, shift_t }, flag_setter]
+                            vec![
+                                Operation::Shift {
+                                    destination: shifted.clone(),
+                                    operand: rm.clone(),
+                                    shift_n,
+                                    shift_t,
+                                },
+                                flag_setter,
+                            ]
                         }
                         // If no shift is applied just move the value in to the register
                         None => {
-                            let mut flag_setter = Operation::Move { destination: Operand::Flag("c".to_owned()), source: 0.local_into() };
+                            let mut flag_setter = Operation::Move {
+                                destination: Operand::Flag("c".to_owned()),
+                                source: 0.local_into(),
+                            };
                             if let Some(true) = s {
                                 flag_setter = Operation::Nop;
                             }
-                            vec![Operation::Move { destination: shifted.clone(), source: rm.clone() }, flag_setter]
+                            vec![
+                                Operation::Move {
+                                    destination: shifted.clone(),
+                                    source: rm.clone(),
+                                },
+                                flag_setter,
+                            ]
                         }
                     });
 
-                    ret.push(Operation::Xor { destination: rd.clone(), operand1: rn.clone(), operand2: shifted.clone() });
+                    ret.push(Operation::Xor {
+                        destination: rd.clone(),
+                        operand1: rn.clone(),
+                        operand2: shifted.clone(),
+                    });
                     if let Some(true) = s {
                         ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
                     }
                     ret
                 }
                 Thumb::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
-                Thumb::It(it) => vec![Operation::ConditionalExecution { conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect() }],
+                Thumb::It(it) => vec![Operation::ConditionalExecution {
+                    conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect(),
+                }],
                 Thumb::Ldm(ldm) => {
                     consume!((
                             rn,
@@ -651,18 +978,20 @@ impl Convert for Thumb {
                     );
 
                     let w = w && !registers.regs.contains(&rn);
-                    let rn = rn.local_into();
+                    let rn = rn.non_assign();
 
                     let bc = registers.regs.len() as u32;
                     let mut contained = false;
                     let mut to_read: Vec<Operand> = vec![];
+
                     for reg in registers.regs.into_iter() {
                         if reg == Register::PC {
                             contained = true;
                         } else {
-                            to_read.push(reg.local_into());
+                            to_read.push(reg.assign());
                         }
                     }
+
                     pseudo!([
                         let address = rn;
                         for reg in to_read.into_iter() {
@@ -670,7 +999,9 @@ impl Convert for Thumb {
                             address += 4.local_into();
                         }
                         if (contained) {
-                            Jump(LocalAddress(address,4));
+                            address = LocalAddress(address,32);
+                            address = address<31:1> << 1.local_into();
+                            Jump(address);
                         }
                         if (w) {
                             rn += (4*bc).local_into();
@@ -678,51 +1009,58 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Ldmdb(ldmdb) => {
-                    consume!((rn,w,registers) from ldmdb);
-                    let rn_old = rn;
-                    let rn = rn.local_into();
-                    let mut ret = Vec::with_capacity(15);
-                    let address_setter = Operand::Local("address".to_owned());
-                    let address = Operand::AddressInLocal("address".to_owned(), 32);
-                    ret.push(
-                        Operation::Sub { 
-                            destination: address_setter.clone(),
-                            operand1: rn.clone(),
-                            operand2: (4 * (registers.regs.len() as u32)).local_into() 
-                        }
+                    consume!(
+                        (
+                            rn,
+                            w.unwrap_or(false),
+                            registers
+                        ) from ldmdb
                     );
-                    let mut write_back = w.unwrap_or(false);
-                    for register in &registers.regs {
-                        if *register == rn_old {
-                            write_back = false;
+                    let w = w && !registers.regs.contains(&rn);
+                    let rn = rn.non_assign();
+                    let mut to_load = vec![];
+                    let mut pc = false;
+                    let n = registers.regs.len() as u32;
+
+                    for el in registers.regs.into_iter() {
+                        if el == Register::PC {
+                            pc = true;
+                        } else {
+                            to_load.push(el);
                         }
-                        ret.extend([
-                                   Operation::Move { 
-                                       destination: register.local_into(), 
-                                       source: address.clone()
-                                   },
-                                   Operation::Add {
-                                       destination: address_setter.clone(),
-                                       operand1: address_setter.clone(),
-                                       operand2: 4.local_into()
-                                   }]);
                     }
-                    if write_back {
-                        ret.push(
-                            Operation::Sub {
-                                destination: rn.clone(),
-                                operand1: rn.clone(),
-                                operand2: (4 * (registers.regs.len() as u32)).local_into()
-                            }
-                        );
-                    }
-                    ret
+                    pseudo!([
+                        let address = rn -(4*n).local_into();
+
+                        for reg in to_load.into_iter(){
+                            reg.assign() = LocalAddress(address,32);
+                            address += 4.local_into();
+                        }
+
+                        if (pc) {
+                            let target = LocalAddress(address,32);
+                            target = address<31:1> << 1.local_into();
+                            Jump(target);
+                        }
+                        if (w) {
+                            rn -= (4*n).local_into();
+                        }
+                    ])
                 }
                 Thumb::LdrImmediate(ldr) => {
-                    consume!((index,add,w.unwrap_or(false),rt,rn,imm) from ldr);
+                    consume!(
+                        (
+                            index,
+                            add,
+                            w.unwrap_or(false),
+                            rt,
+                            rn,
+                            imm
+                        ) from ldr
+                    );
                     let old_rt = rt;
-                    let is_sp = old_rt == Register::SP;
-                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
+                    let is_pc = old_rt == Register::PC;
+                    let (rt, rn, imm) = (rt.assign(), rn.non_assign(), imm.local_into());
 
                     // if is_sp{
                     //     todo!("This needs symbolical branching");
@@ -741,7 +1079,8 @@ impl Convert for Thumb {
                             rn = offset_addr;
                         }
 
-                        if (is_sp) {
+                        if (is_pc) {
+                            // let target = data<31:1> << 1.local_into();
                             Jump(data);
                         }
                         else {
@@ -757,17 +1096,20 @@ impl Convert for Thumb {
                             add
                         ) from ldr
                     );
-                    let new_t = rt.local_into();
+                    let new_t = rt.assign();
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let base = Register("PC")/4.local_into();
+                        let base = pc/4.local_into();
                         base = base*4.local_into();
+
                         let address = base-imm;
                         if (add) {
                             address = base + imm;
                         }
                         let data = LocalAddress(address,32);
                         if (rt == Register::PC){
-                            Jump(data);
+                            let target = data<31:1> << 1.local_into();
+                            Jump(target);
                         }
                         else {
                             new_t = data;
@@ -778,7 +1120,8 @@ impl Convert for Thumb {
                     consume!((w,rt,rn,rm,shift) from ldr);
                     let _w = w;
                     let rt_old = rt;
-                    let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
+                    let (rt, rn, rm) = (rt.assign(), rn.non_assign(), rm.non_assign());
+
                     let shift = match shift {
                         Some(shift) => shift.shift_n as u32,
                         None => 0u32,
@@ -801,9 +1144,19 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrbImmediate(ldrb) => {
-                    consume!((index,add.unwrap_or(false),w.unwrap_or(false),rt,rn,imm) from ldrb);
+                    consume!(
+                        (
+                            index,
+                            add.unwrap_or(false),
+                            w.unwrap_or(false),
+                            rt,
+                            rn,
+                            imm
+                        ) from ldrb
+                    );
                     let imm = imm.unwrap_or(0);
-                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
+                    let (rt, rn, imm) = (rt.assign(), rn.non_assign(), imm.local_into());
+
                     pseudo!([
                         let offset_addr = rn-imm;
                         if (add) {
@@ -822,13 +1175,16 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrbLiteral(ldrb) => {
-                    consume!((
-                        add.unwrap_or(false),
-                        rt.local_into(),
-                        imm.local_into()
-                        ) from ldrb);
+                    consume!(
+                        (
+                            add.unwrap_or(false),
+                            rt.assign(),
+                            imm.local_into()
+                        ) from ldrb
+                    );
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let base = Register("PC+") /4.local_into();
+                        let base = pc /4.local_into();
                         base = base * 4.local_into();
                         let address = base-imm;
                         if (add) {
@@ -838,8 +1194,17 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrbRegister(ldrb) => {
-                    consume!((rt,rn,rm,shift,add.unwrap_or(false)) from ldrb);
-                    let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
+                    consume!(
+                        (
+                            rt,
+                            rn,
+                            rm,
+                            shift,
+                            add.unwrap_or(false)
+                        ) from ldrb
+                    );
+                    let (rt, rn, rm) = (rt.assign(), rn.non_assign(), rm.non_assign());
+
                     let shift = match shift {
                         Some(shift) => shift.shift_n as u32,
                         _ => 0,
@@ -856,23 +1221,33 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Ldrbt(ldrbt) => {
-                    consume!((rt,rn,imm) from ldrbt);
-                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into());
+                    consume!(
+                        (
+                            rt,
+                            rn,
+                            imm
+                        ) from ldrbt
+                    );
+
+                    let (rt, rn, imm) = (rt.assign(), rn.non_assign(), imm.unwrap_or(0).local_into());
+
                     pseudo!([
                         let address = rn + imm;
                         rt = ZeroExtend(LocalAddress(address,8),32);
                     ])
                 }
                 Thumb::LdrdImmediate(ldrd) => {
-                    consume!((
-                        rt.local_into(),
-                        rt2.local_into(),
-                        rn.local_into(),
-                        imm.local_into(),
-                        add.unwrap_or(false),
-                        index.unwrap_or(false),
-                        w.unwrap_or(false)
-                        ) from ldrd);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rt2.assign(),
+                            rn.non_assign(),
+                            imm.local_into(),
+                            add.unwrap_or(false),
+                            index.unwrap_or(false),
+                            w.unwrap_or(false)
+                        ) from ldrd
+                    );
                     pseudo!([
                         let offset_addr = rn - imm;
 
@@ -896,19 +1271,23 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrdLiteral(ldrd) => {
-                    consume!((
-                        rt.local_into(),
-                        rt2.local_into(),
-                        imm.local_into(),
-                        add.unwrap_or(false),
-                        w.unwrap_or(false),
-                        index.unwrap_or(false)) from ldrd);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rt2.assign(),
+                            imm.local_into(),
+                            add.unwrap_or(false),
+                            w.unwrap_or(false),
+                            index.unwrap_or(false)
+                        ) from ldrd
+                    );
                     // These are not used in the pseudo code
                     let (_w, _index) = (w, index);
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let address = Register("PC+") - imm;
+                        let address = pc - imm;
                         if (add) {
-                            address = Register("PC+") + imm;
+                            address = pc + imm;
                         }
                         rt = LocalAddress(address,32);
                         address = address + 4.local_into();
@@ -919,9 +1298,10 @@ impl Convert for Thumb {
                 Thumb::Ldrexb(_) => todo!("This is probably not needed"),
                 Thumb::Ldrexh(_) => todo!("This is probably not needed"),
                 Thumb::LdrhImmediate(ldrh) => {
-                    consume!((
-                            rt.local_into(),
-                            rn.local_into(),
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
                             imm.local_into(),
                             add.unwrap_or(false),
                             w.unwrap_or(false),
@@ -947,10 +1327,17 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrhLiteral(ldrh) => {
-                    consume!((rt.local_into(),imm.local_into(),add.unwrap_or(false)) from ldrh);
+                    consume!(
+                        (
+                            rt.assign(),
+                            imm.local_into(),
+                            add.unwrap_or(false)
+                        ) from ldrh
+                    );
 
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let aligned = Register("PC+") / 4.local_into();
+                        let aligned = pc / 4.local_into();
                         aligned = aligned * 4.local_into();
 
                         let address = aligned - imm;
@@ -963,7 +1350,15 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrhRegister(ldrh) => {
-                    consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrh);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from ldrh
+                    );
+
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
                     let address_setter = Operand::Local("address".to_owned());
@@ -973,20 +1368,52 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> offset);
 
                     // This is correct for the ARMV7 probably not for future extensions
-                    ret.extend([Operation::Add { destination: offset_address.clone(), operand1: rn, operand2: offset }, Operation::Move { destination: address_setter.clone(), source: offset_address }, Operation::Move { destination: rt.clone(), source: address }, Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 }]);
+                    ret.extend([
+                        Operation::Add {
+                            destination: offset_address.clone(),
+                            operand1: rn,
+                            operand2: offset,
+                        },
+                        Operation::Move {
+                            destination: address_setter.clone(),
+                            source: offset_address,
+                        },
+                        Operation::Move {
+                            destination: rt.clone(),
+                            source: address,
+                        },
+                        Operation::ZeroExtend {
+                            destination: rt.clone(),
+                            operand: rt,
+                            bits: 32,
+                        },
+                    ]);
 
                     ret
                 }
                 Thumb::Ldrht(ldrht) => {
-                    consume!((rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into()) from ldrht);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            imm.unwrap_or(0).local_into()
+                        ) from ldrht
+                    );
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 16);
-                    vec![Operation::Add { destination: address_setter.clone(), operand1: rn, operand2: imm }, Operation::Move { destination: rt, source: address }]
+                    vec![
+                        Operation::Add {
+                            destination: address_setter.clone(),
+                            operand1: rn,
+                            operand2: imm,
+                        },
+                        Operation::Move { destination: rt, source: address },
+                    ]
                 }
                 Thumb::LdrsbImmediate(ldrsb) => {
                     consume!((
-                            rt.local_into(),
-                            rn.local_into(),
+                            rt.assign(),
+                            rn.non_assign(),
                             imm.unwrap_or(0).local_into(),
                             add,
                             index,
@@ -1011,14 +1438,16 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrsbLiteral(ldrsb) => {
-                    consume!((
-                            rt.local_into(),
+                    consume!(
+                        (
+                            rt.assign(),
                             imm.local_into(),
                             add
                         ) from ldrsb
                     );
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let base = Register("PC+")/4.local_into();
+                        let base = pc/4.local_into();
                         base*=4.local_into();
                         let address = base - imm;
                         if (add) {
@@ -1028,7 +1457,14 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrsbRegister(ldrsb) => {
-                    consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsb);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from ldrsb
+                    );
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
                     let address_setter = Operand::Local("address".to_owned());
@@ -1038,37 +1474,104 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> offset);
 
                     // This is correct for the ARMV7 probably not for future extensions
-                    ret.extend([Operation::Add { destination: offset_address.clone(), operand1: rn, operand2: offset }, Operation::Move { destination: address_setter.clone(), source: offset_address }, Operation::Move { destination: rt.clone(), source: address }, Operation::SignExtend { destination: rt.clone(), operand: rt, bits: 32 }]);
+                    ret.extend([
+                        Operation::Add {
+                            destination: offset_address.clone(),
+                            operand1: rn,
+                            operand2: offset,
+                        },
+                        Operation::Move {
+                            destination: address_setter.clone(),
+                            source: offset_address,
+                        },
+                        Operation::Move {
+                            destination: rt.clone(),
+                            source: address,
+                        },
+                        Operation::SignExtend {
+                            destination: rt.clone(),
+                            operand: rt,
+                            bits: 8,
+                        },
+                    ]);
 
                     ret
                 }
                 Thumb::Ldrsbt(ldrsbt) => {
-                    consume!((rt.local_into(), rn.local_into(), imm.local_into()) from ldrsbt);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            imm.local_into()
+                        ) from ldrsbt
+                    );
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 8);
-                    vec![Operation::Add { destination: address_setter, operand1: rn, operand2: imm }, Operation::SignExtend { destination: rt, operand: address, bits: 32 }]
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm,
+                        },
+                        Operation::SignExtend {
+                            destination: rt,
+                            operand: address,
+                            bits: 8,
+                        },
+                    ]
                 }
                 Thumb::LdrshImmediate(ldrsh) => {
-                    consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsh);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            imm.unwrap_or(0).local_into(),
+                            add,
+                            index,
+                            wback
+                        ) from ldrsh
+                    );
+
                     let mut ret = Vec::with_capacity(10);
                     let address_setter = Operand::Local("address".to_owned());
                     let offset_address = Operand::Local("offset_address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 16);
 
                     ret.push(match add {
-                        true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
-                        _ => Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
+                        true => Operation::Add {
+                            destination: offset_address.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm,
+                        },
+                        _ => Operation::Sub {
+                            destination: offset_address.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm,
+                        },
                     });
 
                     ret.push(match index {
-                        true => Operation::Move { destination: address_setter.clone(), source: offset_address.clone() },
-                        _ => Operation::Move { destination: address_setter.clone(), source: rn.clone() },
+                        true => Operation::Move {
+                            destination: address_setter.clone(),
+                            source: offset_address.clone(),
+                        },
+                        _ => Operation::Move {
+                            destination: address_setter.clone(),
+                            source: rn.clone(),
+                        },
                     });
 
-                    ret.extend([Operation::SignExtend { destination: rt, operand: address, bits: 16 }]);
+                    ret.extend([Operation::SignExtend {
+                        destination: rt,
+                        operand: address,
+                        bits: 16,
+                    }]);
 
                     if wback {
-                        ret.push(Operation::Move { destination: rn, source: offset_address })
+                        ret.push(Operation::Move {
+                            destination: rn,
+                            source: offset_address,
+                        })
                     }
 
                     ret
@@ -1076,13 +1579,15 @@ impl Convert for Thumb {
                 Thumb::LdrshLiteral(ldrsh) => {
                     consume!(
                         (
-                            rt.local_into(),
+                            rt.assign(),
                             imm.local_into(),
                             add
                         ) from ldrsh
                     );
+                    // TODO! Ensure that this is correct
+                    let pc = Register::PC.non_assign();
                     pseudo!([
-                        let base = Register("PC+")/4.local_into();
+                        let base = pc/4.local_into();
                         base *= 4.local_into();
                         let address = base - imm;
                         if (add) {
@@ -1094,7 +1599,14 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::LdrshRegister(ldrsh) => {
-                    consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsh);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from ldrsh
+                    );
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
                     let address_setter = Operand::Local("address".to_owned());
@@ -1104,24 +1616,80 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> offset);
 
                     // This is correct for the ARMV7 probably not for future extensions
-                    ret.extend([Operation::Add { destination: offset_address.clone(), operand1: rn, operand2: offset }, Operation::Move { destination: address_setter.clone(), source: offset_address }, Operation::Move { destination: rt.clone(), source: address }, Operation::SignExtend { destination: rt.clone(), operand: rt, bits: 16 }]);
+                    ret.extend([
+                        Operation::Add {
+                            destination: offset_address.clone(),
+                            operand1: rn,
+                            operand2: offset,
+                        },
+                        Operation::Move {
+                            destination: address_setter.clone(),
+                            source: offset_address,
+                        },
+                        Operation::Move {
+                            destination: rt.clone(),
+                            source: address,
+                        },
+                        Operation::SignExtend {
+                            destination: rt.clone(),
+                            operand: rt,
+                            bits: 16,
+                        },
+                    ]);
 
                     ret
                 }
                 Thumb::Ldrsht(ldrsht) => {
-                    consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrsht);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            imm.unwrap_or(0).local_into()
+                        ) from ldrsht
+                    );
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 16);
-                    vec![Operation::Add { destination: address_setter, operand1: rn, operand2: imm }, Operation::SignExtend { destination: rt, operand: address, bits: 32 }]
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm,
+                        },
+                        Operation::SignExtend {
+                            destination: rt,
+                            operand: address,
+                            bits: 32,
+                        },
+                    ]
                 }
                 Thumb::Ldrt(ldrt) => {
-                    consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrt);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            imm.unwrap_or(0).local_into()
+                        ) from ldrt
+                    );
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 32);
-                    vec![Operation::Add { destination: address_setter, operand1: rn, operand2: imm }, Operation::Move { destination: rt, source: address }]
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm,
+                        },
+                        Operation::Move { destination: rt, source: address },
+                    ]
                 }
                 Thumb::LslImmediate(lsl) => {
-                    consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsl);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.assign(),
+                            rm.non_assign(),
+                            imm
+                        ) from lsl
+                    );
                     let shift: Option<ImmShift> = Some((Shift::Lsl, imm).into());
                     let mut ret = vec![];
                     match s {
@@ -1131,9 +1699,20 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::LslRegister(lsl) => {
-                    consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsl);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.assign(),
+                            rn.non_assign(),
+                            rm.non_assign()
+                        ) from lsl
+                    );
                     local!(shift_n);
-                    let mut ret = vec![Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }];
+                    let mut ret = vec![Operation::And {
+                        destination: shift_n.clone(),
+                        operand1: rm,
+                        operand2: 0xff.local_into(),
+                    }];
                     let shift_t = Shift::Lsl.local_into();
                     match s {
                         true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
@@ -1142,7 +1721,14 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::LsrImmediate(lsr) => {
-                    consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsr);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.assign(),
+                            rm.non_assign(),
+                            imm
+                        ) from lsr
+                    );
                     let shift: Option<ImmShift> = Some((Shift::Lsr, imm).into());
                     let mut ret = vec![];
                     match s {
@@ -1152,9 +1738,20 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::LsrRegister(lsr) => {
-                    consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsr);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.assign(),
+                            rn.non_assign(),
+                            rm.non_assign()
+                        ) from lsr
+                    );
                     local!(shift_n);
-                    let mut ret = vec![Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }];
+                    let mut ret = vec![Operation::And {
+                        destination: shift_n.clone(),
+                        operand1: rm,
+                        operand2: 0xff.local_into(),
+                    }];
                     let shift_t = Shift::Lsr.local_into();
                     match s {
                         true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
@@ -1163,7 +1760,14 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Mla(mla) => {
-                    consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mla);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            ra.non_assign(),
+                            rd.assign(),
+                            rm.non_assign()
+                        ) from mla
+                    );
                     let mut ret = Vec::with_capacity(3);
                     pseudo!(
                         ret.extend[
@@ -1174,7 +1778,14 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Mls(mls) => {
-                    consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mls);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            ra.non_assign(),
+                            rd.assign(),
+                            rm.non_assign()
+                        ) from mls
+                    );
                     let mut ret = Vec::with_capacity(3);
                     pseudo!(
                         ret.extend[
@@ -1189,7 +1800,7 @@ impl Convert for Thumb {
                     consume!(
                         (
                             s.unwrap_or(false),
-                            rd.local_into(),
+                            rd.assign(),
                             imm.local_into(),
                             carry
                         ) from mov
@@ -1207,7 +1818,7 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::MovImmediatePlain(mov) => {
-                    consume!((s,rd.local_into(),imm.local_into()) from mov);
+                    consume!((s,rd.assign(),imm.local_into()) from mov);
                     let mut ret = Vec::with_capacity(4);
                     // Carry is unchanged here, the only time that carry changes is in
                     // [`Thumb::MovImmediate`]
@@ -1220,11 +1831,14 @@ impl Convert for Thumb {
                 Thumb::MovRegister(mov) => {
                     // This might cause some issues, we will disregard BX cases here as we have no
                     // way of changing the instruciton set
-                    consume!((s,rd, rm.local_into()) from mov);
+                    consume!((s,rd, rm.non_assign()) from mov);
                     if rd == Register::PC {
-                        break 'outer_block vec![Operation::ConditionalJump { destination: rm, condition: Condition::None }];
+                        break 'outer_block vec![Operation::ConditionalJump {
+                            destination: rm,
+                            condition: Condition::None,
+                        }];
                     }
-                    let rd = rd.local_into();
+                    let rd = rd.assign();
                     let mut ret = vec![Operation::Move { destination: rd.clone(), source: rm }];
                     if let Some(true) = s {
                         ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
@@ -1232,7 +1846,7 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Movt(movt) => {
-                    consume!((rd.local_into(),imm) from movt);
+                    consume!((rd.assign(),imm) from movt);
                     let imm = (imm as u32).local_into();
                     let mut ret = Vec::with_capacity(4);
                     let mask = (u16::MAX as u32).local_into();
@@ -1251,7 +1865,7 @@ impl Convert for Thumb {
                 Thumb::Mrs(mrs) => {
                     consume!(
                         (
-                            rd.local_into(),
+                            rd.assign(),
                             sysm
                         ) from mrs
                     );
@@ -1310,7 +1924,7 @@ impl Convert for Thumb {
                 Thumb::Msr(msr) => {
                     consume!(
                         (
-                            rn.local_into(),
+                            rn.non_assign(),
                             sysm,
                             mask
                         ) from msr
@@ -1357,8 +1971,15 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Mul(mul) => {
-                    consume!((s,rn, rd.unwrap_or(rn).local_into(),rm.local_into()) from mul);
-                    let rn = rn.local_into();
+                    consume!(
+                        (
+                            s,
+                            rn,
+                            rd.unwrap_or(rn).assign(),
+                            rm.non_assign()
+                        ) from mul
+                    );
+                    let rn = rn.non_assign();
                     let mut ret = vec![bin_op!(rd = rn * rm)];
                     if let Some(true) = s {
                         ret.extend([Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd)]);
@@ -1369,7 +1990,7 @@ impl Convert for Thumb {
                     consume!(
                         (
                             s.unwrap_or(false),
-                            rd.local_into(),
+                            rd.assign(),
                             imm.local_into(),
                             carry
                         ) from mvn
@@ -1388,7 +2009,14 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::MvnRegister(mvn) => {
-                    consume!((s,rd.local_into(), rm.local_into(),shift) from mvn);
+                    consume!(
+                        (
+                            s,
+                            rd.assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from mvn
+                    );
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -1400,13 +2028,15 @@ impl Convert for Thumb {
                 }
                 Thumb::Nop(_) => vec![Operation::Nop],
                 Thumb::OrnImmediate(orn) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        imm.local_into(),
-                        carry,
-                        s.unwrap_or(false)
-                        ) from orn);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            imm.local_into(),
+                            carry,
+                            s.unwrap_or(false)
+                        ) from orn
+                    );
                     pseudo!([
                             imm = !imm;
                             let result = rn | imm;
@@ -1423,8 +2053,8 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::OrnRegister(orn) => {
-                    consume!((s,rd, rm.local_into(),rn,shift) from orn);
-                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    consume!((s,rd, rm.non_assign(),rn,shift) from orn);
+                    let (rd, rn) = (rd.unwrap_or(rn).assign(), rn.non_assign());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -1435,13 +2065,15 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::OrrImmediate(orr) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        imm.local_into(),
-                        carry,
-                        s.unwrap_or(false)
-                        ) from orr);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            imm.local_into(),
+                            carry,
+                            s.unwrap_or(false)
+                        ) from orr
+                    );
                     pseudo!([
                             let result = rn | imm;
                             rd = result;
@@ -1458,8 +2090,8 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::OrrRegister(orr) => {
-                    consume!((s,rd, rm.local_into(),rn,shift) from orr);
-                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    consume!((s,rd, rm.non_assign(),rn,shift) from orr);
+                    let (rd, rn) = (rd.unwrap_or(rn).assign(), rn.non_assign());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -1470,9 +2102,9 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Pkh(pkh) => {
-                    consume!((rd,shift,rn,rm.local_into(),tb) from pkh);
+                    consume!((rd,shift,rn,rm.non_assign(),tb) from pkh);
                     let mut ret = Vec::with_capacity(5);
-                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).assign(), rn.non_assign());
                     local!(shifted);
                     shift!(ret.shift rm -> shifted);
                     let (msh, lsh) = match tb {
@@ -1505,47 +2137,43 @@ impl Convert for Thumb {
                         if reg == Register::PC {
                             jump = true;
                         } else {
-                            to_pop.push(reg.local_into());
+                            to_pop.push(reg.assign());
                         }
                     }
+                    let sp_assign = Register::SP.assign();
+                    let sp_non_assign = Register::SP.non_assign();
                     pseudo!([
-                        let address = Register("SP");
-                        Register("SP") += (4*bc).local_into();
+                        let address = sp_assign;
+                        sp_assign = sp_non_assign + (4*bc).local_into();
                         for reg in to_pop.into_iter(){
                             reg = LocalAddress(address,32);
-                            address += 4.local_into();
+                            address += 4u32.local_into();
                         }
                         if (jump) {
-                            Jump(LocalAddress(address,32));
+                            let target = LocalAddress(address,32);
+                            target = target<32:1> << 1.local_into();
+                            target = ZeroExtend(target,32);
+                            Jump(target);
                         }
                     ])
                 }
                 Thumb::Push(push) => {
                     consume!((registers) from push);
-                    let address_setter = Operand::Local("address".to_owned());
-                    let address = Operand::AddressInLocal("address".to_owned(), 32);
-                    let sp = Register::SP.local_into();
+                    // let sp = Register::SP.local_into();
                     assert!(!registers.regs.contains(&Register::SP));
                     assert!(!registers.regs.contains(&Register::PC));
 
-                    let mut ret = vec![];
-                    pseudo!(
-                        ret.extend[
-                            address_setter = sp - (4*registers.regs.len() as u32).local_into();
-                            sp = sp - (4*registers.regs.len() as u32).local_into();
-                        ]
-                    );
-                    let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<Operand>>();
-                    for reg in regs {
-                        pseudo!(
-                            ret.extend[
-                                // Read the current address in to the specified reg
-                                address = reg;
-                                address_setter = address_setter + 4.local_into();
-                            ]
-                        );
-                    }
-                    ret
+                    let n = registers.regs.len() as u32;
+                    let sp_assign = Register::SP.assign();
+                    let sp_non_assign = Register::SP.non_assign();
+                    pseudo!([
+                        let address = sp_non_assign - (n*4u32).local_into();
+                        for reg in registers.regs.into_iter() {
+                            LocalAddress(address,32) = reg.local_into();
+                            address += 4u32.local_into();
+                        }
+                        sp_assign = sp_non_assign - (4u32*n).local_into();
+                    ])
                 }
                 Thumb::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
                 Thumb::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
@@ -1560,7 +2188,7 @@ impl Convert for Thumb {
                 Thumb::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
                 Thumb::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
                 Thumb::Rbit(rbit) => {
-                    consume!((rd.local_into(),rm.local_into()) from rbit);
+                    consume!((rd.assign(),rm.non_assign()) from rbit);
                     let mut ret = vec![];
                     local!(intermediate);
                     let zero = 0.local_into();
@@ -1595,8 +2223,14 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Rev(rev) => {
-                    consume!((rd.local_into(),rm.local_into()) from rev);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rm.non_assign()
+                        ) from rev
+                    );
                     local!(int1, int2, int3, int4);
+
                     let mut ret = vec![];
                     let zero = 0.local_into();
                     pseudo!(
@@ -1620,7 +2254,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Rev16(rev) => {
-                    consume!((rd.local_into(),rm.local_into()) from rev);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rm.non_assign()
+                        ) from rev
+                    );
+
                     local!(int1, int2, int3, int4);
                     let mut ret = vec![];
                     let zero = 0.local_into();
@@ -1644,7 +2284,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Revsh(revsh) => {
-                    consume!((rd.local_into(),rm.local_into()) from revsh);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rm.non_assign()
+                        ) from revsh
+                    );
+
                     local!(int1, int2);
                     let mut ret = vec![];
                     let zero = 0.local_into();
@@ -1660,7 +2306,11 @@ impl Convert for Thumb {
                     ret.push(
                         // This should be correct as the value has already been shifted over by
                         // 9
-                        Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 },
+                        Operation::SignExtend {
+                            destination: rd.clone(),
+                            operand: int1,
+                            bits: 16,
+                        },
                     );
                     pseudo!(
                         ret.extend[
@@ -1670,28 +2320,43 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::RorImmediate(ror) => {
-                    consume!((s,rd.local_into(), rm.local_into(),imm) from ror);
+                    consume!((s,rd.assign(), rm.non_assign(),imm) from ror);
                     let imm: u32 = imm.into();
                     let shift_n = imm.local_into();
-                    let mut ret = vec![Operation::Sror { destination: rd.clone(), operand: rm.clone(), shift: shift_n.clone() }];
+                    let mut ret = vec![Operation::Sror {
+                        destination: rd.clone(),
+                        operand: rm.clone(),
+                        shift: shift_n.clone(),
+                    }];
                     if let Some(true) = s {
                         ret.extend([Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlagRor(rd.clone())]);
                     }
                     ret
                 }
                 Thumb::RorRegister(ror) => {
-                    consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
+                    consume!((s,rd.assign(), rm.non_assign(),rn.non_assign()) from ror);
                     local!(shift_n);
                     let mask = (u8::MAX as u32).local_into();
 
-                    let mut ret = vec![Operation::And { destination: shift_n.clone(), operand1: rm.clone(), operand2: mask }, Operation::Sror { destination: rd.clone(), operand: rn.clone(), shift: shift_n.clone() }];
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm.clone(),
+                            operand2: mask,
+                        },
+                        Operation::Sror {
+                            destination: rd.clone(),
+                            operand: rn.clone(),
+                            shift: shift_n.clone(),
+                        },
+                    ];
                     if let Some(true) = s {
                         ret.extend([Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlagRor(rd.clone())]);
                     }
                     ret
                 }
                 Thumb::Rrx(rrx) => {
-                    consume!((s,rd.local_into(), rm.local_into()) from rrx);
+                    consume!((s,rd.assign(), rm.non_assign()) from rrx);
                     // Let's fulhacka
                     let mask = (u32::MAX >> 1).local_into();
                     let lsb_mask = (1).local_into();
@@ -1711,13 +2376,16 @@ impl Convert for Thumb {
                     );
 
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::Move { destination: carry, source: lsb }]);
+                        ret.extend([Operation::SetNFlag(result.clone()), Operation::SetZFlag(result.clone()), Operation::Move {
+                            destination: carry,
+                            source: lsb,
+                        }]);
                     }
                     ret
                 }
                 Thumb::RsbImmediate(rsb) => {
                     consume!((s,rd,rn,imm.local_into()) from rsb);
-                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let (rd, rn) = (rd.unwrap_or(rn).assign(), rn.non_assign());
                     let carry = Operand::Flag("c".to_owned());
                     local!(intermediate, old_carry);
                     let one = 1.local_into();
@@ -1738,15 +2406,20 @@ impl Convert for Thumb {
                     );
                     ret.extend(match s {
                         Some(true) => {
-                            vec![Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlag { operand1: intermediate, operand2: imm, sub: false, carry: true }]
+                            vec![Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlag {
+                                operand1: intermediate,
+                                operand2: imm,
+                                sub: false,
+                                carry: true,
+                            }]
                         }
                         _ => vec![bin_op!(carry = old_carry)],
                     });
                     ret
                 }
                 Thumb::RsbRegister(rsb) => {
-                    consume!((s,rd,rn,rm.local_into(), shift) from rsb);
-                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    consume!((s,rd,rn,rm.non_assign(), shift) from rsb);
+                    let (rd, rn) = (rd.unwrap_or(rn).assign(), rn.non_assign());
                     let mut ret = Vec::with_capacity(10);
                     let carry = Operand::Flag("c".to_owned());
                     let one = 1.local_into();
@@ -1769,7 +2442,12 @@ impl Convert for Thumb {
                     );
                     ret.extend(match s {
                         Some(true) => {
-                            vec![Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlag { operand1: intermediate, operand2: shifted, sub: false, carry: true }]
+                            vec![Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlag {
+                                operand1: intermediate,
+                                operand2: shifted,
+                                sub: false,
+                                carry: true,
+                            }]
                         }
                         _ => vec![bin_op!(carry = old_carry)],
                     });
@@ -1777,11 +2455,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Sadd16(sadd) => {
-                    consume!((
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()),
-                    rm.local_into()
-                ) from sadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from sadd
+                    );
                     pseudo!(
                         [
                             let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
@@ -1795,11 +2475,13 @@ impl Convert for Thumb {
                     )
                 }
                 Thumb::Sadd8(sadd) => {
-                    consume!((
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()),
-                    rm.local_into()
-                ) from sadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from sadd
+                    );
                     pseudo!(
                         [
                             let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
@@ -1818,11 +2500,13 @@ impl Convert for Thumb {
                     )
                 }
                 Thumb::Sasx(sasx) => {
-                    consume!((
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()),
-                    rm.local_into()
-                ) from sasx);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from sasx
+                    );
                     pseudo!(
                         [
                             let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
@@ -1835,12 +2519,14 @@ impl Convert for Thumb {
                     )
                 }
                 Thumb::SbcImmediate(sbc) => {
-                    consume!((
-                    s.unwrap_or(false), 
-                    rn.local_into(), 
-                    rd.local_into().unwrap_or(rn.clone()),
-                    imm.local_into()
-                ) from sbc);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            imm.local_into()
+                        ) from sbc
+                    );
                     let mut ret = Vec::with_capacity(7);
                     pseudo!(
                         ret.extend[
@@ -1850,18 +2536,35 @@ impl Convert for Thumb {
                         ]
                     );
                     if s {
-                        ret.extend([Operation::SetZFlag(result.clone()), Operation::SetNFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true }]);
+                        ret.extend([
+                            Operation::SetZFlag(result.clone()),
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetCFlag {
+                                operand1: rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                            Operation::SetVFlag {
+                                operand1: rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                        ]);
                     }
                     ret
                 }
                 Thumb::SbcRegister(sbc) => {
-                    consume!((
-                    s.unwrap_or(false),
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()), 
-                    rm.local_into(),
-                    shift
-                ) from sbc);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from sbc
+                    );
                     let mut ret = Vec::with_capacity(10);
                     local!(shifted);
                     shift!(ret.shift rm -> shifted);
@@ -1873,12 +2576,34 @@ impl Convert for Thumb {
                         ]
                     );
                     if s {
-                        ret.extend([Operation::SetZFlag(result.clone()), Operation::SetNFlag(result.clone()), Operation::SetCFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true }, Operation::SetVFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true }]);
+                        ret.extend([
+                            Operation::SetZFlag(result.clone()),
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetCFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                            Operation::SetVFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true,
+                            },
+                        ]);
                     }
                     ret
                 }
                 Thumb::Sbfx(sbfx) => {
-                    consume!((rd.local_into(), rn.local_into(), lsb, width) from sbfx);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rn.non_assign(),
+                            lsb,
+                            width
+                        ) from sbfx
+                    );
                     let mut ret = vec![];
 
                     let msb = lsb + (width - 1);
@@ -1894,11 +2619,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Sdiv(sdiv) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                    ) from sdiv);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from sdiv
+                    );
                     pseudo!([
                         let result = Signed(rn / rm);
                         rd = result;
@@ -1907,11 +2634,13 @@ impl Convert for Thumb {
                 Thumb::Sel(_) => todo!("This will likely need a big rewrite as it changes behaviour based on value of flags"),
                 Thumb::Sev(_) => todo!("This is likely not needed"),
                 Thumb::Shadd16(shadd) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shadd
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
@@ -1922,11 +2651,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Shadd8(shadd) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shadd
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
@@ -1943,11 +2674,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Shasx(shasx) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shasx);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shasx
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
@@ -1958,11 +2691,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Shsax(shsax) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shsax);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shsax
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let sum = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<31:16>,16)),32);
@@ -1973,11 +2708,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Shsub16(shsub) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shsub);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shsub
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let diff1 = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<15:0>,16)),32);
@@ -1988,11 +2725,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Shsub8(shsub) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from shsub);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from shsub
+                    );
                     // TODO! Check that the overflow here is not problematic
                     pseudo!([
                         let diff1 = ZeroExtend(Signed(Resize(rn<7:0>,8) - Resize(rm<7:0>,8)),32);
@@ -2053,67 +2792,74 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Stmdb(stmdb) => {
-                    consume!((
-                    w.unwrap_or(false), 
-                    rn.local_into(), 
-                    registers
-                ) from stmdb);
+                    consume!(
+                        (
+                            w.unwrap_or(false),
+                            rn,
+                            registers
+                        ) from stmdb
+                    );
                     let mut ret = vec![];
                     let n = registers.regs.len() as u32;
                     pseudo!(ret.extend[
-                        let address = rn - (4*n).local_into();
+                        let address = rn.non_assign() - (4*n).local_into();
                         for reg in registers.regs{
                                 LocalAddress(address,32) = reg.local_into();
                                 address += 4.local_into();
                         }
                         if (w) {
-                            rn = rn - (4u32* n).local_into();
+                            rn.assign() = rn.non_assign() - (4u32* n).local_into();
                         }
                     ]);
                     ret
                 }
                 Thumb::StrImmediate(str) => {
-                    consume!((
-                    w.unwrap_or(false),
-                    add,
-                    index.unwrap_or(false), 
-                    rt.local_into(),
-                    rn.local_into(), 
-                    imm.local_into()
-                ) from str);
+                    consume!(
+                        (
+                            w.unwrap_or(false),
+                            add,
+                            index.unwrap_or(false),
+                            rt.assign(),
+                            rn,
+                            imm.local_into()
+                        ) from str
+                    );
                     let mut ret = Vec::new();
                     pseudo!(
                         ret.extend[
 
                             let offset_addr = 0.local_into();
                             if (add) {
-                                offset_addr = rn + imm;
+                                offset_addr = rn.non_assign() + imm;
                             } else {
-                                offset_addr = rn - imm;
+                                offset_addr = rn.non_assign() - imm;
                             }
 
                             let address = 0.local_into();
                             if (index) {
                                 address = offset_addr;
                             } else {
-                                address = rn;
+                                address = rn.assign();
                             }
 
                             LocalAddress("address",32) = rt;
 
                             if (w) {
-                                rn = offset_addr;
+                                rn.assign() = offset_addr;
                             }
                         ]
                     );
                     ret
                 }
                 Thumb::StrRegister(str) => {
-                    consume!((
-                    rt.local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                    shift) from str);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from str
+                    );
                     let shift_n = match shift {
                         Some(shift) => shift.shift_n as u32,
                         None => 0,
@@ -2129,41 +2875,52 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::StrbImmediate(strb) => {
-                    consume!((w.unwrap_or(false),add,index.unwrap_or(false), rt.local_into(),rn.local_into(), imm.local_into()) from strb);
+                    consume!(
+                        (
+                            w.unwrap_or(false),
+                            add,
+                            index.unwrap_or(false),
+                            rt.assign(),
+                            rn,
+                            imm.local_into()
+                        ) from strb
+                    );
                     let mut ret = Vec::new();
                     pseudo!(
                         ret.extend[
 
                             let offset_addr = 0.local_into();
                             if (add) {
-                                offset_addr = rn + imm;
+                                offset_addr = rn.non_assign() + imm;
                             } else {
-                                offset_addr = rn - imm;
+                                offset_addr = rn.non_assign() - imm;
                             }
 
                             let address = 0.local_into();
                             if (index) {
                                 address = offset_addr;
                             } else {
-                                address = rn;
+                                address = rn.assign();
                             }
 
                             LocalAddress("address",8) = rt;
 
                             if (w) {
-                                rn = offset_addr;
+                                rn.assign() = offset_addr;
                             }
                         ]
                     );
                     ret
                 }
                 Thumb::StrbRegister(strb) => {
-                    consume!((
-                    rt.local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                    shift
-                ) from strb);
+                    consume!(
+                        (
+                            rt.assign(),
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from strb
+                    );
                     let shift_n = match shift {
                         Some(shift) => shift.shift_n as u32,
                         None => 0,
@@ -2178,8 +2935,8 @@ impl Convert for Thumb {
                 }
                 Thumb::Strbt(strbt) => {
                     consume!((
-                    rt.local_into(),
-                    rn.local_into(),
+                    rt.assign(),
+                    rn.non_assign(),
                     imm.unwrap_or(0).local_into()
                 ) from strbt);
                     let mut ret = vec![];
@@ -2192,23 +2949,24 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::StrdImmediate(strd) => {
-                    consume!((
-                    rt.local_into(), 
-                    rt2.local_into(), 
-                    rn.local_into(),
-                    add,
-                    index.unwrap_or(true),
-                    imm.unwrap_or(0).local_into(),
-                    w.unwrap_or(false)
-                ) from strd);
-                    let mut ret = vec![];
-                    pseudo!(ret.extend[
-                        let offset_addr = rn - imm;
+                    consume!(
+                        (
+                            rt.assign(),
+                            rt2.assign(),
+                            rn,
+                            add,
+                            index.unwrap_or(true),
+                            imm.unwrap_or(0).local_into(),
+                            w.unwrap_or(false)
+                        ) from strd
+                    );
+                    pseudo!([
+                        let offset_addr = (rn).non_assign() - imm;
                         if (add) {
-                            offset_addr = rn + imm;
+                            offset_addr = (rn).non_assign() + imm;
                         }
 
-                        let address = rn;
+                        let address = rn.assign();
                         if (index) {
                             address = offset_addr;
                         }
@@ -2217,14 +2975,13 @@ impl Convert for Thumb {
                         LocalAddress("address",32) = rt2;
 
                         if (w) {
-                            rn = offset_addr;
+                            rn.assign() = offset_addr;
                         }
-                    ]);
-                    ret
+                    ])
                 }
                 Thumb::Strex(strex) => {
                     consume!((
-                        rd.local_into(),
+                        rd.assign(),
                         rt.local_into(),
                         rn.local_into(),
                         imm.unwrap_or(0).local_into()
@@ -2239,7 +2996,7 @@ impl Convert for Thumb {
                 }
                 Thumb::Strexb(strexb) => {
                     consume!((
-                        rd.local_into(),
+                        rd.assign(),
                         rt.local_into(),
                         rn.local_into()
                         ) from strexb
@@ -2254,7 +3011,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Strexh(strexh) => {
-                    consume!((rd.local_into(), rt.local_into(), rn.local_into()) from strexh);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rt.assign(),
+                            rn.assign()
+                        ) from strexh
+                    );
                     let mut ret = vec![];
                     pseudo!(ret.extend[
                         let address = rn;
@@ -2266,8 +3029,8 @@ impl Convert for Thumb {
                 }
                 Thumb::StrhImmediate(strh) => {
                     consume!((
-                            rt.local_into(), 
-                            rn.local_into(), 
+                            rt.assign(), 
+                            rn.non_assign(), 
                             imm.unwrap_or(0).local_into(),
                             w,
                             index,
@@ -2292,9 +3055,9 @@ impl Convert for Thumb {
                 }
                 Thumb::StrhRegister(strh) => {
                     consume!((
-                        rt.local_into(),
-                        rn.local_into(),
-                        rm.local_into(),
+                        rt.assign(),
+                        rn.non_assign(),
+                        rm.non_assign(),
                         shift
                         ) from strh);
                     let shift_n = match shift {
@@ -2313,8 +3076,8 @@ impl Convert for Thumb {
                 }
                 Thumb::Strht(strht) => {
                     consume!((
-                        rt.local_into(),
-                        rn.local_into(),
+                        rt.assign(),
+                        rn.non_assign(),
                         imm.unwrap_or(0).local_into()
                         ) from strht);
                     pseudo!([
@@ -2324,8 +3087,8 @@ impl Convert for Thumb {
                 }
                 Thumb::Strt(strt) => {
                     consume!((
-                        rt.local_into(),
-                        rn.local_into(),
+                        rt.assign(),
+                        rn.non_assign(),
                         imm.unwrap_or(0).local_into()
                         ) from strt);
                     pseudo!([
@@ -2336,37 +3099,30 @@ impl Convert for Thumb {
                 }
                 Thumb::SubImmediate(sub) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
                         imm.local_into(),
                         s.unwrap_or(false)
                         )from sub);
                     pseudo!([
-                        let intermediate = !imm;
+                        let result = rn - imm;//intermediate;
 
-                        // Backup previous flag
-                        let old_c = Flag("c");
-                        Flag("c") = 1.local_into();
-
-                        let result = rn adc intermediate;
-                        rd = result;
-
-                        Flag("c") = old_c;
 
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetCFlag(rn,intermediate,true,false);
-                            SetVFlag(rn,intermediate,true,false);
+                            SetCFlag(rn,imm,true,false);
+                            SetVFlag(rn,imm,true,false);
                         }
+                        rd = result;
                     ])
                 }
                 Thumb::SubRegister(sub) => {
                     consume!((
                         s.unwrap_or(false),
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into(),
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign(),
                         shift
                         ) from sub);
                     let mut ret = vec![];
@@ -2374,30 +3130,24 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> shifted);
 
                     pseudo!(ret.extend[
-                        let intermediate = !shifted;
 
                         // Backup previous flag
-                        let old_c = Flag("c");
-                        Flag("c") = 1.local_into();
-                        let result = rn adc intermediate;
+                        let result = rn - shifted;
 
-                        rd = result;
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetVFlag(rn,intermediate,false,true);
-                            SetCFlag(rn,intermediate,false,true);
+                            SetVFlag(rn,shifted,false,true);
+                            SetCFlag(rn,shifted,false,true);
                         }
-                        else {
-                            Flag("c") = old_c;
-                        }
+                        rd = result;
                     ]);
                     ret
                 }
                 Thumb::SubSpMinusImmediate(sub) => {
                     consume!((
                         s.unwrap_or(false),
-                        rd.local_into().unwrap_or(Operand::Register("SP".to_owned())),
+                        rd.assign().unwrap_or(Operand::Register("SP&".to_owned())).assign(),
                         imm.local_into()
                         ) from sub);
                     let rn = Register::SP.local_into();
@@ -2416,11 +3166,11 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::SubSpMinusRegister(sub) => {
-                    let rn = Register::SP.local_into();
+                    let rn = Register::SP.non_assign();
                     consume!((
                         s.unwrap_or(false),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign(),
                         shift
                         ) from sub);
                     let mut ret = vec![];
@@ -2428,31 +3178,23 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> shifted);
 
                     pseudo!(ret.extend[
-                        let intermediate = !shifted;
+                        let result = rn - shifted;
 
-                        // Backup previous flag
-                        let old_c = Flag("c");
-                        Flag("c") = 1.local_into();
-                        let result = rn adc intermediate;
-
-                        rd = result;
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetVFlag(rn,intermediate,false,true);
-                            SetCFlag(rn,intermediate,false,true);
+                            SetVFlag(rn,shifted,false,true);
+                            SetCFlag(rn,shifted,false,true);
                         }
-                        else {
-                            Flag("c") = old_c;
-                        }
+                        rd = result;
                     ]);
                     ret
                 }
                 Thumb::Sxtab(sxtab) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into(),
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign(),
                         rotation.unwrap_or(0)) from sxtab);
                     let mut ret = vec![];
                     pseudo!(ret.extend[
@@ -2464,9 +3206,9 @@ impl Convert for Thumb {
                 }
                 Thumb::Sxtab16(sxtab) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into(),
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign(),
                         rotation.unwrap_or(0)) from sxtab);
                     pseudo!([
                         let rotated = Ror(rm, rotation.local_into());
@@ -2499,9 +3241,9 @@ impl Convert for Thumb {
                 }
                 Thumb::Sxtah(sxtah) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into(),
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign(),
                         rotation.unwrap_or(0).local_into()
                         ) from sxtah);
                     pseudo!([
@@ -2511,11 +3253,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Sxtb(sxtb) => {
-                    consume!((
-                        rd.local_into(),
-                        rm.local_into(),
-                        rotation.unwrap_or(0).local_into()
-                        ) from sxtb);
+                    consume!(
+                        (
+                            rd.assign(),
+                            rm.non_assign(),
+                            rotation.unwrap_or(0).local_into()
+                        ) from sxtb
+                    );
                     pseudo!([
                             let rotated = Ror(rm,rotation);
                             rotated = rotated & ( u8::MAX as u32).local_into();
@@ -2524,8 +3268,8 @@ impl Convert for Thumb {
                 }
                 Thumb::Sxtb16(sxtb) => {
                     consume!((
-                        rm.local_into(),
-                        rd.local_into().unwrap_or(rm.clone()),
+                        rm.non_assign(),
+                        rd.assign().unwrap_or(rm.clone()).assign(),
                         rotation.unwrap_or(0).local_into()
                         ) from sxtb);
                     pseudo!([
@@ -2543,8 +3287,8 @@ impl Convert for Thumb {
                 }
                 Thumb::Sxth(sxth) => {
                     consume!((
-                        rd.local_into(),
-                        rm.local_into(),
+                        rd.assign(),
+                        rm.non_assign(),
                         rotation.unwrap_or(0).local_into()
                         ) from sxth);
                     pseudo!([
@@ -2553,24 +3297,29 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Tb(tb) => {
-                    consume!((
-                            rn.local_into(),
-                            rm.local_into(),
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rm.non_assign(),
                             is_tbh.unwrap_or(false)
-                        ) from tb);
+                        ) from tb
+                    );
+
+                    let pc = Register::PC.non_assign();
                     pseudo!([
                         let halfwords = 0.local_into();
 
                         if (is_tbh) {
                             let address = rm << 1.local_into();
                             address = address + rn;
-                            halfwords = LocalAddress(address,2);
+                            halfwords = ZeroExtend(LocalAddress(address,16),32);
                         } else {
                             let address = rn + rm;
-                            halfwords = LocalAddress(address,1);
+                            halfwords = ZeroExtend(LocalAddress(address,8),32);
                         }
                         let target = halfwords*2.local_into();
-                        target = target + Register("PC");
+                        target = target + pc;
+                        target = target<31:1> << 1.local_into();
                         Jump(target);
                     ])
                 }
@@ -2591,11 +3340,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::TeqRegister(teq) => {
-                    consume!((
-                        rn.local_into(),
-                        rm.local_into(),
-                        shift
-                        ) from teq);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rm.non_assign(),
+                            shift
+                        ) from teq
+                    );
                     let mut ret = vec![];
                     local!(intermediate);
                     shift!(ret.shift rm -> intermediate set c for rn);
@@ -2607,11 +3358,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::TstImmediate(tst) => {
-                    consume!((
-                        rn.local_into(),
-                        imm.local_into(),
-                        carry
-                        ) from tst);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            imm.local_into(),
+                            carry
+                        ) from tst
+                    );
                     pseudo!([
                          let result = rn & imm;
                          SetZFlag(result);
@@ -2622,7 +3375,7 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::TstRegister(tst) => {
-                    let (rn, rm, shift) = (tst.rn.local_into(), tst.rm.local_into(), tst.shift);
+                    let (rn, rm, shift) = (tst.rn.non_assign(), tst.rm.non_assign(), tst.shift);
                     let mut ret = vec![];
                     local!(shifted);
                     shift!(ret.shift rm -> shifted set c for rm);
@@ -2634,11 +3387,13 @@ impl Convert for Thumb {
                     ret
                 }
                 Thumb::Uadd16(uadd) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from uadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from uadd
+                    );
                     pseudo!([
                             let lsh_mask = (u16::MAX as u32).local_into();
 
@@ -2664,11 +3419,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Uadd8(uadd) => {
-                    consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
-                        ) from uadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from uadd
+                    );
                     pseudo!([
                         let sum1 = rn<7:0> + rm<7:0>;
                         let sum2 = rn<15:8> + rm<15:8>;
@@ -2687,9 +3444,9 @@ impl Convert for Thumb {
                 Thumb::Uasx(uasx) => {
                     consume!(
                         (
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
-                            rm.local_into()
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
                         ) from uasx
                     );
                     pseudo!([
@@ -2704,8 +3461,8 @@ impl Convert for Thumb {
                 Thumb::Ubfx(ubfx) => {
                     consume!(
                         (
-                            rd.local_into(),
-                            rn.local_into(),
+                            rd.assign(),
+                            rn.non_assign(),
                             lsb,
                             width
                         )
@@ -2720,9 +3477,9 @@ impl Convert for Thumb {
                 Thumb::Udiv(udiv) => {
                     consume!(
                         (
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
-                            rm.local_into()
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
                         ) from udiv
                     );
                     pseudo!([
@@ -2733,9 +3490,9 @@ impl Convert for Thumb {
                 Thumb::Uhadd16(uhadd) => {
                     consume!(
                         (
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
-                            rm.local_into()
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
                         ) from uhadd
                     );
                     pseudo!([
@@ -2747,11 +3504,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Uhadd8(uhadd) => {
-                    consume!((
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()),
-                    rm.local_into()
-                ) from uhadd);
+                    consume!(
+                        (
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
+                        ) from uhadd
+                    );
                     pseudo!([
                         let sum1 = rn<7:0> + rm<7:0>;
                         let sum2 = rn<15:8> + rm<15:8>;
@@ -2772,9 +3531,9 @@ impl Convert for Thumb {
                 Thumb::Uhasx(uhasx) => {
                     consume!(
                         (
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
-                            rm.local_into()
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
                         ) from uhasx
                     );
                     pseudo!([
@@ -2789,9 +3548,9 @@ impl Convert for Thumb {
                 Thumb::Uhsax(uhsax) => {
                     consume!(
                         (
-                            rn.local_into(),
-                            rd.local_into().unwrap_or(rn.clone()),
-                            rm.local_into()
+                            rn.non_assign(),
+                            rd.assign().unwrap_or(rn.clone()).assign(),
+                            rm.non_assign()
                         ) from uhsax
                     );
                     pseudo!([
@@ -2805,9 +3564,9 @@ impl Convert for Thumb {
                 }
                 Thumb::Uhsub16(uhsub) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign()
                         ) from uhsub);
                     pseudo!([
                             let diff1 = rn<15:0> + rm<15:0>;
@@ -2821,9 +3580,9 @@ impl Convert for Thumb {
                 }
                 Thumb::Uhsub8(uhsub) => {
                     consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        rm.local_into()
+                        rn.non_assign(),
+                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rm.non_assign()
                         ) from uhsub);
                     pseudo!([
                         let diff1 = rn<7:0> - rm<7:0>;
@@ -2842,10 +3601,10 @@ impl Convert for Thumb {
                 Thumb::Umaal(umaal) => {
                     consume!(
                         (
-                            rdlo.local_into(),
-                            rdhi.local_into(),
-                            rn.local_into(),
-                            rm.local_into()
+                            rdlo.assign(),
+                            rdhi.assign(),
+                            rn.non_assign(),
+                            rm.non_assign()
                         ) from umaal
                     );
                     pseudo!([
@@ -2861,10 +3620,10 @@ impl Convert for Thumb {
                 Thumb::Umlal(umlal) => {
                     consume!(
                         (
-                            rdlo.local_into(),
-                            rdhi.local_into(),
-                            rn.local_into(),
-                            rm.local_into()
+                            rdlo.assign(),
+                            rdhi.assign(),
+                            rn.non_assign(),
+                            rm.non_assign()
                         ) from umlal
                     );
                     pseudo!([
@@ -2884,10 +3643,10 @@ impl Convert for Thumb {
                 Thumb::Umull(umull) => {
                     consume!(
                         (
-                            rdlo.local_into(),
-                            rdhi.local_into(),
-                            rn.local_into(),
-                            rm.local_into()
+                            rdlo.assign(),
+                            rdhi.assign(),
+                            rn.non_assign(),
+                            rm.non_assign()
                         ) from umull
                     );
                     pseudo!([
@@ -2909,8 +3668,7 @@ impl Convert for Thumb {
                 Thumb::Usat(_) => todo!("TODO! Look in to why ABS is needed here"),
                 Thumb::Usat16(_) => todo!("TODO! Look in to SAT"),
                 Thumb::Usax(usax) => {
-                    let (rn, rd, rm) = (usax.rn.local_into(), usax.rd.local_into(), usax.rm.local_into());
-                    let rd = rd.unwrap_or(rn.clone());
+                    let (rn, rd, rm) = (usax.rd.unwrap_or(usax.rn.clone()).assign(), usax.rn.local_into(), usax.rm.local_into());
                     pseudo!([
                         let sum = rn<15:0> + rm<31:16>;
                         let diff = rn<31:16> - rm<15:0>;
@@ -2922,15 +3680,7 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Usub16(usub) => {
-                    // consume!(
-                    //     (
-                    //         rn.local_into(),
-                    //         rd.local_into().unwrap_or(rn.clone()),
-                    //         rm.local_into(),
-                    //     ) from usub
-                    // );
-                    let (rn, rd, rm) = (usub.rn.local_into(), usub.rd.local_into(), usub.rm.local_into());
-                    let rd = rd.unwrap_or(rn.clone());
+                    let (rn, rd, rm) = (usub.rd.unwrap_or(usub.rn.clone()).assign(), usub.rn.non_assign(), usub.rm.non_assign());
 
                     pseudo!([
                         let diff1 = rn<15:0> - rm<15:0>;
@@ -2946,16 +3696,14 @@ impl Convert for Thumb {
                     todo!("SIMD needs more work");
                 }
                 Thumb::Uxtab(uxtab) => {
-                    let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
-                    let rd = rd.unwrap_or(rn.clone());
+                    let (rn, rd, rm, rotation) = (uxtab.rd.unwrap_or(uxtab.rn.clone()).assign(), uxtab.rn.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = rn + ZeroExtend(rotated<7:0>,32);
                     ])
                 }
                 Thumb::Uxtab16(uxtab) => {
-                    let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
-                    let rd = rd.unwrap_or(rn.clone());
+                    let (rn, rd, rm, rotation) = (uxtab.rd.unwrap_or(uxtab.rn.clone()).assign(), uxtab.rn.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = rn<15:0> + ZeroExtend(rotated<7:0>,32);
@@ -2965,23 +3713,21 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Uxtah(uxtah) => {
-                    let (rn, rd, rm, rotation) = (uxtah.rn.local_into(), uxtah.rd.local_into(), uxtah.rm.local_into(), uxtah.rotation.unwrap_or(0));
-                    let rd = rd.unwrap_or(rn.clone());
+                    let (rn, rd, rm, rotation) = (uxtah.rd.unwrap_or(uxtah.rn.clone()).assign(), uxtah.rn.non_assign(), uxtah.rm.non_assign(), uxtah.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = rn + ZeroExtend(rotated<15:0>,32);
                     ])
                 }
                 Thumb::Uxtb(uxtb) => {
-                    let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
+                    let (rd, rm, rotation) = (uxtb.rd.assign(), uxtb.rm.non_assign(), uxtb.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = ZeroExtend(rotated<7:0>,32);
                     ])
                 }
                 Thumb::Uxtb16(uxtb) => {
-                    let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
-                    let rd = rd.unwrap_or(rm.clone());
+                    let (rd, rm, rotation) = (uxtb.rd.unwrap_or(uxtb.rm.clone()).assign(), uxtb.rm.non_assign(), uxtb.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = ZeroExtend(rotated<7:0>,32);
@@ -2990,7 +3736,7 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::Uxth(uxth) => {
-                    let (rd, rm, rotation) = (uxth.rd.local_into(), uxth.rm.local_into(), uxth.rotation.unwrap_or(0));
+                    let (rd, rm, rotation) = (uxth.rd.assign(), uxth.rm.non_assign(), uxth.rotation.unwrap_or(0));
                     pseudo!([
                         let rotated = Ror(rm,rotation.local_into());
                         rd = ZeroExtend(rotated<16:0>,32);
@@ -3013,17 +3759,27 @@ impl Convert for Thumb {
 }
 
 mod sealed {
+    use general_assembly::operand::Operand;
+
     pub trait Into<T> {
         fn local_into(self) -> T;
     }
     pub trait ToString {
         fn to_string(self) -> String;
     }
+    pub trait RegisterOperations {
+        fn non_assign(&self) -> Operand;
+        fn assign(&self) -> Operand;
+    }
+    pub trait RegisterOperationsOptional {
+        fn _non_assign(&self) -> Option<Operand>;
+        fn assign(&self) -> Option<Operand>;
+    }
 }
 
 use sealed::Into;
 
-use self::sealed::ToString;
+use self::sealed::{RegisterOperations, RegisterOperationsOptional, ToString};
 
 impl sealed::Into<Operand> for Register {
     fn local_into(self) -> Operand {
@@ -3085,6 +3841,90 @@ impl Into<Operand> for SpecialRegister {
         })
     }
 }
+impl RegisterOperations for Operand {
+    fn non_assign(&self) -> Operand {
+        match self {
+            Operand::Register(name) => match name.as_str() {
+                "PC" => Operand::Register("PC+".to_owned()),
+                "SP" => Operand::Register("SP&".to_owned()),
+                _ => self.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+
+    fn assign(&self) -> Operand {
+        match self {
+            Operand::Register(name) => match name.as_str() {
+                "PC+" => Operand::Register("PC".to_owned()),
+                _ => self.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+}
+
+impl RegisterOperations for Register {
+    fn non_assign(&self) -> Operand {
+        Operand::Register(match self {
+            Register::R0 => "R0".to_owned(),
+            Register::R1 => "R1".to_owned(),
+            Register::R2 => "R2".to_owned(),
+            Register::R3 => "R3".to_owned(),
+            Register::R4 => "R4".to_owned(),
+            Register::R5 => "R5".to_owned(),
+            Register::R6 => "R6".to_owned(),
+            Register::R7 => "R7".to_owned(),
+            Register::R8 => "R8".to_owned(),
+            Register::R9 => "R9".to_owned(),
+            Register::R10 => "R10".to_owned(),
+            Register::R11 => "R11".to_owned(),
+            Register::R12 => "R12".to_owned(),
+            // Masks out the 2 least significant bits, see section B1.4.7
+            Register::SP => "SP&".to_owned(),
+            Register::LR => "LR".to_owned(),
+            // Adds 4 to the PC see section B1.4.7
+            // Note that this should not be used when jumping, only when using it in anny
+            // assignment operation.
+            Register::PC => "PC+".to_owned(),
+        })
+    }
+
+    fn assign(&self) -> Operand {
+        Operand::Register(match self {
+            Register::R0 => "R0".to_owned(),
+            Register::R1 => "R1".to_owned(),
+            Register::R2 => "R2".to_owned(),
+            Register::R3 => "R3".to_owned(),
+            Register::R4 => "R4".to_owned(),
+            Register::R5 => "R5".to_owned(),
+            Register::R6 => "R6".to_owned(),
+            Register::R7 => "R7".to_owned(),
+            Register::R8 => "R8".to_owned(),
+            Register::R9 => "R9".to_owned(),
+            Register::R10 => "R10".to_owned(),
+            Register::R11 => "R11".to_owned(),
+            Register::R12 => "R12".to_owned(),
+            // Masks out the 2 least significant bits, see section B1.4.7
+            Register::SP => "SP&".to_owned(),
+            Register::LR => "LR".to_owned(),
+            // Adds 4 to the PC see section B1.4.7
+            // Note that this should not be used when jumping, only when using it in anny
+            // assignment operation.
+            Register::PC => "PC".to_owned(),
+        })
+    }
+}
+
+impl RegisterOperationsOptional for Option<Register> {
+    fn assign(&self) -> Option<Operand> {
+        self.map(|el| el.assign())
+    }
+
+    fn _non_assign(&self) -> Option<Operand> {
+        self.map(|el| el.non_assign())
+    }
+}
 
 impl sealed::ToString for Register {
     fn to_string(self) -> String {
@@ -3102,8 +3942,12 @@ impl sealed::ToString for Register {
             Register::R10 => "R10".to_owned(),
             Register::R11 => "R11".to_owned(),
             Register::R12 => "R12".to_owned(),
-            Register::SP => "SP".to_owned(),
+            // Masks out the 2 least significant bits, see section B1.4.7
+            Register::SP => "SP&".to_owned(),
             Register::LR => "LR".to_owned(),
+            // Adds 4 to the PC see section B1.4.7
+            // Note that this should not be used when jumping, only when using it in anny
+            // assignment operation.
             Register::PC => "PC+".to_owned(),
         }
     }

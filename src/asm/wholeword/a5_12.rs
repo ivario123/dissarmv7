@@ -27,9 +27,9 @@ instruction!(
     },
     Mov : {
         imm8 as u16 : u16        : 0 -> 7,
-        rd as u8   : Register   : 8 -> 11 try_into,
+        rd as u8    : Register   : 8 -> 11 try_into,
         imm3 as u16 : u16        : 12 -> 14,
-        imm4 as u8   : Register   : 16 -> 19 try_into,
+        imm4 as u8  : Register   : 16 -> 19 try_into,
         i as u16    : u16        : 26 -> 26
     },
     Sub : {
@@ -57,7 +57,6 @@ instruction!(
     Ssat16 : {
         sat_imm as u8 : u8          : 0 -> 4,
         rd      as u8 : Register    : 8 -> 11 try_into,
-        imm3    as u8 : u8          : 12 -> 14,
         rn      as u8 : Register    : 16 -> 19 try_into
     },
     Sbfx : {
@@ -108,6 +107,15 @@ impl Parse for A5_12 {
     where
         Self: Sized,
     {
+        let _word: u32 = match iter.peek::<1>() {
+            Some(word) => {
+                println!("Word : 0b{word:032b}");
+                word
+            }
+            _ => {
+                panic!()
+            }
+        };
         // NOTE! Only read half the word here to avoid adding to the mask
         let word: u16 = match iter.peek::<1>() {
             Some(word) => Ok(word),
@@ -182,7 +190,7 @@ impl ToThumb for A5_12 {
                     .into()
             }
             Self::Mov(el) => {
-                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
+                let imm: u32 = combine_wrapper!(el : {imm4:i,1:imm3,3:imm8,8,u32});
                 thumb::MovImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(el.rd)
@@ -378,7 +386,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
         let target: Thumb = thumb::MovImmediate::builder()
-            .set_imm(0b0100110001001u32)
+            .set_imm(0b0100_1_001_10001001u32)
             .set_rd(Register::R1)
             .set_s(Some(false))
             .set_carry(None)

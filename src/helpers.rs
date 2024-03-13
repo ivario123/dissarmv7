@@ -54,7 +54,7 @@ macro_rules! instruction {
                 pub struct $id {
                     $(
                         #[doc = "bit " [<$start>] " to " [<$end>]]
-                        pub $field_id:$type,
+                        pub(crate) $field_id:$type,
                     )+
                 }
             }
@@ -137,7 +137,7 @@ macro_rules! instruction {
                     pub struct $id {
                         $(
                             #[doc = "bit " [<$start>] " to " [<$end>]]
-                            pub $field_id:$type,
+                            pub(crate) $field_id:$type,
                         )*
                     }
                 }

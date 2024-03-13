@@ -83,8 +83,7 @@ impl Parse for A5_6 {
         Self: Sized,
     {
         let opcode = match iter.peek::<1>() as Option<u16> {
-            // Bits 5-11
-            Some(u) => Ok((u >> 5) & 0b1111111),
+            Some(u) => Ok(u.mask::<5, 11>()),
             None => Err(ParseError::IncompleteProgram),
         }?;
         if opcode == 0b0110011 {
@@ -158,7 +157,7 @@ impl ToThumb for A5_6 {
                 .into(),
             Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder()
                 .set_s(Some(false))
-                .set_rd(None)
+                .set_rd(Some(Register::SP))
                 .set_imm((el.imm7 as u32) << 2)
                 .complete()
                 .into(),
@@ -277,7 +276,7 @@ mod test {
         let target: Thumb = thumb::AddSPImmediate::builder()
             .set_imm(0b111000000)
             .set_s(Some(false))
-            .set_rd(None)
+            .set_rd(Some(Register::SP))
             .complete()
             .into();
         assert_eq!(instr, target)

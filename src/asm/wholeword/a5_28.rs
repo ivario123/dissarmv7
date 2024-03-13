@@ -40,7 +40,6 @@ instruction!(
         m       as u8   : bool      : 4 -> 4 local_try_into,
         n       as u8   : bool      : 5 -> 5 local_try_into,
         rd      as u8   : Register  : 8 -> 11 try_into,
-        ra      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
     Smlad : {
@@ -54,7 +53,6 @@ instruction!(
         rm      as u8   : Register  : 0 -> 3 try_into,
         m       as u8   : bool      : 4 -> 4 local_try_into,
         rd      as u8   : Register  : 8 -> 11 try_into,
-        ra      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
     Smlaw : {
@@ -68,7 +66,6 @@ instruction!(
         rm      as u8   : Register  : 0 -> 3 try_into,
         m       as u8   : bool      : 4 -> 4 local_try_into,
         rd      as u8   : Register  : 8 -> 11 try_into,
-        ra      as u8   : Register  : 12 -> 15 try_into,
         rn      as u8   : Register  : 16 -> 19 try_into
     },
     Smlsd : {

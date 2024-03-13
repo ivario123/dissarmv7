@@ -151,7 +151,7 @@ impl ToThumb for A5_29 {
                 .complete()
                 .into(),
             Self::SmlalXY(el) => thumb::SmlalSelective::builder()
-                .set_n_high(el.m)
+                .set_n_high(el.n)
                 .set_m_high(el.m)
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)

@@ -80,8 +80,7 @@ instruction!(
         ty  as u8   : Shift       : 4 -> 5 try_into,
         imm2 as u8  : u8          : 6 -> 7,
         imm3 as u8  : u8          : 12 -> 14,
-        rn  as u8   : Register    : 16 -> 19 try_into,
-        s   as u8   : bool        : 20 -> 20 local_try_into
+        rn  as u8   : Register    : 16 -> 19 try_into
     },
     Pkh : {
         rm   as u8  : Register    : 0 -> 3 try_into,
@@ -91,7 +90,8 @@ instruction!(
         rd   as u8  : Register    : 8 -> 11 try_into,
         imm3 as u8  : u8          : 12 -> 14,
         rn   as u8  : Register    : 16 -> 19 try_into,
-        s    as u8  : bool        : 20 -> 20 local_try_into
+        _s    as u8  : bool        : 20 -> 20 local_try_into // TODO! Ensure that this `s` is
+                                                             // irrelevant
     },
     Add : {
         rm  as u8   : Register    : 0 -> 3 try_into,

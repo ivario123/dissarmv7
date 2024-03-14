@@ -295,16 +295,20 @@ impl Convert for Thumb {
                             imm
                         ) from add
                     );
-                    let (rd, imm) = (rd.unwrap_or(Register::SP).assign(), imm.local_into());
-                    let sp = Register::SP.non_assign();
+                    let (rd, imm) = (
+                        rd.unwrap_or(Register::SP).assign(),
+                        imm.local_into()
+                    );
+                    // let sp = Register::SP.non_assign();
 
                     pseudo!([
-                        let result = sp + imm;
+                        let old_sp = Register("SP");
+                        let result = Register("SP") + imm;
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetCFlag(sp,imm,false,false);
-                            SetVFlag(sp,imm,false,false);
+                            SetCFlag(old_sp,imm,false,false);
+                            SetVFlag(old_sp,imm,false,false);
                         }
                         rd = result;
                     ])
@@ -317,7 +321,11 @@ impl Convert for Thumb {
                         _ => s,
                     };
 
-                    let (rd, rn, rm) = (rd.unwrap_or(Register::SP).assign(), Register::SP.non_assign(), rm.non_assign());
+                    let (rd, rn, rm) = (
+                        rd.unwrap_or(Register::SP).assign(),
+                        Operand::Register("SP".to_owned()),
+                        rm.non_assign()
+                    );
                     let (mut ret, local_rn) = backup!(rn);
                     local!(shifted);
 
@@ -456,9 +464,8 @@ impl Convert for Thumb {
                     consume!((condition,imm) from b);
                     let imm = imm + 2;
                     let (condition, imm) = (condition.local_into(), imm.local_into());
-                    let pc = Register::PC.assign();
                     pseudo!([
-                        let target = pc + imm;
+                        let target = Register("PC") + imm;
                         target = target<31:1> << 1.local_into();
                         Jump(target,condition);
                     ])
@@ -554,22 +561,22 @@ impl Convert for Thumb {
                 Thumb::Bkpt(_) => vec![Operation::Nop],
                 Thumb::Bl(bl) => {
                     consume!((imm.local_into()) from bl);
-                    let pc_assign = Register::PC.assign();
-                    let pc_non_assign = Register::PC.non_assign();
+                    // let pc_assign = Register::PC.assign();
+                    // let pc_non_assign = Register::PC.non_assign();
 
                     pseudo!([
-                            let next_instr_addr = pc_assign;
+                            let next_instr_addr = Register("PC");
                             Register("LR") = next_instr_addr<31:1> << 1.local_into();
                             Register("LR") |= 0b1.local_into();
 
-                            next_instr_addr = pc_non_assign + imm;
+                            next_instr_addr = Register("PC") + imm;
                             next_instr_addr = next_instr_addr<31:1> << 1.local_into();
                             Jump(next_instr_addr);
                     ])
                 }
                 Thumb::Blx(blx) => {
                     consume!((rm) from blx);
-                    let rm = rm.non_assign();
+                    let rm = rm.assign();
                     // let pc_assign = register::PC.assign();
                     let pc_non_assign = Register::PC.non_assign();
                     pseudo!([
@@ -1154,6 +1161,12 @@ impl Convert for Thumb {
                             imm
                         ) from ldrb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
                     let imm = imm.unwrap_or(0);
                     let (rt, rn, imm) = (rt.assign(), rn.non_assign(), imm.local_into());
 
@@ -1178,13 +1191,21 @@ impl Convert for Thumb {
                     consume!(
                         (
                             add.unwrap_or(false),
-                            rt.assign(),
+                            rt,
                             imm.local_into()
                         ) from ldrb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     let pc = Register::PC.non_assign();
                     pseudo!([
-                        let base = pc /4.local_into();
+                        let base = pc / 4.local_into();
                         base = base * 4.local_into();
                         let address = base-imm;
                         if (add) {
@@ -1203,6 +1224,12 @@ impl Convert for Thumb {
                             add.unwrap_or(false)
                         ) from ldrb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
                     let (rt, rn, rm) = (rt.assign(), rn.non_assign(), rm.non_assign());
 
                     let shift = match shift {
@@ -1300,7 +1327,7 @@ impl Convert for Thumb {
                 Thumb::LdrhImmediate(ldrh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             imm.local_into(),
                             add.unwrap_or(false),
@@ -1308,6 +1335,14 @@ impl Convert for Thumb {
                             index.unwrap_or(false)
                         ) from ldrh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     pseudo!([
                         let offset_addr = rn - imm;
                         if (add) {
@@ -1329,11 +1364,18 @@ impl Convert for Thumb {
                 Thumb::LdrhLiteral(ldrh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             imm.local_into(),
                             add.unwrap_or(false)
                         ) from ldrh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
 
                     let pc = Register::PC.non_assign();
                     pseudo!([
@@ -1352,12 +1394,19 @@ impl Convert for Thumb {
                 Thumb::LdrhRegister(ldrh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             rm.non_assign(),
                             shift
                         ) from ldrh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
 
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
@@ -1412,7 +1461,7 @@ impl Convert for Thumb {
                 }
                 Thumb::LdrsbImmediate(ldrsb) => {
                     consume!((
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             imm.unwrap_or(0).local_into(),
                             add,
@@ -1420,6 +1469,14 @@ impl Convert for Thumb {
                             wback
                         ) from ldrsb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     pseudo!([
                         let offset_addr = rn - imm;
                         if (add) {
@@ -1440,11 +1497,19 @@ impl Convert for Thumb {
                 Thumb::LdrsbLiteral(ldrsb) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             imm.local_into(),
                             add
                         ) from ldrsb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     let pc = Register::PC.non_assign();
                     pseudo!([
                         let base = pc/4.local_into();
@@ -1459,12 +1524,20 @@ impl Convert for Thumb {
                 Thumb::LdrsbRegister(ldrsb) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             rm.non_assign(),
                             shift
                         ) from ldrsb
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
                     let address_setter = Operand::Local("address".to_owned());
@@ -1523,7 +1596,7 @@ impl Convert for Thumb {
                 Thumb::LdrshImmediate(ldrsh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             imm.unwrap_or(0).local_into(),
                             add,
@@ -1531,6 +1604,13 @@ impl Convert for Thumb {
                             wback
                         ) from ldrsh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
 
                     let mut ret = Vec::with_capacity(10);
                     let address_setter = Operand::Local("address".to_owned());
@@ -1579,11 +1659,19 @@ impl Convert for Thumb {
                 Thumb::LdrshLiteral(ldrsh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             imm.local_into(),
                             add
                         ) from ldrsh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     // TODO! Ensure that this is correct
                     let pc = Register::PC.non_assign();
                     pseudo!([
@@ -1601,12 +1689,20 @@ impl Convert for Thumb {
                 Thumb::LdrshRegister(ldrsh) => {
                     consume!(
                         (
-                            rt.assign(),
+                            rt,
                             rn.non_assign(),
                             rm.non_assign(),
                             shift
                         ) from ldrsh
                     );
+
+                    // TODO! Add in memory hint here as per the section A5.1.2
+                    if rt == Register::PC {
+                        return vec![Operation::Nop];
+                    }
+
+                    let rt = rt.assign();
+
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
                     let address_setter = Operand::Local("address".to_owned());
@@ -1818,7 +1914,13 @@ impl Convert for Thumb {
                     ])
                 }
                 Thumb::MovImmediatePlain(mov) => {
-                    consume!((s,rd.assign(),imm.local_into()) from mov);
+                    consume!(
+                        (
+                            s,
+                            rd.assign(),
+                            imm.local_into()
+                        ) from mov
+                    );
                     let mut ret = Vec::with_capacity(4);
                     // Carry is unchanged here, the only time that carry changes is in
                     // [`Thumb::MovImmediate`]
@@ -2132,7 +2234,7 @@ impl Convert for Thumb {
 
                     let mut jump = false;
                     let mut to_pop = Vec::with_capacity(registers.regs.len());
-                    let bc = registers.regs.len() as u32;
+                    let bc = registers.regs.len() as u32 ;
                     for reg in registers.regs {
                         if reg == Register::PC {
                             jump = true;
@@ -2140,11 +2242,11 @@ impl Convert for Thumb {
                             to_pop.push(reg.assign());
                         }
                     }
-                    let sp_assign = Register::SP.assign();
-                    let sp_non_assign = Register::SP.non_assign();
+                    // let sp_assign = Register::SP.assign();
+                    // let sp_non_assign = Register::SP.non_assign();
                     pseudo!([
-                        let address = sp_assign;
-                        sp_assign = sp_non_assign + (4*bc).local_into();
+                        let address = Register("SP") - 4u32.local_into();
+                        Register("SP") = Register("SP") + (4*bc).local_into();
                         for reg in to_pop.into_iter(){
                             reg = LocalAddress(address,32);
                             address += 4u32.local_into();
@@ -2164,15 +2266,15 @@ impl Convert for Thumb {
                     assert!(!registers.regs.contains(&Register::PC));
 
                     let n = registers.regs.len() as u32;
-                    let sp_assign = Register::SP.assign();
-                    let sp_non_assign = Register::SP.non_assign();
+                    // let sp_assign = Register::SP.assign();
+                    // let sp_non_assign = Register::SP.non_assign();
                     pseudo!([
-                        let address = sp_non_assign - (n*4u32).local_into();
+                        let address = Register("SP") - (n*4u32).local_into();
                         for reg in registers.regs.into_iter() {
-                            LocalAddress(address,32) = reg.local_into();
+                            LocalAddress(address,32) = reg.assign();
                             address += 4u32.local_into();
                         }
-                        sp_assign = sp_non_assign - (4u32*n).local_into();
+                        Register("SP") = Register("SP") - (4u32*(n)).local_into();
                     ])
                 }
                 Thumb::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
@@ -2631,8 +2733,8 @@ impl Convert for Thumb {
                         rd = result;
                     ])
                 }
-                Thumb::Sel(_) => todo!("This will likely need a big rewrite as it changes behaviour based on value of flags"),
-                Thumb::Sev(_) => todo!("This is likely not needed"),
+                Thumb::Sel(_) => todo!(),
+                Thumb::Sev(_) => todo!(),
                 Thumb::Shadd16(shadd) => {
                     consume!(
                         (
@@ -3105,14 +3207,15 @@ impl Convert for Thumb {
                         s.unwrap_or(false)
                         )from sub);
                     pseudo!([
+                        let old_rn = rn;
                         let result = rn - imm;//intermediate;
 
 
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetCFlag(rn,imm,true,false);
-                            SetVFlag(rn,imm,true,false);
+                            SetCFlag(old_rn,imm,true,false);
+                            SetVFlag(old_rn,imm,true,false);
                         }
                         rd = result;
                     ])
@@ -3131,14 +3234,14 @@ impl Convert for Thumb {
 
                     pseudo!(ret.extend[
 
-                        // Backup previous flag
+                        let old_rn = rn;
                         let result = rn - shifted;
 
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetVFlag(rn,shifted,false,true);
-                            SetCFlag(rn,shifted,false,true);
+                            SetVFlag(old_rn,shifted,false,true);
+                            SetCFlag(old_rn,shifted,false,true);
                         }
                         rd = result;
                     ]);
@@ -3147,29 +3250,28 @@ impl Convert for Thumb {
                 Thumb::SubSpMinusImmediate(sub) => {
                     consume!((
                         s.unwrap_or(false),
-                        rd.assign().unwrap_or(Operand::Register("SP&".to_owned())).assign(),
+                        rd.assign().unwrap_or(Operand::Register("SP".to_owned())).assign(),
                         imm.local_into()
                         ) from sub);
-                    let rn = Register::SP.local_into();
 
                     pseudo!([
 
-                        let result = rn - imm;
+                        let old_sp = Register("SP");
+                        let result = Register("SP") - imm;
 
                         rd = result;
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetVFlag(rn,imm,true,false);
-                            SetCFlag(rn,imm,true,false);
+                            SetVFlag(old_sp,imm,true,false);
+                            SetCFlag(old_sp,imm,true,false);
                         }
                     ])
                 }
                 Thumb::SubSpMinusRegister(sub) => {
-                    let rn = Register::SP.non_assign();
                     consume!((
                         s.unwrap_or(false),
-                        rd.assign().unwrap_or(rn.clone()).assign(),
+                        rd.unwrap_or(Register::SP).assign(),
                         rm.non_assign(),
                         shift
                         ) from sub);
@@ -3178,13 +3280,14 @@ impl Convert for Thumb {
                     shift!(ret.shift rm -> shifted);
 
                     pseudo!(ret.extend[
-                        let result = rn - shifted;
+                        let old_sp = Register("SP");
+                        let result = Register("SP") - shifted;
 
                         if (s) {
                             SetNFlag(result);
                             SetZFlag(result);
-                            SetVFlag(rn,shifted,false,true);
-                            SetCFlag(rn,shifted,false,true);
+                            SetVFlag(old_sp,shifted,true,false);
+                            SetCFlag(old_sp,shifted,true,false);
                         }
                         rd = result;
                     ]);
@@ -3305,7 +3408,6 @@ impl Convert for Thumb {
                         ) from tb
                     );
 
-                    let pc = Register::PC.non_assign();
                     pseudo!([
                         let halfwords = 0.local_into();
 
@@ -3318,7 +3420,7 @@ impl Convert for Thumb {
                             halfwords = ZeroExtend(LocalAddress(address,8),32);
                         }
                         let target = halfwords*2.local_into();
-                        target = target + pc;
+                        target = target + Register("PC");
                         target = target<31:1> << 1.local_into();
                         Jump(target);
                     ])
@@ -3846,7 +3948,7 @@ impl RegisterOperations for Operand {
         match self {
             Operand::Register(name) => match name.as_str() {
                 "PC" => Operand::Register("PC+".to_owned()),
-                "SP" => Operand::Register("SP&".to_owned()),
+                "SP" => Operand::Register("SP".to_owned()),
                 _ => self.clone(),
             },
             _ => self.clone(),
@@ -3881,7 +3983,7 @@ impl RegisterOperations for Register {
             Register::R11 => "R11".to_owned(),
             Register::R12 => "R12".to_owned(),
             // Masks out the 2 least significant bits, see section B1.4.7
-            Register::SP => "SP&".to_owned(),
+            Register::SP => "SP".to_owned(),
             Register::LR => "LR".to_owned(),
             // Adds 4 to the PC see section B1.4.7
             // Note that this should not be used when jumping, only when using it in anny
@@ -3906,11 +4008,8 @@ impl RegisterOperations for Register {
             Register::R11 => "R11".to_owned(),
             Register::R12 => "R12".to_owned(),
             // Masks out the 2 least significant bits, see section B1.4.7
-            Register::SP => "SP&".to_owned(),
+            Register::SP => "SP".to_owned(),
             Register::LR => "LR".to_owned(),
-            // Adds 4 to the PC see section B1.4.7
-            // Note that this should not be used when jumping, only when using it in anny
-            // assignment operation.
             Register::PC => "PC".to_owned(),
         })
     }
@@ -3943,7 +4042,7 @@ impl sealed::ToString for Register {
             Register::R11 => "R11".to_owned(),
             Register::R12 => "R12".to_owned(),
             // Masks out the 2 least significant bits, see section B1.4.7
-            Register::SP => "SP&".to_owned(),
+            Register::SP => "SP".to_owned(),
             Register::LR => "LR".to_owned(),
             // Adds 4 to the PC see section B1.4.7
             // Note that this should not be used when jumping, only when using it in anny

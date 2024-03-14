@@ -157,7 +157,7 @@ impl ToThumb for A5_6 {
                 .into(),
             Self::AddImmediateToSP(el) => thumb::AddSPImmediate::builder()
                 .set_s(Some(false))
-                .set_rd(Some(Register::SP))
+                .set_rd(None)
                 .set_imm((el.imm7 as u32) << 2)
                 .complete()
                 .into(),
@@ -276,7 +276,7 @@ mod test {
         let target: Thumb = thumb::AddSPImmediate::builder()
             .set_imm(0b111000000)
             .set_s(Some(false))
-            .set_rd(Some(Register::SP))
+            .set_rd(None)
             .complete()
             .into();
         assert_eq!(instr, target)

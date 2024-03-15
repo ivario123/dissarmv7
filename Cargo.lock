@@ -9,6 +9,7 @@ version = "0.1.0"
 [[package]]
 name = "builder_derive"
 version = "0.1.0"
+source = "git+https://github.com/ivario123/builder_derive#d9e36dd1cc115e9c24a37c998a0037be42fa5cd9"
 dependencies = [
  "proc-macro2",
  "quote",

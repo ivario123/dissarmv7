@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 paste = "1.0.14"
 const-if = "0.1.3"
-builder_derive = {path = "../builder_derive"}
+builder_derive = {git="https://github.com/ivario123/builder_derive"}
 arch = {path = "./arch" }
 thumb = {path = "./thumb"}
 

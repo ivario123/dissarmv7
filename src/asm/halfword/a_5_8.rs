@@ -41,7 +41,9 @@ impl ToThumb for A5_8 {
             Self::B(el) => {
                 let intermediate: u16 = el.imm8.into();
 
-                let value: u32 = Imm9::try_from(intermediate << 1).expect("Imm9 is broken").sign_extend();
+                let value: u32 = Imm9::try_from(intermediate << 1)
+                    .expect("Imm9 is broken")
+                    .sign_extend();
                 thumb::B::builder()
                     .set_condition(el.cond)
                     .set_imm(value)

@@ -28,7 +28,6 @@ impl Imm12 {
 
     pub fn thumb_expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
-        println!("Value to be expaned : 0b{repr:012b}");
         let zero = 0;
         if repr.mask::<10, 11>() == 0 {
             let bits = repr.mask::<0, 7>();
@@ -38,7 +37,7 @@ impl Imm12 {
                     1 => combine!(zero:bits,8:zero,8:bits,8,u32),
                     2 => combine!(bits:zero,8:bits,8:zero,8,u32),
                     3 => combine!(bits:bits,8:bits,8:bits,8,u32),
-                    _ => unreachable!("Given that mask works there is no other option here"),
+                    _ => unreachable!("Masking function broken"),
                 },
                 None,
             );

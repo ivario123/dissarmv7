@@ -90,14 +90,11 @@ impl Parse for A5_2 {
             None => Err(ParseError::IncompleteProgram),
         }?;
         let opcode = word.mask::<9, 13>();
-        println!("Opcode : {}", opcode >> 2);
         match opcode >> 2 {
             0 => return Ok(Self::Lsl(Lsl::parse(iter)?)),
             1 => return Ok(Self::Lsr(Lsr::parse(iter)?)),
             2 => {
-                println!("THIS REALLY SHOULD BE ASR");
                 let ret = Ok(Self::Asr(Asr::parse(iter)?));
-                println!("Returning ret : {ret:?}");
                 return ret;
             }
             4 => return Ok(Self::Mov(Mov::parse(iter)?)),

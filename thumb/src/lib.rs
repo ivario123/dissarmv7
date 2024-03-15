@@ -212,7 +212,6 @@ thumb!(
     Mls <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
 
     MovImmediate {s:bool}, <rd: Register>, <imm:u32>, {carry:bool}
-    MovImmediatePlain {s:bool}, <rd: Register>, <imm:u32>
 
     MovRegister {s:bool}, <rd: Register>, <rm: Register>
 

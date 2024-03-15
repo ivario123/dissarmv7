@@ -108,10 +108,7 @@ impl Parse for A5_12 {
         Self: Sized,
     {
         let _word: u32 = match iter.peek::<1>() {
-            Some(word) => {
-                println!("Word : 0b{word:032b}");
-                word
-            }
+            Some(word) => word,
             _ => {
                 panic!()
             }

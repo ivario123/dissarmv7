@@ -93,53 +93,6 @@ macro_rules! local {
     };
 }
 
-// These two need to be broken out in to a proc macro to allow any generic
-// expressions and some neater syntax
-macro_rules! bin_op {
-    ($($d:ident = $lhs:ident + $rhs:expr),*) => {
-        $(Operation::Add { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Add carry bit
-    ($($d:ident = $lhs:ident + $rhs:ident + c),*) => {
-        $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Add carry bit
-    ($($d:ident = $lhs:ident adc $rhs:expr),*) => {
-        $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-
-    ($($d:ident = $lhs:ident - $rhs:expr),*) => {
-        $(Operation::Sub { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident * $rhs:expr),*) => {
-        $(Operation::Mul { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident & $rhs:expr),*) => {
-        $(Operation::And { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident | $rhs:expr),*) => {
-        $(Operation::Or { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident ^ $rhs:expr),*) => {
-        $(Operation::Xor { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Default to srl
-    ($($d:ident = $lhs:ident >> $rhs:expr),*) => {
-        $(Operation::Srl { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident << $rhs:expr),*) => {
-        $(Operation::Sl { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident sra $rhs:expr),*) => {
-        $(Operation::Sra { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $rhs:ident),*) => {
-        $(Operation::Move { destination: $d.clone(), source: $rhs.clone()}),*
-    };
-    ($($d:ident = ! $rhs:ident),*) => {
-        $(Operation::Not { destination: $d.clone(), operand: $rhs.clone()}),*
-    };
-}
 
 pub trait Convert {
     fn convert(self) -> Vec<Operation>;
@@ -1611,21 +1564,21 @@ impl Convert for (usize, Thumb) {
                 Thumb::Mul(mul) => {
                     consume!(
                         (
-                            s,
+                            s.unwrap_or(false),
                             rn,
                             rd.unwrap_or(rn).local_into(),
                             rm.local_into()
                         ) from mul
                     );
                     let rn = rn.local_into();
-                    let mut ret = vec![bin_op!(rd = rn * rm)];
-                    if let Some(true) = s {
-                        ret.extend([
-                                   Operation::SetZFlag(rd.clone()),
-                                   Operation::SetNFlag(rd)
-                        ]);
-                    }
-                    ret
+                    pseudo!([
+                        rd = rn * rm;
+                        
+                        if (s) {
+                            SetZFlag(rd);
+                            SetNFlag(rd);
+                        }
+                    ])
                 }
                 Thumb::MvnImmediate(mvn) => {
                     consume!(
@@ -1652,7 +1605,7 @@ impl Convert for (usize, Thumb) {
                 Thumb::MvnRegister(mvn) => {
                     consume!(
                         (
-                            s,
+                            s.unwrap_or(false),
                             rd.local_into(),
                             rm.local_into(),
                             shift
@@ -1660,14 +1613,17 @@ impl Convert for (usize, Thumb) {
                     );
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
-                    shift!(ret.shift rm -> shifted set c for rm);
-                    ret.push(bin_op!(rd = !shifted));
-                    if let Some(true) = s {
-                        ret.extend([
-                                   Operation::SetNFlag(rd.clone()),
-                                   Operation::SetZFlag(rd)
-                        ]);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted)
                     }
+                    pseudo!(ret.extend[
+                        rd = !shifted;
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
                     ret
                 }
                 Thumb::Nop(_) => vec![Operation::Nop],
@@ -1695,15 +1651,31 @@ impl Convert for (usize, Thumb) {
                     ])
                 }
                 Thumb::OrnRegister(orn) => {
-                    consume!((s,rd, rm.local_into(),rn,shift) from orn);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rm.local_into(),
+                            rn,
+                            shift
+                        ) from orn
+                    );
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
-                    shift!(ret.shift rm -> shifted set c for rm);
-                    ret.extend([bin_op!(shifted = !shifted), bin_op!(rd = rn | shifted)]);
-                    if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted)
                     }
+                    pseudo!(ret.extend[
+                        shifted = !shifted;
+                        rd = rn | shifted;
+                    
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
                     ret
                 }
                 Thumb::OrrImmediate(orr) => {
@@ -1730,15 +1702,29 @@ impl Convert for (usize, Thumb) {
                     ])
                 }
                 Thumb::OrrRegister(orr) => {
-                    consume!((s,rd, rm.local_into(),rn,shift) from orr);
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rm.local_into(),
+                            rn,
+                            shift
+                        ) from orr
+                    );
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(5);
                     local!(shifted);
-                    shift!(ret.shift rm -> shifted set c for rm);
-                    ret.extend([bin_op!(rd = rn | shifted)]);
-                    if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted),
                     }
+                    pseudo!(ret.extend[
+                        rd = rn | shifted;
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
                     ret
                 }
                 Thumb::Pkh(pkh) => {
@@ -2040,7 +2026,7 @@ impl Convert for (usize, Thumb) {
                                 }
                             ]
                         }
-                        _ => vec![bin_op!(carry = old_carry)],
+                        _ => pseudo!([carry = old_carry;]),
                     });
                     ret
                 }
@@ -2080,7 +2066,7 @@ impl Convert for (usize, Thumb) {
                                 }
                             ]
                         }
-                        _ => vec![bin_op!(carry = old_carry)],
+                        _ => pseudo!([carry = old_carry;]),
                     });
 
                     ret

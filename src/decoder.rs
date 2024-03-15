@@ -556,16 +556,8 @@ impl Convert for (usize, Thumb) {
                     let mut ret = vec![];
                     local!(shifted);
                     shift!(ret.shift rm -> shifted);
-                    let print = |info:&'static str, operand:&Operand|{
-                        Operation::Print{
-                            info, operand:operand.clone()
-                        }
-                    };
                     pseudo!(ret.extend[
-                        print("Rn",&rn);
-                        print("shifted",&shifted);
                         let result = rn + shifted;
-                        print("result",&result);
                         SetNFlag(result);
                         SetZFlag(result);
                         SetCFlag(rn,shifted,false,false);
@@ -576,16 +568,8 @@ impl Convert for (usize, Thumb) {
                 Thumb::CmpImmediate(cmp) => {
                     consume!((rn,imm) from cmp);
                     let (rn, imm) = (rn.local_into(), imm.local_into());
-                    let print = |info:&'static str, operand:&Operand|{
-                        Operation::Print{
-                            info, operand:operand.clone()
-                        }
-                    };
                     pseudo!([
-                        print("Rn",&rn);
-                        print("imm",&imm);
                         let result = rn - imm;
-                        print("result",&result);
                         SetNFlag(result);
                         SetZFlag(result);
                         SetCFlag(rn,imm,true,false);
@@ -598,16 +582,8 @@ impl Convert for (usize, Thumb) {
                     let mut ret = vec![];
                     local!(shifted);
                     shift!(ret.shift rm -> shifted);
-                    let print = |info:&'static str, operand:&Operand|{
-                        Operation::Print{
-                            info, operand:operand.clone()
-                        }
-                    };
                     pseudo!(ret.extend[
-                        print("Rn",&rn);
-                        print("shifted",&shifted);
                         let result = rn - shifted;
-                        print("result",&result);
                         SetNFlag(result);
                         SetZFlag(result);
                         SetCFlag(rn,shifted,true,false);
@@ -3355,6 +3331,7 @@ impl sealed::Into<Operand> for Register {
         Operand::Register(self.to_string())
     }
 }
+
 impl sealed::Into<Condition> for ARMCondition {
     fn local_into(self) -> Condition {
         match self {
@@ -3376,6 +3353,7 @@ impl sealed::Into<Condition> for ARMCondition {
         }
     }
 }
+
 pub enum SpecialRegister {
     APSR,
     IAPSR,
@@ -3391,6 +3369,7 @@ pub enum SpecialRegister {
     FAULTMASK,
     BASEPRI,
 }
+
 impl Into<Operand> for SpecialRegister {
     fn local_into(self) -> Operand {
         Operand::Register(match self {

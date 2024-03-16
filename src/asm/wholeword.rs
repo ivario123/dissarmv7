@@ -19,13 +19,13 @@ pub mod a5_28;
 pub mod a5_29;
 pub mod a5_30;
 
-use crate::{asm::Mask, Parse, ParseError, ToThumb};
+use crate::{asm::Mask, Parse, ParseError, ToOperation};
 
 /// A 32-bit wide instruction
 pub enum FullWord {}
 
 impl Parse for FullWord {
-    type Target = (usize, thumb::Thumb);
+    type Target = (usize, operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
@@ -48,7 +48,9 @@ impl Parse for FullWord {
 
 /// A 32-bit wide instruction
 impl FullWord {
-    fn parse_interal<T: crate::Stream>(iter: &mut T) -> Result<thumb::Thumb, crate::ParseError> {
+    fn parse_interal<T: crate::Stream>(
+        iter: &mut T,
+    ) -> Result<operation::Operation, crate::ParseError> {
         let word: u32 = match iter.peek::<1>() {
             Some(value) => value,
             None => return Err(ParseError::IncompleteProgram),

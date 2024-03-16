@@ -30,8 +30,8 @@ dependencies = [
  "builder_derive",
  "const-if",
  "general_assembly",
+ "operation",
  "paste",
- "thumb",
  "transpiler",
 ]
 
@@ -47,6 +47,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "operation"
+version = "0.1.0"
+dependencies = [
+ "arch",
+ "builder_derive",
 ]
 
 [[package]]
@@ -82,14 +90,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "thumb"
-version = "0.1.0"
-dependencies = [
- "arch",
- "builder_derive",
 ]
 
 [[package]]

@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     wholeword::{a5_14::A5_14, a5_15::A5_15},
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -98,8 +98,8 @@ impl Parse for A5_13 {
     }
 }
 
-impl ToThumb for A5_13 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_13 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::BT3(el) => {
                 let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);
@@ -107,7 +107,7 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                thumb::BBuilder::new()
+                operation::BBuilder::new()
                     .set_condition(el.cond)
                     .set_imm(imm.sign_extend())
                     .complete()
@@ -121,19 +121,19 @@ impl ToThumb for A5_13 {
                     .try_into()
                     .unwrap();
 
-                thumb::BBuilder::new()
+                operation::BBuilder::new()
                     .set_condition(Condition::None)
                     .set_imm(imm.sign_extend())
                     .complete()
                     .into()
             }
-            Self::Msr(el) => thumb::Msr::builder()
+            Self::Msr(el) => operation::Msr::builder()
                 .set_rn(el.rn)
                 .set_mask(el.mask)
                 .set_sysm(el.sysm)
                 .complete()
                 .into(),
-            Self::Mrs(el) => thumb::Mrs::builder()
+            Self::Mrs(el) => operation::Mrs::builder()
                 .set_rd(el.rd)
                 .set_sysm(el.sysm)
                 .complete()
@@ -151,7 +151,7 @@ impl ToThumb for A5_13 {
                     })
                     .unwrap();
 
-                thumb::BlBuilder::new()
+                operation::BlBuilder::new()
                     .set_imm(imm.sign_extend())
                     .complete()
                     .into()
@@ -161,7 +161,7 @@ impl ToThumb for A5_13 {
             Self::Udf(udf) => {
                 let (imm4, imm12) = (udf.imm4, udf.imm12);
                 let imm = combine!(imm4:imm12,12,u32);
-                thumb::UdfBuilder::new().set_imm(imm).complete().into()
+                operation::UdfBuilder::new().set_imm(imm).complete().into()
             }
         }
     }
@@ -179,14 +179,14 @@ mod test {
         bin.extend([0b10101000u8, 0b00000011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let imm = Imm21::try_from(0b111001100000000000110u32)
             .expect("Malformed test, invalid imm field")
             .sign_extend();
         let cond: Condition = Condition::try_from(0b11u8).expect("Test is malformed");
 
-        let target: Thumb = thumb::B::builder()
+        let target: Operation = operation::B::builder()
             .set_imm(imm)
             .set_condition(cond)
             .complete()
@@ -201,13 +201,13 @@ mod test {
         bin.extend([0b10011000u8, 0b00000011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let imm = Imm25::try_from(0b1010011001100000000000110u32)
             .expect("Malformed test, invalid imm field")
             .sign_extend();
 
-        let target: Thumb = thumb::B::builder()
+        let target: Operation = operation::B::builder()
             .set_imm(imm)
             .set_condition(Condition::None)
             .complete()
@@ -222,9 +222,9 @@ mod test {
         bin.extend([0b10001000u8, 0b00000011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Msr::builder()
+        let target: Operation = operation::Msr::builder()
             .set_rn(Register::R2)
             .set_mask(Imm2::try_from(0b10u8).expect("Malformed test invalid mask"))
             .set_sysm(0b00000011u8)
@@ -240,9 +240,9 @@ mod test {
         bin.extend([0b10000010u8, 0b10000001u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Mrs::builder()
+        let target: Operation = operation::Mrs::builder()
             .set_rd(Register::R2)
             .set_sysm(0b10000001u8)
             .complete()
@@ -257,13 +257,13 @@ mod test {
         bin.extend([0b11011000u8, 0b00000011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let imm = Imm25::try_from(0b1010011001100000000000110u32)
             .expect("Malformed test, invalid imm field")
             .sign_extend();
 
-        let target: Thumb = thumb::Bl::builder().set_imm(imm).complete().into();
+        let target: Operation = operation::Bl::builder().set_imm(imm).complete().into();
         assert_eq!(instr, target)
     }
 }

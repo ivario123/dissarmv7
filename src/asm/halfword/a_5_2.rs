@@ -9,7 +9,7 @@ use crate::{
     prelude::{ImmShift, Shift},
     Parse,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -113,12 +113,12 @@ impl Parse for A5_2 {
     }
 }
 
-impl ToThumb for A5_2 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_2 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::Lsl(lsl) => {
                 let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
-                thumb::LslImmediateBuilder::new()
+                operation::LslImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsl.rd)
                     .set_rm(lsl.rm)
@@ -128,7 +128,7 @@ impl ToThumb for A5_2 {
             }
             Self::Lsr(lsr) => {
                 let shift = ImmShift::from((Shift::Lsr, lsr.imm));
-                thumb::LsrImmediateBuilder::new()
+                operation::LsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(lsr.rd)
                     .set_rm(lsr.rm)
@@ -138,7 +138,7 @@ impl ToThumb for A5_2 {
             }
             Self::Asr(asr) => {
                 let shift = ImmShift::from((Shift::Asr, asr.imm5));
-                thumb::AsrImmediateBuilder::new()
+                operation::AsrImmediateBuilder::new()
                     .set_s(Some(true))
                     .set_rd(asr.rd)
                     .set_rm(asr.rm)
@@ -146,7 +146,7 @@ impl ToThumb for A5_2 {
                     .complete()
                     .into()
             }
-            Self::Add(add) => thumb::AddRegisterBuilder::new()
+            Self::Add(add) => operation::AddRegisterBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
@@ -154,7 +154,7 @@ impl ToThumb for A5_2 {
                 .set_shift(None)
                 .complete()
                 .into(),
-            Self::Sub(sub) => thumb::SubRegisterBuilder::new()
+            Self::Sub(sub) => operation::SubRegisterBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
@@ -162,40 +162,40 @@ impl ToThumb for A5_2 {
                 .set_shift(None)
                 .complete()
                 .into(),
-            Self::AddImmediate3(add) => thumb::AddImmediateBuilder::new()
+            Self::AddImmediate3(add) => operation::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
-            Self::SubImmediate3(sub) => thumb::SubImmediateBuilder::new()
+            Self::SubImmediate3(sub) => operation::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_imm(sub.imm as u32)
                 .complete()
                 .into(),
-            Self::Mov(mov) => thumb::MovImmediateBuilder::new()
+            Self::Mov(mov) => operation::MovImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(mov.rd)
                 .set_imm(mov.imm as u32)
                 .set_carry(None)
                 .complete()
                 .into(),
-            Self::Cmp(cmp) => thumb::CmpImmediateBuilder::new()
+            Self::Cmp(cmp) => operation::CmpImmediateBuilder::new()
                 .set_rn(cmp.rn)
                 .set_imm(cmp.imm as u32)
                 .complete()
                 .into(),
-            Self::AddImmediate8(add) => thumb::AddImmediateBuilder::new()
+            Self::AddImmediate8(add) => operation::AddImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(add.rdn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
-            Self::SubImmediate8(sub) => thumb::SubImmediateBuilder::new()
+            Self::SubImmediate8(sub) => operation::SubImmediateBuilder::new()
                 .set_s(Some(true))
                 .set_rd(None)
                 .set_rn(sub.rdn)
@@ -215,9 +215,9 @@ mod test {
     fn test_parse_lsl() {
         let bin = [0b00000000u8, 0b11001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LslImmediate::builder()
+        let target: Operation = operation::LslImmediate::builder()
             .set_s(Some(true))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
@@ -231,9 +231,9 @@ mod test {
     fn test_parse_lsr() {
         let bin = [0b00001000u8, 0b11001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LsrImmediate::builder()
+        let target: Operation = operation::LsrImmediate::builder()
             .set_s(Some(true))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
@@ -247,9 +247,9 @@ mod test {
     fn test_parse_asr() {
         let bin = [0b00010000u8, 0b11001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::AsrImmediate::builder()
+        let target: Operation = operation::AsrImmediate::builder()
             .set_s(Some(true))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
@@ -263,9 +263,9 @@ mod test {
     fn test_parse_add() {
         let bin = [0b00011000u8, 0b01001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::AddRegister::builder()
+        let target: Operation = operation::AddRegister::builder()
             .set_s(Some(true))
             .set_rd(Some(Register::R1))
             .set_rm(Register::R1)
@@ -280,9 +280,9 @@ mod test {
     fn test_parse_sub() {
         let bin = [0b00011010u8, 0b01001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::SubRegister::builder()
+        let target: Operation = operation::SubRegister::builder()
             .set_s(Some(true))
             .set_rd(Some(Register::R1))
             .set_rm(Register::R1)
@@ -297,9 +297,9 @@ mod test {
     fn test_parse_add_imm() {
         let bin = [0b00011100u8, 0b11001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::AddImmediate::builder()
+        let target: Operation = operation::AddImmediate::builder()
             .set_s(Some(true))
             .set_rd(Some(Register::R1))
             .set_rn(Register::R1)
@@ -313,9 +313,9 @@ mod test {
     fn test_parse_sub_imm() {
         let bin = [0b00011110u8, 0b11001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::SubImmediate::builder()
+        let target: Operation = operation::SubImmediate::builder()
             .set_s(Some(true))
             .set_rd(Some(Register::R1))
             .set_rn(Register::R1)
@@ -329,9 +329,9 @@ mod test {
     fn test_parse_mov_immeditate() {
         let bin = [0b00100000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::MovImmediate::builder()
+        let target: Operation = operation::MovImmediate::builder()
             .set_s(Some(true))
             .set_rd(Register::R0)
             .set_imm(0b100)
@@ -346,9 +346,9 @@ mod test {
     fn test_parse_cmp_immeditate() {
         let bin = [0b00101000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::CmpImmediate::builder()
+        let target: Operation = operation::CmpImmediate::builder()
             .set_rn(Register::R0)
             .set_imm(0b100)
             .complete()
@@ -361,9 +361,9 @@ mod test {
     fn test_parse_add_immeditate() {
         let bin = [0b00110000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::AddImmediate::builder()
+        let target: Operation = operation::AddImmediate::builder()
             .set_rd(None)
             .set_rn(Register::R0)
             .set_imm(0b100)
@@ -378,9 +378,9 @@ mod test {
     fn test_parse_sub_immeditate() {
         let bin = [0b00111000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::SubImmediate::builder()
+        let target: Operation = operation::SubImmediate::builder()
             .set_rd(None)
             .set_rn(Register::R0)
             .set_imm(0b100)

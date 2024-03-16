@@ -6,7 +6,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -231,14 +231,14 @@ macro_rules! combine_wrapper {
     };
 }
 
-impl ToThumb for A5_10 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_10 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         use A5_10::*;
         match self {
             And(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::AndImmediateBuilder::new()
+                operation::AndImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -251,7 +251,7 @@ impl ToThumb for A5_10 {
                 let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: Imm12 = Imm12::try_into(imm).unwrap();
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::TstImmediateBuilder::new()
+                operation::TstImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_carry(carry)
@@ -261,7 +261,7 @@ impl ToThumb for A5_10 {
             Bic(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::BicImmediateBuilder::new()
+                operation::BicImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -273,7 +273,7 @@ impl ToThumb for A5_10 {
             Orr(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::OrrImmediateBuilder::new()
+                operation::OrrImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_rd(Some(el.rd))
@@ -285,7 +285,7 @@ impl ToThumb for A5_10 {
             Mov(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::MovImmediateBuilder::new()
+                operation::MovImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
@@ -296,7 +296,7 @@ impl ToThumb for A5_10 {
             Orn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::OrnImmediateBuilder::new()
+                operation::OrnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -308,7 +308,7 @@ impl ToThumb for A5_10 {
             Mvn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::MvnImmediateBuilder::new()
+                operation::MvnImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(el.rd)
                     .set_imm(imm)
@@ -319,7 +319,7 @@ impl ToThumb for A5_10 {
             Eor(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::EorImmediateBuilder::new()
+                operation::EorImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -331,7 +331,7 @@ impl ToThumb for A5_10 {
             Teq(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.thumb_expand_imm_c();
-                thumb::TeqImmediateBuilder::new()
+                operation::TeqImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .set_carry(carry)
@@ -341,7 +341,7 @@ impl ToThumb for A5_10 {
             Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::AddImmediateBuilder::new()
+                operation::AddImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -352,7 +352,7 @@ impl ToThumb for A5_10 {
             Cmn(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::CmnImmediateBuilder::new()
+                operation::CmnImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -361,7 +361,7 @@ impl ToThumb for A5_10 {
             Adc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::AdcImmediateBuilder::new()
+                operation::AdcImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -372,7 +372,7 @@ impl ToThumb for A5_10 {
             Sbc(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::SbcImmediateBuilder::new()
+                operation::SbcImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -383,7 +383,7 @@ impl ToThumb for A5_10 {
             Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::SubImmediateBuilder::new()
+                operation::SubImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -394,7 +394,7 @@ impl ToThumb for A5_10 {
             Cmp(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::CmpImmediateBuilder::new()
+                operation::CmpImmediateBuilder::new()
                     .set_rn(el.rn)
                     .set_imm(imm)
                     .complete()
@@ -403,7 +403,7 @@ impl ToThumb for A5_10 {
             Rsb(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.thumb_expand_imm();
-                thumb::RsbImmediateBuilder::new()
+                operation::RsbImmediateBuilder::new()
                     .set_s(Some(el.s))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -430,8 +430,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::AndImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::AndImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -452,8 +452,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::TstImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::TstImmediate::builder()
             .set_imm(imm)
             .set_rn(Register::R2)
             .set_carry(carry)
@@ -472,8 +472,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::BicImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::BicImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -494,8 +494,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::OrrImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::OrrImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -516,8 +516,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::MovImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::MovImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rd(Register::R1)
@@ -537,8 +537,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::OrnImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::OrnImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -559,8 +559,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::MvnImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::MvnImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rd(Register::R1)
@@ -580,8 +580,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::EorImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::EorImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -602,8 +602,8 @@ mod test {
         let (imm, carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::TeqImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::TeqImmediate::builder()
             .set_imm(imm)
             .set_rn(Register::R1)
             .set_carry(carry)
@@ -622,8 +622,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::AddImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::AddImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -643,8 +643,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::CmnImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::CmnImmediate::builder()
             .set_imm(imm)
             .set_rn(Register::R2)
             .complete()
@@ -662,8 +662,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::AdcImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::AdcImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -683,8 +683,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::SbcImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::SbcImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -704,8 +704,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::SubImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::SubImmediate::builder()
             .set_imm(imm)
             .set_s(Some(true))
             .set_rn(Register::R2)
@@ -725,8 +725,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::CmpImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::CmpImmediate::builder()
             .set_imm(imm)
             .set_rn(Register::R2)
             .complete()
@@ -744,8 +744,8 @@ mod test {
         let (imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::RsbImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::RsbImmediate::builder()
             .set_imm(imm)
             .set_s(Some(false))
             .set_rn(Register::R2)

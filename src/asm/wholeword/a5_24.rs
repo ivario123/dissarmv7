@@ -7,7 +7,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 // Data processing for registers
@@ -157,110 +157,110 @@ impl Parse for A5_24 {
     }
 }
 
-impl ToThumb for A5_24 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_24 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::Lsl(el) => thumb::LslRegister::builder()
+            Self::Lsl(el) => operation::LslRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Lsr(el) => thumb::LsrRegister::builder()
+            Self::Lsr(el) => operation::LsrRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Asr(el) => thumb::AsrRegister::builder()
+            Self::Asr(el) => operation::AsrRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Ror(el) => thumb::RorRegister::builder()
+            Self::Ror(el) => operation::RorRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Sxtah(el) => thumb::Sxtah::builder()
+            Self::Sxtah(el) => operation::Sxtah::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Sxth(el) => thumb::Sxth::builder()
+            Self::Sxth(el) => operation::Sxth::builder()
                 .set_rd(el.rd)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Uxtah(el) => thumb::Uxtah::builder()
+            Self::Uxtah(el) => operation::Uxtah::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Uxth(el) => thumb::Uxth::builder()
+            Self::Uxth(el) => operation::Uxth::builder()
                 .set_rd(el.rd)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Sxtab16(el) => thumb::Sxtab16::builder()
+            Self::Sxtab16(el) => operation::Sxtab16::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Sxtb16(el) => thumb::Sxtb16::builder()
+            Self::Sxtb16(el) => operation::Sxtb16::builder()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Uxtab16(el) => thumb::Uxtab16::builder()
-                .set_rd(Some(el.rd))
-                .set_rn(el.rn)
-                .set_rm(el.rm)
-                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
-                .complete()
-                .into(),
-            Self::Uxtb16(el) => thumb::Uxtb16::builder()
-                .set_rd(Some(el.rd))
-                .set_rm(el.rm)
-                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
-                .complete()
-                .into(),
-            Self::Sxtab(el) => thumb::Sxtab::builder()
+            Self::Uxtab16(el) => operation::Uxtab16::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Sxtb(el) => thumb::Sxtb::builder()
+            Self::Uxtb16(el) => operation::Uxtb16::builder()
+                .set_rd(Some(el.rd))
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtab(el) => operation::Sxtab::builder()
+                .set_rd(Some(el.rd))
+                .set_rn(el.rn)
+                .set_rm(el.rm)
+                .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
+                .complete()
+                .into(),
+            Self::Sxtb(el) => operation::Sxtb::builder()
                 .set_rd(el.rd)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Uxtab(el) => thumb::Uxtab::builder()
+            Self::Uxtab(el) => operation::Uxtab::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::Uxtb(el) => thumb::Uxtb::builder()
+            Self::Uxtb(el) => operation::Uxtb::builder()
                 .set_rd(el.rd)
                 .set_rm(el.rm)
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
@@ -285,9 +285,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LslRegister::builder()
+        let target: Operation = operation::LslRegister::builder()
             .set_s(Some(true))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
@@ -304,9 +304,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LsrRegister::builder()
+        let target: Operation = operation::LsrRegister::builder()
             .set_s(Some(true))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
@@ -323,9 +323,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::AsrRegister::builder()
+        let target: Operation = operation::AsrRegister::builder()
             .set_s(Some(true))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
@@ -342,9 +342,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::RorRegister::builder()
+        let target: Operation = operation::RorRegister::builder()
             .set_s(Some(true))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
@@ -361,9 +361,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Sxtah::builder()
+        let target: Operation = operation::Sxtah::builder()
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -380,9 +380,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Sxth::builder()
+        let target: Operation = operation::Sxth::builder()
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rotation(Some(0b10000))
@@ -398,9 +398,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Uxtah::builder()
+        let target: Operation = operation::Uxtah::builder()
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -417,9 +417,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Uxth::builder()
+        let target: Operation = operation::Uxth::builder()
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rotation(Some(0b10000))
@@ -435,9 +435,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Sxtab16::builder()
+        let target: Operation = operation::Sxtab16::builder()
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -454,9 +454,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Sxtb16::builder()
+        let target: Operation = operation::Sxtb16::builder()
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rotation(Some(0b10000))
@@ -472,9 +472,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Uxtab::builder()
+        let target: Operation = operation::Uxtab::builder()
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -491,9 +491,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Uxtb::builder()
+        let target: Operation = operation::Uxtb::builder()
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rotation(Some(0b10000))

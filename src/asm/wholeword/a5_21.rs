@@ -6,7 +6,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -102,10 +102,10 @@ impl Parse for A5_21 {
         }
     }
 }
-impl ToThumb for A5_21 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_21 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::StrbT2(el) => thumb::StrbImmediate::builder()
+            Self::StrbT2(el) => operation::StrbImmediate::builder()
                 .set_w(Some(false))
                 .set_index(Some(true))
                 .set_add(true)
@@ -114,7 +114,7 @@ impl ToThumb for A5_21 {
                 .set_imm(el.imm12.into())
                 .complete()
                 .into(),
-            Self::StrbT3(el) => thumb::StrbImmediate::builder()
+            Self::StrbT3(el) => operation::StrbImmediate::builder()
                 .set_w(Some(el.w))
                 .set_index(Some(el.p))
                 .set_add(el.u)
@@ -125,7 +125,7 @@ impl ToThumb for A5_21 {
                 .into(),
             Self::StrbReg(el) => {
                 let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
-                thumb::StrbRegister::builder()
+                operation::StrbRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -133,7 +133,7 @@ impl ToThumb for A5_21 {
                     .complete()
                     .into()
             }
-            Self::StrhIT2(el) => thumb::StrhImmediate::builder()
+            Self::StrhIT2(el) => operation::StrhImmediate::builder()
                 .set_w(false)
                 .set_index(true)
                 .set_add(true)
@@ -142,7 +142,7 @@ impl ToThumb for A5_21 {
                 .set_imm(Some(el.imm12.into()))
                 .complete()
                 .into(),
-            Self::StrhIT3(el) => thumb::StrhImmediate::builder()
+            Self::StrhIT3(el) => operation::StrhImmediate::builder()
                 .set_w(el.w)
                 .set_index(el.p)
                 .set_add(el.u)
@@ -153,7 +153,7 @@ impl ToThumb for A5_21 {
                 .into(),
             Self::StrhReg(el) => {
                 let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
-                thumb::StrhRegister::builder()
+                operation::StrhRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -161,7 +161,7 @@ impl ToThumb for A5_21 {
                     .complete()
                     .into()
             }
-            Self::StrIT3(el) => thumb::StrImmediate::builder()
+            Self::StrIT3(el) => operation::StrImmediate::builder()
                 .set_w(Some(false))
                 .set_index(Some(true))
                 .set_add(true)
@@ -170,7 +170,7 @@ impl ToThumb for A5_21 {
                 .set_imm(el.imm12.into())
                 .complete()
                 .into(),
-            Self::StrIT4(el) => thumb::StrImmediate::builder()
+            Self::StrIT4(el) => operation::StrImmediate::builder()
                 .set_w(Some(el.w))
                 .set_index(Some(el.p))
                 .set_add(el.u)
@@ -181,7 +181,7 @@ impl ToThumb for A5_21 {
                 .into(),
             Self::StrReg(el) => {
                 let shift = Some(ImmShift::from((Shift::Lsl, el.imm)));
-                thumb::StrRegister::builder()
+                operation::StrRegister::builder()
                     .set_rt(el.rt)
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -205,9 +205,9 @@ mod test {
         bin.extend([0b0010_0011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrbImmediate::builder()
+        let target: Operation = operation::StrbImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(0b0011_0010_1111)
@@ -226,9 +226,9 @@ mod test {
         bin.extend([0b0010_1011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrbImmediate::builder()
+        let target: Operation = operation::StrbImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(0b0010_1111)
@@ -247,10 +247,10 @@ mod test {
         bin.extend([0b0010_0000u8, 0b0010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let shift = ImmShift::from((Shift::Lsl, 0b10u8));
-        let target: Thumb = thumb::StrbRegister::builder()
+        let target: Operation = operation::StrbRegister::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_rm(Register::R3)
@@ -267,9 +267,9 @@ mod test {
         bin.extend([0b0010_0011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrhImmediate::builder()
+        let target: Operation = operation::StrhImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(Some(0b0011_0010_1111))
@@ -288,9 +288,9 @@ mod test {
         bin.extend([0b0010_1011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrhImmediate::builder()
+        let target: Operation = operation::StrhImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(Some(0b0010_1111))
@@ -309,10 +309,10 @@ mod test {
         bin.extend([0b0010_0000u8, 0b0010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let shift = ImmShift::from((Shift::Lsl, 0b10u8));
-        let target: Thumb = thumb::StrhRegister::builder()
+        let target: Operation = operation::StrhRegister::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_rm(Register::R3)
@@ -329,9 +329,9 @@ mod test {
         bin.extend([0b0010_0011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrImmediate::builder()
+        let target: Operation = operation::StrImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(0b0011_0010_1111)
@@ -350,9 +350,9 @@ mod test {
         bin.extend([0b0010_1011u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::StrImmediate::builder()
+        let target: Operation = operation::StrImmediate::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_imm(0b0010_1111)
@@ -371,10 +371,10 @@ mod test {
         bin.extend([0b0010_0000u8, 0b0010_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let shift = ImmShift::from((Shift::Lsl, 0b10u8));
-        let target: Thumb = thumb::StrRegister::builder()
+        let target: Operation = operation::StrRegister::builder()
             .set_rn(Register::R3)
             .set_rt(Register::R2)
             .set_rm(Register::R3)

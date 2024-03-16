@@ -1,4 +1,4 @@
-workspace = { members = [ "arch", "thumb"] }
+workspace = { members = [ "arch", "operation"] }
 [package]
 name = "dissarmv7"
 version = "0.1.0"
@@ -11,7 +11,7 @@ paste = "1.0.14"
 const-if = "0.1.3"
 builder_derive = {git="https://github.com/ivario123/builder_derive"}
 arch = {path = "./arch" }
-thumb = {path = "./thumb"}
+operation = {path = "./operation"}
 
 
 # These should be feature flagged

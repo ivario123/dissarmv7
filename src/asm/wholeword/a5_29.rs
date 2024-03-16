@@ -5,7 +5,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -114,43 +114,43 @@ impl Parse for A5_29 {
         }
     }
 }
-impl ToThumb for A5_29 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_29 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::Smull(el) => thumb::Smull::builder()
+            Self::Smull(el) => operation::Smull::builder()
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Sdiv(el) => thumb::Sdiv::builder()
+            Self::Sdiv(el) => operation::Sdiv::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Umull(el) => thumb::Umull::builder()
+            Self::Umull(el) => operation::Umull::builder()
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Udiv(el) => thumb::Udiv::builder()
+            Self::Udiv(el) => operation::Udiv::builder()
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Smlal(el) => thumb::Smlal::builder()
+            Self::Smlal(el) => operation::Smlal::builder()
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::SmlalXY(el) => thumb::SmlalSelective::builder()
+            Self::SmlalXY(el) => operation::SmlalSelective::builder()
                 .set_n_high(el.n)
                 .set_m_high(el.m)
                 .set_rdlo(el.rdlo)
@@ -159,14 +159,14 @@ impl ToThumb for A5_29 {
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Umlal(el) => thumb::Umlal::builder()
+            Self::Umlal(el) => operation::Umlal::builder()
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Smlald(el) => thumb::Smlald::builder()
+            Self::Smlald(el) => operation::Smlald::builder()
                 .set_x(Some(el.m))
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
@@ -174,7 +174,7 @@ impl ToThumb for A5_29 {
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Smlsld(el) => thumb::Smlsld::builder()
+            Self::Smlsld(el) => operation::Smlsld::builder()
                 .set_m_swap(Some(el.m))
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
@@ -182,7 +182,7 @@ impl ToThumb for A5_29 {
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-            Self::Umaal(el) => thumb::Umaal::builder()
+            Self::Umaal(el) => operation::Umaal::builder()
                 .set_rdlo(el.rdlo)
                 .set_rdhi(el.rdhi)
                 .set_rn(el.rn)
@@ -205,9 +205,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Smull::builder()
+        let target: Operation = operation::Smull::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -224,9 +224,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1111_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Sdiv::builder()
+        let target: Operation = operation::Sdiv::builder()
             .set_rd(Some(Register::R2))
             .set_rn(Register::R3)
             .set_rm(Register::R3)
@@ -242,9 +242,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Umull::builder()
+        let target: Operation = operation::Umull::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -261,9 +261,9 @@ mod test {
         bin.extend([0b1111_0010u8, 0b1111_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Udiv::builder()
+        let target: Operation = operation::Udiv::builder()
             .set_rd(Some(Register::R2))
             .set_rn(Register::R3)
             .set_rm(Register::R3)
@@ -279,9 +279,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Smlal::builder()
+        let target: Operation = operation::Smlal::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -298,9 +298,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b1011_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::SmlalSelective::builder()
+        let target: Operation = operation::SmlalSelective::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -319,9 +319,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b1101_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Smlald::builder()
+        let target: Operation = operation::Smlald::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -339,9 +339,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b1101_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Smlsld::builder()
+        let target: Operation = operation::Smlsld::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -359,9 +359,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b0000_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Umlal::builder()
+        let target: Operation = operation::Umlal::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)
@@ -378,9 +378,9 @@ mod test {
         bin.extend([0b0100_0010u8, 0b0110_0011u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Umaal::builder()
+        let target: Operation = operation::Umaal::builder()
             .set_rdlo(Register::R4)
             .set_rdhi(Register::R2)
             .set_rn(Register::R3)

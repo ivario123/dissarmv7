@@ -1,4 +1,4 @@
-use crate::{asm::Mask, prelude::*, ParseError, ToThumb};
+use crate::{asm::Mask, prelude::*, ParseError, ToOperation};
 
 /// Defines some maker instructions
 #[derive(Debug)]
@@ -36,19 +36,19 @@ impl Parse for A5_15 {
     }
 }
 
-impl ToThumb for A5_15 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_15 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::Clrex => thumb::ClrexBuilder::new().complete().into(),
-            Self::Dsb(opt) => thumb::DsbBuilder::new()
+            Self::Clrex => operation::ClrexBuilder::new().complete().into(),
+            Self::Dsb(opt) => operation::DsbBuilder::new()
                 .set_option(Some(opt))
                 .complete()
                 .into(),
-            Self::Dmb(opt) => thumb::DmbBuilder::new()
+            Self::Dmb(opt) => operation::DmbBuilder::new()
                 .set_option(Some(opt))
                 .complete()
                 .into(),
-            Self::Isb(opt) => thumb::IsbBuilder::new()
+            Self::Isb(opt) => operation::IsbBuilder::new()
                 .set_option(Some(opt.try_into().unwrap()))
                 .complete()
                 .into(),
@@ -68,9 +68,9 @@ mod test {
         bin.extend([0b10001111u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Clrex::builder().complete().into();
+        let target: Operation = operation::Clrex::builder().complete().into();
         assert_eq!(instr, target)
     }
 
@@ -81,9 +81,9 @@ mod test {
         bin.extend([0b10001111u8, 0b01000010u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Dsb::builder()
+        let target: Operation = operation::Dsb::builder()
             .set_option(Some(0b0010))
             .complete()
             .into();
@@ -97,9 +97,9 @@ mod test {
         bin.extend([0b10001111u8, 0b01010010u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Dmb::builder()
+        let target: Operation = operation::Dmb::builder()
             .set_option(Some(0b0010))
             .complete()
             .into();
@@ -113,9 +113,9 @@ mod test {
         bin.extend([0b10001111u8, 0b01100010u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Isb::builder()
+        let target: Operation = operation::Isb::builder()
             .set_option(Some(
                 Imm4::try_from(0b0010u8).expect("Malformed test, imm too large"),
             ))

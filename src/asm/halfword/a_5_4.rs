@@ -2,7 +2,7 @@ use arch::Register;
 use paste::paste;
 
 use super::Mask;
-use crate::{combine, instruction, Parse, ParseError, Stream, ToThumb};
+use crate::{combine, instruction, Parse, ParseError, Stream, ToOperation};
 instruction!(
     size u16;  A5_4 contains
     Add : {
@@ -66,14 +66,14 @@ impl Parse for A5_4 {
     }
 }
 
-impl ToThumb for A5_4 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_4 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::Add(el) => {
                 let (dn, rdn) = (el.dn, el.rdn);
                 let reg: Register = combine!(dn:rdn,3,u8).try_into().unwrap();
 
-                thumb::AddRegister::builder()
+                operation::AddRegister::builder()
                     .set_s(Some(false))
                     .set_rd(Some(reg))
                     .set_rn(reg)
@@ -85,7 +85,7 @@ impl ToThumb for A5_4 {
             Self::Cmp(el) => {
                 let (n, rn) = (el.n, el.rn);
                 let reg: Register = combine!(n:rn,3,u8).try_into().unwrap();
-                thumb::CmpRegister::builder()
+                operation::CmpRegister::builder()
                     .set_rn(reg)
                     .set_rm(el.rm)
                     .set_shift(None)
@@ -95,15 +95,15 @@ impl ToThumb for A5_4 {
             Self::Mov(el) => {
                 let (d, rd) = (el.d, el.rd);
                 let reg: Register = combine!(d:rd,3,u8).try_into().unwrap();
-                thumb::MovRegister::builder()
+                operation::MovRegister::builder()
                     .set_s(Some(false))
                     .set_rd(reg)
                     .set_rm(el.rm)
                     .complete()
                     .into()
             }
-            Self::Bx(el) => thumb::Bx::builder().set_rm(el.rm).complete().into(),
-            Self::Blx(el) => thumb::Blx::builder().set_rm(el.rm).complete().into(),
+            Self::Bx(el) => operation::Bx::builder().set_rm(el.rm).complete().into(),
+            Self::Blx(el) => operation::Blx::builder().set_rm(el.rm).complete().into(),
         }
     }
 }
@@ -116,9 +116,9 @@ mod test {
     fn test_parse_add_reg() {
         let bin = [0b01000100u8, 0b10001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let reg = Register::try_from(0b1001u8).unwrap();
-        let target: Thumb = thumb::AddRegister::builder()
+        let target: Operation = operation::AddRegister::builder()
             .set_s(Some(false))
             .set_rd(Some(reg))
             .set_rm(Register::R1)
@@ -133,9 +133,9 @@ mod test {
     fn test_parse_cmp_reg() {
         let bin = [0b01000101u8, 0b10001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let reg = Register::try_from(0b1001u8).unwrap();
-        let target: Thumb = thumb::CmpRegister::builder()
+        let target: Operation = operation::CmpRegister::builder()
             .set_rm(Register::R1)
             .set_rn(reg)
             .set_shift(None)
@@ -148,9 +148,9 @@ mod test {
     fn test_parse_mov_reg() {
         let bin = [0b01000110u8, 0b10001001u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let reg = Register::try_from(0b1001u8).unwrap();
-        let target: Thumb = thumb::MovRegister::builder()
+        let target: Operation = operation::MovRegister::builder()
             .set_rm(Register::R1)
             .set_rd(reg)
             .set_s(Some(false))
@@ -163,8 +163,11 @@ mod test {
     fn test_parse_bx() {
         let bin = [0b01000111u8, 0b00001000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Bx::builder().set_rm(Register::R1).complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Bx::builder()
+            .set_rm(Register::R1)
+            .complete()
+            .into();
         assert_eq!(instr, target)
     }
 
@@ -172,8 +175,11 @@ mod test {
     fn test_parse_blx() {
         let bin = [0b01000111u8, 0b10001000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Blx::builder().set_rm(Register::R1).complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Blx::builder()
+            .set_rm(Register::R1)
+            .complete()
+            .into();
         assert_eq!(instr, target)
     }
 }

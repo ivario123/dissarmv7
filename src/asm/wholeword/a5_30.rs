@@ -8,7 +8,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -209,8 +209,8 @@ impl Parse for A5_30 {
         Err(ParseError::Invalid32Bit("a5_30"))
     }
 }
-impl ToThumb for A5_30 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_30 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         println!("A5_30 : {self:?}");
         todo!("Encodings");
     }
@@ -218,5 +218,6 @@ impl ToThumb for A5_30 {
 
 #[cfg(test)]
 mod test {
-    // TODO! Add in tests when ever the thumb set supports these instructions
+    // TODO! Add in tests when ever the operation set supports these
+    // instructions
 }

@@ -2,7 +2,7 @@ use arch::{Condition, Imm12, Register, RegisterList, SignExtend};
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, ToThumb};
+use crate::{instruction, Parse, ParseError, ToOperation};
 
 instruction!(
     size u16;
@@ -32,9 +32,9 @@ instruction!(
     }
 );
 
-impl ToThumb for Ldr {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
-        thumb::LdrLiteral::builder()
+impl ToOperation for Ldr {
+    fn encoding_specific_operations(self) -> operation::Operation {
+        operation::LdrLiteral::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
             .set_rt(self.rt)
@@ -42,9 +42,9 @@ impl ToThumb for Ldr {
             .into()
     }
 }
-impl ToThumb for Adr {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
-        thumb::Adr::builder()
+impl ToOperation for Adr {
+    fn encoding_specific_operations(self) -> operation::Operation {
+        operation::Adr::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
             .set_rd(self.rd)
@@ -52,9 +52,9 @@ impl ToThumb for Adr {
             .into()
     }
 }
-impl ToThumb for Add {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
-        thumb::AddSPImmediate::builder()
+impl ToOperation for Add {
+    fn encoding_specific_operations(self) -> operation::Operation {
+        operation::AddSPImmediate::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_rd(Some(self.rd))
             .set_s(Some(false))
@@ -62,9 +62,9 @@ impl ToThumb for Add {
             .into()
     }
 }
-impl ToThumb for Stm {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
-        thumb::Stm::builder()
+impl ToOperation for Stm {
+    fn encoding_specific_operations(self) -> operation::Operation {
+        operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(self.rn)
             .set_registers(self.register_list)
@@ -72,9 +72,9 @@ impl ToThumb for Stm {
             .into()
     }
 }
-impl ToThumb for Ldm {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
-        thumb::Ldm::builder()
+impl ToOperation for Ldm {
+    fn encoding_specific_operations(self) -> operation::Operation {
+        operation::Ldm::builder()
             .set_w(Some(!self.register_list.regs.contains(&self.rn)))
             .set_rn(self.rn)
             .set_registers(self.register_list)
@@ -82,11 +82,11 @@ impl ToThumb for Ldm {
             .into()
     }
 }
-impl ToThumb for B {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for B {
+    fn encoding_specific_operations(self) -> operation::Operation {
         let mut imm: Imm12 = ((self.imm11) << 1).try_into().unwrap();
 
-        thumb::B::builder()
+        operation::B::builder()
             .set_condition(Condition::None)
             .set_imm(imm.sign_extend())
             .complete()
@@ -103,8 +103,8 @@ mod test {
     fn test_parse_ldr() {
         let bin = [0b01001001u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::LdrLiteral::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::LdrLiteral::builder()
             .set_add(true)
             .set_rt(Register::R1)
             .set_imm(0b11010101 << 2)
@@ -117,8 +117,8 @@ mod test {
     fn test_parse_adr() {
         let bin = [0b10100001u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Adr::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Adr::builder()
             .set_add(true)
             .set_rd(Register::R1)
             .set_imm(0b11010101 << 2)
@@ -131,8 +131,8 @@ mod test {
     fn test_parse_add_sp_p_imm() {
         let bin = [0b10101001u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::AddSPImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::AddSPImmediate::builder()
             .set_rd(Some(Register::R1))
             .set_imm(0b11010101 << 2)
             .set_s(Some(false))
@@ -145,9 +145,9 @@ mod test {
     fn test_parse_stm() {
         let bin = [0b11000001u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let registers = RegisterList::try_from(0b11010101).unwrap();
-        let target: Thumb = thumb::Stm::builder()
+        let target: Operation = operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(Register::R1)
             .set_registers(registers)
@@ -160,9 +160,9 @@ mod test {
     fn test_parse_ldm() {
         let bin = [0b11000001u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let registers = RegisterList::try_from(0b11010101).unwrap();
-        let target: Thumb = thumb::Stm::builder()
+        let target: Operation = operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(Register::R1)
             .set_registers(registers)
@@ -175,9 +175,9 @@ mod test {
     fn test_parse_b() {
         let bin = [0b11100100u8, 0b01111111u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let mut number: Imm12 = Imm12::try_from(0b100011111110u16).unwrap();
-        let target: Thumb = thumb::B::builder()
+        let target: Operation = operation::B::builder()
             .set_condition(Condition::None)
             .set_imm(number.sign_extend())
             .complete()

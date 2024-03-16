@@ -8,7 +8,7 @@ use arch::{
 use builder_derive::{Builder, Consumer};
 
 /// dsl for defining statemetent in a similar manner to the documentations
-macro_rules! thumb {
+macro_rules! operation{
     (
         $(
 
@@ -47,15 +47,15 @@ macro_rules! thumb {
 
                 ),*
             }
-            impl From<$name> for Thumb{
-                fn from(val:$name) -> Thumb{
-                    Thumb::$name(val)
+            impl From<$name> for Operation{
+                fn from(val:$name) -> Operation{
+                    Operation::$name(val)
                 }
             }
         )*
         /// All of the instructions availiable in the armv7 instruction set.
         #[derive(Debug,Clone,PartialEq)]
-        pub enum Thumb {
+        pub enum Operation {
             $(
                 $(
                     #[doc = $comment]
@@ -66,7 +66,7 @@ macro_rules! thumb {
     };
 }
 
-thumb!(
+operation!(
 
     AdcImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
     AdcRegister {s:bool}, {rd : Register}, <rn : Register>,<rm: Register>, {shift : ImmShift}

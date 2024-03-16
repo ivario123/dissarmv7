@@ -6,7 +6,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -86,13 +86,13 @@ impl Parse for A5_16 {
     }
 }
 
-impl ToThumb for A5_16 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_16 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::Stm(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Stm::builder()
+                operation::Stm::builder()
                     .set_w(Some(el.w))
                     .set_rn(el.rn)
                     .set_registers(registers.try_into().unwrap())
@@ -102,7 +102,7 @@ impl ToThumb for A5_16 {
             Self::Ldm(el) => {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
-                thumb::Ldm::builder()
+                operation::Ldm::builder()
                     .set_w(Some(el.w))
                     .set_rn(el.rn)
                     .set_registers(registers.try_into().unwrap())
@@ -113,7 +113,7 @@ impl ToThumb for A5_16 {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
 
-                thumb::Pop::builder()
+                operation::Pop::builder()
                     .set_registers(registers.try_into().unwrap())
                     .complete()
                     .into()
@@ -121,7 +121,7 @@ impl ToThumb for A5_16 {
             Self::Stmdb(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Stmdb::builder()
+                operation::Stmdb::builder()
                     .set_w(Some(el.w))
                     .set_rn(el.rn)
                     .set_registers(registers.try_into().unwrap())
@@ -131,7 +131,7 @@ impl ToThumb for A5_16 {
             Self::Push(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
-                thumb::Push::builder()
+                operation::Push::builder()
                     .set_registers(registers.try_into().unwrap())
                     .complete()
                     .into()
@@ -140,7 +140,7 @@ impl ToThumb for A5_16 {
                 let (p, m, registers) = (el.p, el.m, el.register_list);
                 let registers = combine!(p:m,1:0,1:registers,13,u16);
 
-                thumb::Ldmdb::builder()
+                operation::Ldmdb::builder()
                     .set_w(Some(el.w))
                     .set_rn(el.rn)
                     .set_registers(registers.try_into().unwrap())
@@ -163,11 +163,11 @@ mod test {
         bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Stm::builder()
+        let target: Operation = operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(Register::R2)
             .set_registers(list)
@@ -183,11 +183,11 @@ mod test {
         bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Ldm::builder()
+        let target: Operation = operation::Ldm::builder()
             .set_w(Some(true))
             .set_rn(Register::R2)
             .set_registers(list)
@@ -203,11 +203,14 @@ mod test {
         bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Pop::builder().set_registers(list).complete().into();
+        let target: Operation = operation::Pop::builder()
+            .set_registers(list)
+            .complete()
+            .into();
         assert_eq!(instr, target)
     }
 
@@ -218,11 +221,11 @@ mod test {
         bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Stmdb::builder()
+        let target: Operation = operation::Stmdb::builder()
             .set_w(Some(true))
             .set_rn(Register::R2)
             .set_registers(list)
@@ -238,11 +241,14 @@ mod test {
         bin.extend([0b01000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b0100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Push::builder().set_registers(list).complete().into();
+        let target: Operation = operation::Push::builder()
+            .set_registers(list)
+            .complete()
+            .into();
         assert_eq!(instr, target)
     }
 
@@ -253,11 +259,11 @@ mod test {
         bin.extend([0b11000100u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let list: RegisterList = RegisterList::try_from(0b1100010000101111u16).unwrap();
 
-        let target: Thumb = thumb::Ldmdb::builder()
+        let target: Operation = operation::Ldmdb::builder()
             .set_w(Some(true))
             .set_rn(Register::R2)
             .set_registers(list)

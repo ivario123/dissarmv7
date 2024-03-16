@@ -6,7 +6,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -78,10 +78,10 @@ impl Parse for A5_18 {
     }
 }
 
-impl ToThumb for A5_18 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_18 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::LdrImmediateT3(el) => thumb::LdrImmediate::builder()
+            Self::LdrImmediateT3(el) => operation::LdrImmediate::builder()
                 .set_w(Some(false))
                 .set_add(true)
                 .set_rt(el.rt)
@@ -90,7 +90,7 @@ impl ToThumb for A5_18 {
                 .set_index(true)
                 .complete()
                 .into(),
-            Self::LdrImmediateT4(el) => thumb::LdrImmediate::builder()
+            Self::LdrImmediateT4(el) => operation::LdrImmediate::builder()
                 .set_w(Some(el.w))
                 .set_add(el.u)
                 .set_index(el.p)
@@ -99,7 +99,7 @@ impl ToThumb for A5_18 {
                 .set_imm(el.imm8 as u32)
                 .complete()
                 .into(),
-            Self::Ldrt(el) => thumb::Ldrt::builder()
+            Self::Ldrt(el) => operation::Ldrt::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_imm(Some(el.imm8 as u32))
@@ -108,7 +108,7 @@ impl ToThumb for A5_18 {
             Self::LdrRegister(el) => {
                 let shift = ImmShift::from((Shift::Lsl, el.imm2.into()));
 
-                thumb::LdrRegister::builder()
+                operation::LdrRegister::builder()
                     .set_w(None)
                     .set_rt(el.rt)
                     .set_rn(el.rn)
@@ -117,7 +117,7 @@ impl ToThumb for A5_18 {
                     .complete()
                     .into()
             }
-            Self::LdrLiteral(el) => thumb::LdrLiteral::builder()
+            Self::LdrLiteral(el) => operation::LdrLiteral::builder()
                 .set_rt(el.rt)
                 .set_add(el.u)
                 .set_imm(el.imm12.into())
@@ -139,9 +139,9 @@ mod test {
         bin.extend([0b00110011u8, 0b00101111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LdrImmediate::builder()
+        let target: Operation = operation::LdrImmediate::builder()
             .set_rn(Register::R2)
             .set_rt(Register::R3)
             .set_imm(0b001100101111)
@@ -160,9 +160,9 @@ mod test {
         bin.extend([0b0011_1111u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LdrImmediate::builder()
+        let target: Operation = operation::LdrImmediate::builder()
             .set_rn(Register::R2)
             .set_rt(Register::R3)
             .set_imm(0b0010_1111)
@@ -181,9 +181,9 @@ mod test {
         bin.extend([0b0011_1110u8, 0b0010_1111u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::Ldrt::builder()
+        let target: Operation = operation::Ldrt::builder()
             .set_rn(Register::R2)
             .set_rt(Register::R3)
             .set_imm(Some(0b0010_1111))
@@ -199,10 +199,10 @@ mod test {
         bin.extend([0b0011_0000u8, 0b0010_0010u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let shift: ImmShift = ImmShift::from((Shift::Lsl, 0b10u8));
-        let target: Thumb = thumb::LdrRegister::builder()
+        let target: Operation = operation::LdrRegister::builder()
             .set_rn(Register::R2)
             .set_rt(Register::R3)
             .set_rm(Register::R2)
@@ -220,9 +220,9 @@ mod test {
         bin.extend([0b0011_0000u8, 0b0010_0010u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
-        let target: Thumb = thumb::LdrLiteral::builder()
+        let target: Operation = operation::LdrLiteral::builder()
             .set_rt(Register::R3)
             .set_add(true)
             .set_imm(0b0000_0010_0010)

@@ -14,13 +14,15 @@ use crate::{
     asm::halfword::{a_5_2::A5_2, a_5_3::A5_3, a_5_4::A5_4, a_5_5::A5_5, a_5_6::A5_6, a_5_8::A5_8},
     Parse,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 /// A 16-bit wide instruction
 pub enum HalfWord {}
 impl HalfWord {
-    fn parse_interal<T: crate::Stream>(iter: &mut T) -> Result<thumb::Thumb, crate::ParseError> {
+    fn parse_interal<T: crate::Stream>(
+        iter: &mut T,
+    ) -> Result<operation::Operation, crate::ParseError> {
         let word: Option<u16> = iter.peek::<1>();
         let opcode: u16 = (match word {
             Some(val) => val,
@@ -64,7 +66,7 @@ impl HalfWord {
     }
 }
 impl Parse for HalfWord {
-    type Target = (usize, thumb::Thumb);
+    type Target = (usize, operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where

@@ -2,7 +2,7 @@ use arch::{wrapper_types::Imm8, Condition, Imm9, SignExtend};
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, Stream, ToThumb};
+use crate::{instruction, Parse, ParseError, Stream, ToOperation};
 
 instruction!(
     size u16;  A5_8 contains
@@ -35,8 +35,8 @@ impl Parse for A5_8 {
         Ok(Self::B(B::parse(iter)?))
     }
 }
-impl ToThumb for A5_8 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_8 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::B(el) => {
                 let intermediate: u16 = el.imm8.into();
@@ -44,13 +44,13 @@ impl ToThumb for A5_8 {
                 let value: u32 = Imm9::try_from(intermediate << 1)
                     .expect("Imm9 is broken")
                     .sign_extend();
-                thumb::B::builder()
+                operation::B::builder()
                     .set_condition(el.cond)
                     .set_imm(value)
                     .complete()
                     .into()
             }
-            Self::Svc(_el) => todo!("This is missing from the thumb enum"),
+            Self::Svc(_el) => todo!("This is missing from the operation enum"),
         }
     }
 }
@@ -64,10 +64,10 @@ mod test {
     fn test_parse_b() {
         let bin = [0b11010010u8, 0b11010101u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let condition: Condition = Condition::try_from(0b0010u8).unwrap();
         let imm = 0b11111111_11111111_11111111_10101010;
-        let target: Thumb = thumb::B::builder()
+        let target: Operation = operation::B::builder()
             .set_condition(condition)
             .set_imm(imm)
             .complete()

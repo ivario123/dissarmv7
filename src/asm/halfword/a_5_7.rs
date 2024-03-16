@@ -4,7 +4,7 @@ use arch::Condition;
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, ToThumb};
+use crate::{instruction, Parse, ParseError, ToOperation};
 
 instruction!(
     size u16; A5_7 contains
@@ -44,18 +44,18 @@ impl Parse for A5_7 {
     }
 }
 
-impl ToThumb for A5_7 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_7 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
-            Self::It(it) => thumb::It::builder()
+            Self::It(it) => operation::It::builder()
                 .set_conds((it.firstcond, it.mask).into())
                 .complete()
                 .into(),
-            Self::Nop(_) => thumb::Nop::builder().complete().into(),
-            Self::Yield(_) => thumb::Yield::builder().complete().into(),
-            Self::Wfe(_) => thumb::Wfe::builder().complete().into(),
-            Self::Wfi(_) => thumb::Wfi::builder().complete().into(),
-            Self::Sev(_) => thumb::Sev::builder().complete().into(),
+            Self::Nop(_) => operation::Nop::builder().complete().into(),
+            Self::Yield(_) => operation::Yield::builder().complete().into(),
+            Self::Wfe(_) => operation::Wfe::builder().complete().into(),
+            Self::Wfi(_) => operation::Wfi::builder().complete().into(),
+            Self::Sev(_) => operation::Sev::builder().complete().into(),
         }
     }
 }
@@ -71,9 +71,9 @@ mod test {
     fn test_parse_it() {
         let bin = [0b10111111u8, 0b00110011u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let condition: Condition = Condition::try_from(0b0011u8).unwrap();
-        let target: Thumb = thumb::It::builder()
+        let target: Operation = operation::It::builder()
             .set_conds(ITCondition::try_from((condition, 0b0011)).unwrap())
             .complete()
             .into();
@@ -84,8 +84,8 @@ mod test {
     fn test_parse_nop() {
         let bin = [0b10111111u8, 0];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Nop::builder().complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Nop::builder().complete().into();
         assert_eq!(instr, target)
     }
 
@@ -93,8 +93,8 @@ mod test {
     fn test_parse_yield() {
         let bin = [0b10111111u8, 0b00010000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Yield::builder().complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Yield::builder().complete().into();
         assert_eq!(instr, target)
     }
 
@@ -102,8 +102,8 @@ mod test {
     fn test_parse_wfe() {
         let bin = [0b10111111u8, 0b00100000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Wfe::builder().complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Wfe::builder().complete().into();
         assert_eq!(instr, target)
     }
 
@@ -111,8 +111,8 @@ mod test {
     fn test_parse_wfi() {
         let bin = [0b10111111u8, 0b00110000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Wfi::builder().complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Wfi::builder().complete().into();
         assert_eq!(instr, target)
     }
 
@@ -120,8 +120,8 @@ mod test {
     fn test_parse_sev() {
         let bin = [0b10111111u8, 0b01000000u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Sev::builder().complete().into();
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Sev::builder().complete().into();
         assert_eq!(instr, target)
     }
 }

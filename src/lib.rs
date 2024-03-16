@@ -22,7 +22,7 @@ use std::fmt::Debug;
 
 use arch::ArchError;
 use asm::halfword::HalfWord;
-use thumb::Thumb;
+use operation::Operation;
 
 use crate::asm::wholeword::{self, FullWord};
 
@@ -33,7 +33,7 @@ use crate::asm::wholeword::{self, FullWord};
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ASM {
-    statements: Vec<(usize, thumb::Thumb)>,
+    statements: Vec<(usize, operation::Operation)>,
 }
 
 /// Denotes that the element can be peeked `N` elements in to the future.
@@ -86,9 +86,9 @@ pub trait Parse {
         Self: Sized;
 }
 
-pub(crate) trait ToThumb {
-    /// Translates the encoded value in to a [`Thumb`] instruction
-    fn encoding_specific_operations(self) -> thumb::Thumb;
+pub(crate) trait ToOperation {
+    /// Translates the encoded value in to a [`Operation`] instruction
+    fn encoding_specific_operations(self) -> operation::Operation;
 }
 
 #[derive(Debug)]
@@ -130,7 +130,7 @@ pub enum ParseError {
     InvalidCondition,
 
     /// Thrown when the parsing fails part way through parsing
-    PartiallyParsed(Box<Self>, Vec<Thumb>),
+    PartiallyParsed(Box<Self>, Vec<Operation>),
 
     /// Sub-crate [`arch`] threw an error
     ArchError(ArchError),
@@ -148,7 +148,7 @@ impl Parse for ASM {
     {
         let mut stmts = Vec::new();
         while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
-            match Thumb::parse(iter) {
+            match Operation::parse(iter) {
                 Ok(el) => stmts.push(el),
                 Err(e) => {
                     return Err(ParseError::PartiallyParsed(
@@ -162,10 +162,10 @@ impl Parse for ASM {
     }
 }
 
-impl Parse for thumb::Thumb {
-    type Target = (usize, thumb::Thumb);
+impl Parse for operation::Operation {
+    type Target = (usize, operation::Operation);
 
-    fn parse<T: Stream>(iter: &mut T) -> Result<(usize, thumb::Thumb), ParseError>
+    fn parse<T: Stream>(iter: &mut T) -> Result<(usize, operation::Operation), ParseError>
     where
         Self: Sized,
     {
@@ -182,14 +182,14 @@ impl Parse for thumb::Thumb {
     }
 }
 
-impl From<Vec<(usize, Thumb)>> for ASM {
-    fn from(value: Vec<(usize, thumb::Thumb)>) -> Self {
+impl From<Vec<(usize, Operation)>> for ASM {
+    fn from(value: Vec<(usize, operation::Operation)>) -> Self {
         Self { statements: value }
     }
 }
 
-impl From<ASM> for Vec<(usize, Thumb)> {
-    fn from(value: ASM) -> Vec<(usize, Thumb)> {
+impl From<ASM> for Vec<(usize, Operation)> {
+    fn from(value: ASM) -> Vec<(usize, Operation)> {
         value.statements
     }
 }
@@ -197,7 +197,7 @@ impl From<ASM> for Vec<(usize, Thumb)> {
 /// Re-exports the needed types to use this crate.
 pub mod prelude {
     pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
-    pub use thumb::Thumb;
+    pub use operation::Operation;
 
     pub use super::{Parse, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;

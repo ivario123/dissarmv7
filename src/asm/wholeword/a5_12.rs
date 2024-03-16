@@ -6,7 +6,7 @@ use crate::{
     instruction,
     prelude::*,
     ParseError,
-    ToThumb,
+    ToOperation,
 };
 
 instruction!(
@@ -164,12 +164,12 @@ macro_rules! combine_wrapper {
 
     };
 }
-impl ToThumb for A5_12 {
-    fn encoding_specific_operations(self) -> thumb::Thumb {
+impl ToOperation for A5_12 {
+    fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::AddImmediateBuilder::new()
+                operation::AddImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -179,7 +179,7 @@ impl ToThumb for A5_12 {
             }
             Self::Adr(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                thumb::AdrBuilder::new()
+                operation::AdrBuilder::new()
                     .set_rd(el.rd)
                     .set_add(!el.add)
                     .set_imm(imm.into())
@@ -188,10 +188,10 @@ impl ToThumb for A5_12 {
             }
             Self::Mov(el) => {
                 let imm: u32 = combine_wrapper!(el : {imm4:i,1:imm3,3:imm8,8,u32});
-                thumb::MovImmediateBuilder::new()
+                operation::MovImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(el.rd)
-                    .set_imm(imm.into())
+                    .set_imm(imm)
                     .set_carry(None)
                     .complete()
                     .into()
@@ -199,7 +199,7 @@ impl ToThumb for A5_12 {
             Self::Sub(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.into();
-                thumb::SubImmediateBuilder::new()
+                operation::SubImmediateBuilder::new()
                     .set_s(Some(false))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
@@ -209,7 +209,7 @@ impl ToThumb for A5_12 {
             }
             Self::Movt(el) => {
                 let imm: u16 = combine_wrapper!(el : {imm4:i,1:imm3,3:imm8,8,u16});
-                thumb::MovtBuilder::new()
+                operation::MovtBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(imm)
                     .complete()
@@ -221,7 +221,7 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                thumb::SsatBuilder::new()
+                operation::SsatBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(el.sat_imm as u32 + 1)
                     .set_rn(el.rn)
@@ -232,7 +232,7 @@ impl ToThumb for A5_12 {
             Self::Bfi(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                thumb::BfiBuilder::new()
+                operation::BfiBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsb)
@@ -243,7 +243,7 @@ impl ToThumb for A5_12 {
             Self::Bfc(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
                 let lsb = combine!(imm3:imm2,2,u32);
-                thumb::BfcBuilder::new()
+                operation::BfcBuilder::new()
                     .set_rd(el.rd)
                     .set_lsb(lsb)
                     .set_msb(msb as u32)
@@ -256,7 +256,7 @@ impl ToThumb for A5_12 {
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
-                thumb::UsatBuilder::new()
+                operation::UsatBuilder::new()
                     .set_rd(el.rd)
                     .set_imm(el.sat_imm as u32)
                     .set_rn(el.rn)
@@ -267,7 +267,7 @@ impl ToThumb for A5_12 {
             Self::Sbfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                thumb::SbfxBuilder::new()
+                operation::SbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsbit as u32)
@@ -278,7 +278,7 @@ impl ToThumb for A5_12 {
             Self::Ubfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
                 let lsbit = combine!(imm3:imm2,2,u8);
-                thumb::UbfxBuilder::new()
+                operation::UbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_lsb(lsbit as u32)
@@ -288,7 +288,7 @@ impl ToThumb for A5_12 {
             }
             Self::Ssat16(el) => {
                 let saturate_to = el.sat_imm + 1;
-                thumb::Ssat16Builder::new()
+                operation::Ssat16Builder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_imm(saturate_to as u32)
@@ -297,7 +297,7 @@ impl ToThumb for A5_12 {
             }
             Self::Usat16(el) => {
                 let saturate_to = el.sat_imm;
-                thumb::Usat16Builder::new()
+                operation::Usat16Builder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
                     .set_imm(saturate_to as u32)
@@ -323,8 +323,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::AddImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::AddImmediate::builder()
             .set_imm(0b100110001000u32)
             .set_s(Some(false))
             .set_rn(Register::R2)
@@ -344,8 +344,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Adr::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Adr::builder()
             .set_imm(0b100110001000u32)
             .set_rd(Register::R1)
             .set_add(true)
@@ -364,8 +364,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Adr::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Adr::builder()
             .set_imm(0b100110001000u32)
             .set_rd(Register::R1)
             .set_add(false)
@@ -381,8 +381,8 @@ mod test {
         bin.extend([0b00010001u8, 0b10001001u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::MovImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::MovImmediate::builder()
             .set_imm(0b0100_1_001_10001001u32)
             .set_rd(Register::R1)
             .set_s(Some(false))
@@ -402,8 +402,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::SubImmediate::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::SubImmediate::builder()
             .set_imm(0b100110001000u32)
             .set_s(Some(false))
             .set_rn(Register::R2)
@@ -423,8 +423,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Movt::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Movt::builder()
             .set_imm(0b0010100110001000u16)
             .set_rd(Register::R2)
             .complete()
@@ -442,10 +442,10 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let shift = Shift::try_from(0b10).unwrap();
         let shift = ImmShift::from((shift, 0b00111u8));
-        let target: Thumb = thumb::Ssat::builder()
+        let target: Operation = operation::Ssat::builder()
             .set_rn(Register::R2)
             .set_rd(Register::R1)
             .set_imm(0b00100 + 1)
@@ -465,8 +465,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Ssat16::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Ssat16::builder()
             .set_rn(Register::R2)
             .set_rd(Register::R2)
             .set_imm(0b00100 + 1)
@@ -485,8 +485,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Sbfx::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Sbfx::builder()
             .set_rn(Register::R2)
             .set_rd(Register::R1)
             .set_lsb(0b01001)
@@ -506,8 +506,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Bfi::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Bfi::builder()
             .set_rn(Register::R2)
             .set_rd(Register::R1)
             .set_lsb(0b00101)
@@ -527,8 +527,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Bfc::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Bfc::builder()
             .set_rd(Register::R1)
             .set_lsb(0b00101)
             .set_msb(0b00100)
@@ -547,10 +547,10 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let shift: Shift = Shift::try_from(0b10).unwrap();
         let shift = ImmShift::from((shift, 0b00101));
-        let target: Thumb = thumb::Usat::builder()
+        let target: Operation = operation::Usat::builder()
             .set_rd(Register::R1)
             .set_imm(0b00100)
             .set_rn(Register::R2)
@@ -570,10 +570,10 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         // let shift: Shift = Shift::try_from(0b10).unwrap();
         // let shift = ImmShift::from((shift, 0b00101));
-        let target: Thumb = thumb::Usat16::builder()
+        let target: Operation = operation::Usat16::builder()
             .set_rd(Register::R1)
             .set_imm(0b00100)
             .set_rn(Register::R2)
@@ -592,8 +592,8 @@ mod test {
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
             .thumb_expand_imm_c();
-        let instr = Thumb::parse(&mut stream).expect("Parser broken").1;
-        let target: Thumb = thumb::Ubfx::builder()
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        let target: Operation = operation::Ubfx::builder()
             .set_rn(Register::R2)
             .set_rd(Register::R1)
             .set_lsb(0b01001)

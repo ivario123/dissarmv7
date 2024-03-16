@@ -8,7 +8,7 @@ use general_assembly::{
 use paste::paste;
 use transpiler::pseudo;
 
-use crate::prelude::{Condition as ARMCondition, ImmShift, Register, Shift, Thumb};
+use crate::prelude::{Condition as ARMCondition, ImmShift, Register, Shift, Operation as V7Operation};
 
 macro_rules! consume {
     (($($id:ident$($(.$e:expr)+)?),*) from $name:ident) => {
@@ -97,11 +97,11 @@ macro_rules! local {
 pub trait Convert {
     fn convert(self) -> Vec<Operation>;
 }
-impl Convert for (usize, Thumb) {
+impl Convert for (usize, V7Operation) {
     fn convert(self) -> Vec<Operation> {
         'outer_block: {
             match self.1 {
-                Thumb::AdcImmediate(adc) => {
+                V7Operation::AdcImmediate(adc) => {
                     // Ensure that all fields are used
                     consume!((s.unwrap_or(false),rd,rn,imm) from adc);
                     let (rd, rn, imm): (
@@ -125,7 +125,7 @@ impl Convert for (usize, Thumb) {
                         rd = result;
                     ])
                 }
-                Thumb::AdcRegister(adc) => {
+                V7Operation::AdcRegister(adc) => {
                     consume!((s.unwrap_or(false),rd,rn,rm,shift) from adc);
                     let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
@@ -144,7 +144,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::AddImmediate(add) => {
+                V7Operation::AddImmediate(add) => {
                     consume!((
                           s.unwrap_or(false),
                           rd,
@@ -164,7 +164,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::AddRegister(add) => {
+                V7Operation::AddRegister(add) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -203,7 +203,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::AddSPImmediate(add) => {
+                V7Operation::AddSPImmediate(add) => {
                     consume!((
                             s.unwrap_or(false),
                             rd,
@@ -227,7 +227,7 @@ impl Convert for (usize, Thumb) {
                         rd = result;
                     ])
                 }
-                Thumb::AddSPRegister(add) => {
+                V7Operation::AddSPRegister(add) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -236,7 +236,7 @@ impl Convert for (usize, Thumb) {
                             shift
                         ) from add
                     );
-                    let rd = rd.unwrap_or(rm.clone());
+                    let rd = rd.unwrap_or(rm);
                     let s = match rd {
                         Register::PC => false,
                         _ => s,
@@ -261,7 +261,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Adr(adr) => {
+                V7Operation::Adr(adr) => {
                     consume!((rd,imm,add) from adr);
                     let (rd, imm) = (rd.local_into(), imm.local_into());
                     pseudo!([
@@ -276,7 +276,7 @@ impl Convert for (usize, Thumb) {
                         rd = result;
                     ])
                 }
-                Thumb::AndImmediate(and) => {
+                V7Operation::AndImmediate(and) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -299,7 +299,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::AndRegister(and) => {
+                V7Operation::AndRegister(and) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -324,7 +324,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::AsrImmediate(asr) => {
+                V7Operation::AsrImmediate(asr) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -354,7 +354,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::AsrRegister(asr) => {
+                V7Operation::AsrRegister(asr) => {
                     consume!((s,rd,rm,rn) from asr);
                     let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
                     let mut ret = vec![];
@@ -378,7 +378,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::B(b) => {
+                V7Operation::B(b) => {
                     consume!((condition,imm) from b);
                     let (condition, imm) = (condition.local_into(), imm.local_into());
                     pseudo!([
@@ -387,13 +387,19 @@ impl Convert for (usize, Thumb) {
                         Jump(target,condition);
                     ])
                 }
-                Thumb::Bfc(bfc) => {
+                V7Operation::Bfc(bfc) => {
                     consume!((rd,lsb,msb) from bfc);
                     let rd = rd.local_into();
                     let mask = !mask_dyn(lsb, msb);
-                    vec![Operation::And { destination: rd.clone(), operand1: rd, operand2: Operand::Immidiate(DataWord::Word32(mask)) }]
+                    vec![
+                        Operation::And { 
+                            destination: rd.clone(), 
+                            operand1: rd,
+                            operand2: Operand::Immidiate(DataWord::Word32(mask)) 
+                        }
+                    ]
                 }
-                Thumb::Bfi(bfi) => {
+                V7Operation::Bfi(bfi) => {
                     consume!((rd,rn,lsb,msb) from bfi);
                     let (rd, rn) = (rd.local_into(), rn.local_into());
                     let diff = msb - lsb;
@@ -406,7 +412,7 @@ impl Convert for (usize, Thumb) {
                         rd = rd | intermediate;
                     ])
                 }
-                Thumb::BicImmediate(bic) => {
+                V7Operation::BicImmediate(bic) => {
                     consume!((s.unwrap_or(false),rd,rn,imm,carry) from bic);
                     let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
                     let mut ret = vec![];
@@ -430,7 +436,7 @@ impl Convert for (usize, Thumb) {
                     }
                     ret
                 }
-                Thumb::BicRegister(bic) => {
+                V7Operation::BicRegister(bic) => {
                     consume!((
                             s.unwrap_or(false),
                             rd,
@@ -457,8 +463,8 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Bkpt(_) => vec![Operation::Nop],
-                Thumb::Bl(bl) => {
+                V7Operation::Bkpt(_) => vec![Operation::Nop],
+                V7Operation::Bl(bl) => {
                     consume!((imm) from bl);
                     let imm = imm.local_into();
 
@@ -471,7 +477,7 @@ impl Convert for (usize, Thumb) {
                             Jump(next_instr_addr);
                     ])
                 }
-                Thumb::Blx(blx) => {
+                V7Operation::Blx(blx) => {
                     consume!((rm) from blx);
                     let rm = rm.local_into();
                     pseudo!([
@@ -485,7 +491,7 @@ impl Convert for (usize, Thumb) {
                     ])
                 }
 
-                Thumb::Bx(bx) => {
+                V7Operation::Bx(bx) => {
                     let rm = bx.rm.local_into();
                     pseudo!([
                         let next_addr = rm;
@@ -493,7 +499,7 @@ impl Convert for (usize, Thumb) {
                         Register("PC+") = next_addr;
                     ])
                 }
-                Thumb::Cbz(cbz) => {
+                V7Operation::Cbz(cbz) => {
                     consume!((
                         non.unwrap_or(false), 
                         rn.local_into(),
@@ -512,45 +518,22 @@ impl Convert for (usize, Thumb) {
                         Jump(dest,cond);
                     ])
                 }
-                Thumb::Clrex(_) => todo!("This should not be needed for now"),
-                Thumb::Clz(clz) => {
-                    // TODO! Fix this,
-                    //
-                    // This instruction should produce the actual amount of leading zeros,
-                    // at the time of writing it simply produces a new symbol that is unconstrained
-                    // and limits it to 32
-                    //
-                    //
-                    //
-                    // TODO! Change this to use a register read hook to generate symbolic values
-                    let rd_old = clz.rd;
-                    let rd = clz.rd.local_into();
-                    vec![
-                        Operation::Symbolic { destination: rd.clone(), name: rd_old.to_string() },
-                        // No value larger than 2^5 is valid
-                        Operation::And { destination: rd.clone(), operand1: rd, operand2: 32.local_into() },
-                    ]
+                V7Operation::Clrex(_) => todo!("This should not be needed for now"),
+                V7Operation::Clz(_clz) => {
+                    todo!()
                 }
-                Thumb::CmnImmediate(cmn) => {
+                V7Operation::CmnImmediate(cmn) => {
                     consume!((rn,imm) from cmn);
                     let (rn, imm) = (rn.local_into(), imm.local_into());
-                    let print = |info:&'static str, operand:&Operand|{
-                        Operation::Print{
-                            info, operand:operand.clone()
-                        }
-                    };
                     pseudo!([
-                        print("Rn",&rn);
-                        print("imm",&imm);
                         let result = rn + imm;
-                        print("result",&result);
                         SetNFlag(result);
                         SetZFlag(result);
                         SetCFlag(rn,imm,false,false);
                         SetVFlag(rn,imm,false,false);
                     ])
                 }
-                Thumb::CmnRegister(cmn) => {
+                V7Operation::CmnRegister(cmn) => {
                     consume!((rn,rm,shift) from cmn);
                     let (rn, rm) = (rn.local_into(), rm.local_into());
                     let mut ret = vec![];
@@ -565,7 +548,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::CmpImmediate(cmp) => {
+                V7Operation::CmpImmediate(cmp) => {
                     consume!((rn,imm) from cmp);
                     let (rn, imm) = (rn.local_into(), imm.local_into());
                     pseudo!([
@@ -576,7 +559,7 @@ impl Convert for (usize, Thumb) {
                         SetVFlag(rn,imm,true,false);
                     ])
                 }
-                Thumb::CmpRegister(cmp) => {
+                V7Operation::CmpRegister(cmp) => {
                     consume!((rn,rm,shift) from cmp);
                     let (rn, rm) = (rn.local_into(), rm.local_into());
                     let mut ret = vec![];
@@ -591,7 +574,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Cps(cps) => {
+                V7Operation::Cps(cps) => {
                     consume!((enable,disable,affect_pri,affect_fault) from cps);
                     assert!(enable != disable);
                     let mut ret = Vec::with_capacity(1);
@@ -640,16 +623,16 @@ impl Convert for (usize, Thumb) {
                     }
                     ret
                 }
-                Thumb::Dbg(_) => vec![Operation::Nop],
-                Thumb::Dmb(_) => {
+                V7Operation::Dbg(_) => vec![Operation::Nop],
+                V7Operation::Dmb(_) => {
                     // todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
                     vec![Operation::Nop]
                 }
-                Thumb::Dsb(_) => {
+                V7Operation::Dsb(_) => {
                     // todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
                     vec![Operation::Nop]
                 }
-                Thumb::EorImmediate(eor) => {
+                V7Operation::EorImmediate(eor) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -671,7 +654,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::EorRegister(eor) => {
+                V7Operation::EorRegister(eor) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -700,9 +683,13 @@ impl Convert for (usize, Thumb) {
                     ret
 
                 }
-                Thumb::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
-                Thumb::It(it) => vec![Operation::ConditionalExecution { conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect() }],
-                Thumb::Ldm(ldm) => {
+                V7Operation::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
+                V7Operation::It(it) => vec![
+                    Operation::ConditionalExecution { 
+                        conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect() 
+                    }
+                ],
+                V7Operation::Ldm(ldm) => {
                     consume!((
                             rn,
                             w.unwrap_or(false),
@@ -737,7 +724,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::Ldmdb(ldmdb) => {
+                V7Operation::Ldmdb(ldmdb) => {
                     consume!((rn,w,registers) from ldmdb);
                     let rn_old = rn;
                     let rn = rn.local_into();
@@ -778,7 +765,7 @@ impl Convert for (usize, Thumb) {
                     }
                     ret
                 }
-                Thumb::LdrImmediate(ldr) => {
+                V7Operation::LdrImmediate(ldr) => {
                     consume!((index,add,w.unwrap_or(false),rt,rn,imm) from ldr);
                     let old_rt = rt;
                     let is_sp = old_rt == Register::PC;
@@ -807,7 +794,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::LdrLiteral(ldr) => {
+                V7Operation::LdrLiteral(ldr) => {
                     consume!(
                         (
                             rt,
@@ -832,7 +819,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::LdrRegister(ldr) => {
+                V7Operation::LdrRegister(ldr) => {
                     consume!((w,rt,rn,rm,shift) from ldr);
                     let _w = w;
                     let rt_old = rt;
@@ -858,7 +845,7 @@ impl Convert for (usize, Thumb) {
                        }
                     ])
                 }
-                Thumb::LdrbImmediate(ldrb) => {
+                V7Operation::LdrbImmediate(ldrb) => {
                     consume!((index,add.unwrap_or(false),w.unwrap_or(false),rt,rn,imm) from ldrb);
                     let imm = imm.unwrap_or(0);
                     let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
@@ -879,7 +866,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::LdrbLiteral(ldrb) => {
+                V7Operation::LdrbLiteral(ldrb) => {
                     consume!((
                         add.unwrap_or(false),
                         rt.local_into(),
@@ -895,7 +882,7 @@ impl Convert for (usize, Thumb) {
                         rt = ZeroExtend(LocalAddress(address,8),32);
                     ])
                 }
-                Thumb::LdrbRegister(ldrb) => {
+                V7Operation::LdrbRegister(ldrb) => {
                     consume!((rt,rn,rm,shift,add.unwrap_or(false)) from ldrb);
                     let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
                     let shift = match shift {
@@ -913,7 +900,7 @@ impl Convert for (usize, Thumb) {
                         rt = ZeroExtend(LocalAddress(address,8),32);
                     ])
                 }
-                Thumb::Ldrbt(ldrbt) => {
+                V7Operation::Ldrbt(ldrbt) => {
                     consume!((rt,rn,imm) from ldrbt);
                     let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into());
                     pseudo!([
@@ -921,7 +908,7 @@ impl Convert for (usize, Thumb) {
                         rt = ZeroExtend(LocalAddress(address,8),32);
                     ])
                 }
-                Thumb::LdrdImmediate(ldrd) => {
+                V7Operation::LdrdImmediate(ldrd) => {
                     consume!((
                         rt.local_into(),
                         rt2.local_into(),
@@ -953,7 +940,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::LdrdLiteral(ldrd) => {
+                V7Operation::LdrdLiteral(ldrd) => {
                     consume!((
                         rt.local_into(),
                         rt2.local_into(),
@@ -973,10 +960,10 @@ impl Convert for (usize, Thumb) {
                         rt2 = LocalAddress(address,32);
                     ])
                 }
-                Thumb::Ldrex(_) => todo!("This is probably not needed"),
-                Thumb::Ldrexb(_) => todo!("This is probably not needed"),
-                Thumb::Ldrexh(_) => todo!("This is probably not needed"),
-                Thumb::LdrhImmediate(ldrh) => {
+                V7Operation::Ldrex(_) => todo!("This is probably not needed"),
+                V7Operation::Ldrexb(_) => todo!("This is probably not needed"),
+                V7Operation::Ldrexh(_) => todo!("This is probably not needed"),
+                V7Operation::LdrhImmediate(ldrh) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -1004,7 +991,7 @@ impl Convert for (usize, Thumb) {
                         rt = ZeroExtend(data,32);
                     ])
                 }
-                Thumb::LdrhLiteral(ldrh) => {
+                V7Operation::LdrhLiteral(ldrh) => {
                     consume!((rt.local_into(),imm.local_into(),add.unwrap_or(false)) from ldrh);
 
                     pseudo!([
@@ -1020,7 +1007,7 @@ impl Convert for (usize, Thumb) {
                         rt = ZeroExtend(data,32);
                     ])
                 }
-                Thumb::LdrhRegister(ldrh) => {
+                V7Operation::LdrhRegister(ldrh) => {
                     consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrh);
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
@@ -1034,7 +1021,7 @@ impl Convert for (usize, Thumb) {
                     ]); 
                     ret
                 }
-                Thumb::Ldrht(ldrht) => {
+                V7Operation::Ldrht(ldrht) => {
                     consume!((rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into()) from ldrht);
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 16);
@@ -1043,13 +1030,14 @@ impl Convert for (usize, Thumb) {
                             destination: address_setter.clone(),
                             operand1: rn,
                             operand2: imm
-                        }, Operation::Move {
+                        },
+                        Operation::Move {
                             destination: rt,
                             source: address
                         }
                     ]
                 }
-                Thumb::LdrsbImmediate(ldrsb) => {
+                V7Operation::LdrsbImmediate(ldrsb) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -1076,7 +1064,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::LdrsbLiteral(ldrsb) => {
+                V7Operation::LdrsbLiteral(ldrsb) => {
                     consume!((
                             rt.local_into(),
                             imm.local_into(),
@@ -1093,7 +1081,7 @@ impl Convert for (usize, Thumb) {
                         rt = SignExtend(LocalAddress(address,8),8);
                     ])
                 }
-                Thumb::LdrsbRegister(ldrsb) => {
+                V7Operation::LdrsbRegister(ldrsb) => {
                     consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsb);
                     let mut ret = Vec::with_capacity(10);
                     let offset = Operand::Local("offset".to_owned());
@@ -1109,13 +1097,16 @@ impl Convert for (usize, Thumb) {
                                    destination: offset_address.clone(),
                                    operand1: rn,
                                    operand2: offset
-                               }, Operation::Move {
+                               },
+                               Operation::Move {
                                    destination: address_setter.clone(),
                                    source: offset_address
-                               }, Operation::Move {
+                               },
+                               Operation::Move {
                                    destination: rt.clone(),
                                    source: address
-                               }, Operation::SignExtend {
+                               },
+                               Operation::SignExtend {
                                    destination: rt.clone(),
                                    operand: rt,
                                    bits: 8
@@ -1123,7 +1114,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Ldrsbt(ldrsbt) => {
+                V7Operation::Ldrsbt(ldrsbt) => {
                     consume!((rt.local_into(), rn.local_into(), imm.local_into()) from ldrsbt);
                     let address_setter = Operand::Local("address".to_owned());
                     let address = Operand::AddressInLocal("address".to_owned(), 8);
@@ -1132,14 +1123,15 @@ impl Convert for (usize, Thumb) {
                             destination: address_setter,
                             operand1: rn,
                             operand2: imm
-                        }, Operation::SignExtend {
+                        },
+                        Operation::SignExtend {
                             destination: rt,
                             operand: address,
                             bits: 8
                         }
                     ]
                 }
-                Thumb::LdrshImmediate(ldrsh) => {
+                V7Operation::LdrshImmediate(ldrsh) => {
                     consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsh);
                     let mut ret = Vec::with_capacity(10);
                     let address_setter = Operand::Local("address".to_owned());
@@ -1156,7 +1148,13 @@ impl Convert for (usize, Thumb) {
                         _ => Operation::Move { destination: address_setter.clone(), source: rn.clone() },
                     });
 
-                    ret.extend([Operation::SignExtend { destination: rt, operand: address, bits: 16 }]);
+                    ret.extend([
+                        Operation::SignExtend { 
+                            destination: rt,
+                            operand: address,
+                            bits: 16
+                        }
+                    ]);
 
                     if wback {
                         ret.push(Operation::Move { destination: rn, source: offset_address })
@@ -1164,7 +1162,7 @@ impl Convert for (usize, Thumb) {
 
                     ret
                 }
-                Thumb::LdrshLiteral(ldrsh) => {
+                V7Operation::LdrshLiteral(ldrsh) => {
                     consume!(
                         (
                             rt.local_into(),
@@ -1184,7 +1182,7 @@ impl Convert for (usize, Thumb) {
                         rt = SignExtend(data,16);
                     ])
                 }
-                Thumb::LdrshRegister(ldrsh) => {
+                V7Operation::LdrshRegister(ldrsh) => {
                     consume!(
                         (
                             rt.local_into(),
@@ -1207,13 +1205,16 @@ impl Convert for (usize, Thumb) {
                                    destination: offset_address.clone(),
                                    operand1: rn,
                                    operand2: offset
-                               }, Operation::Move {
+                               },
+                               Operation::Move {
                                    destination: address_setter.clone(),
                                    source: offset_address
-                               }, Operation::Move {
+                               },
+                               Operation::Move {
                                    destination: rt.clone(),
                                    source: address
-                               }, Operation::SignExtend {
+                               },
+                               Operation::SignExtend {
                                    destination: rt.clone(),
                                    operand: rt,
                                    bits: 16
@@ -1221,7 +1222,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Ldrsht(ldrsht) => {
+                V7Operation::Ldrsht(ldrsht) => {
                     consume!(
                         (
                             rt.local_into(),
@@ -1236,14 +1237,15 @@ impl Convert for (usize, Thumb) {
                             destination: address_setter,
                             operand1: rn,
                             operand2: imm
-                        }, Operation::SignExtend {
+                        },
+                        Operation::SignExtend {
                             destination: rt,
                             operand: address,
                             bits: 32
                         }
                     ]
                 }
-                Thumb::Ldrt(ldrt) => {
+                V7Operation::Ldrt(ldrt) => {
                     consume!(
                         (
                             rt.local_into(),
@@ -1258,13 +1260,14 @@ impl Convert for (usize, Thumb) {
                             destination: address_setter,
                             operand1: rn,
                             operand2: imm
-                        }, Operation::Move {
+                        },
+                        Operation::Move {
                             destination: rt,
                             source: address
                         }
                     ]
                 }
-                Thumb::LslImmediate(lsl) => {
+                V7Operation::LslImmediate(lsl) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1281,7 +1284,7 @@ impl Convert for (usize, Thumb) {
                     };
                     ret
                 }
-                Thumb::LslRegister(lsl) => {
+                V7Operation::LslRegister(lsl) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1305,7 +1308,7 @@ impl Convert for (usize, Thumb) {
                     };
                     ret
                 }
-                Thumb::LsrImmediate(lsr) => {
+                V7Operation::LsrImmediate(lsr) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1322,7 +1325,7 @@ impl Convert for (usize, Thumb) {
                     };
                     ret
                 }
-                Thumb::LsrRegister(lsr) => {
+                V7Operation::LsrRegister(lsr) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1332,7 +1335,13 @@ impl Convert for (usize, Thumb) {
                         ) from lsr
                     );
                     local!(shift_n);
-                    let mut ret = vec![Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }];
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm,
+                            operand2: 0xff.local_into()
+                        }
+                    ];
                     let shift_t = Shift::Lsr.local_into();
                     match s {
                         true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
@@ -1340,7 +1349,7 @@ impl Convert for (usize, Thumb) {
                     };
                     ret
                 }
-                Thumb::Mla(mla) => {
+                V7Operation::Mla(mla) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -1358,7 +1367,7 @@ impl Convert for (usize, Thumb) {
                     );
                     ret
                 }
-                Thumb::Mls(mls) => {
+                V7Operation::Mls(mls) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -1377,7 +1386,7 @@ impl Convert for (usize, Thumb) {
                     ret
                 }
                 // One single encoding, this needs to be revisited once it is needed
-                Thumb::MovImmediate(mov) => {
+                V7Operation::MovImmediate(mov) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1398,21 +1407,34 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::MovRegister(mov) => {
+                V7Operation::MovRegister(mov) => {
                     // This might cause some issues, we will disregard BX cases here as we have no
                     // way of changing the instruciton set
                     consume!((s,rd, rm.local_into()) from mov);
                     if rd == Register::PC {
-                        break 'outer_block vec![Operation::ConditionalJump { destination: rm, condition: Condition::None }];
+                        break 'outer_block vec![
+                            Operation::ConditionalJump {
+                                destination: rm,
+                                condition: Condition::None
+                            }
+                        ];
                     }
                     let rd = rd.local_into();
-                    let mut ret = vec![Operation::Move { destination: rd.clone(), source: rm }];
+                    let mut ret = vec![
+                        Operation::Move {
+                            destination: rd.clone(),
+                            source: rm
+                        }
+                    ];
                     if let Some(true) = s {
-                        ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
+                        ret.extend([
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetZFlag(rd)
+                        ]);
                     }
                     ret
                 }
-                Thumb::Movt(movt) => {
+                V7Operation::Movt(movt) => {
                     consume!((rd.local_into(),imm) from movt);
                     let imm = (imm as u32).local_into();
                     let mut ret = Vec::with_capacity(4);
@@ -1422,14 +1444,14 @@ impl Convert for (usize, Thumb) {
                     pseudo!(
                         ret.extend[
                             intermediate = imm << shift;
-                            // Perserve the lower half word
+                            // Preserve the lower half word
                             rd = mask & rd;
                             rd = intermediate | rd;
                         ]
                     );
                     ret
                 }
-                Thumb::Mrs(mrs) => {
+                V7Operation::Mrs(mrs) => {
                     consume!(
                         (
                             rd.local_into(),
@@ -1488,7 +1510,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::Msr(msr) => {
+                V7Operation::Msr(msr) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -1537,7 +1559,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::Mul(mul) => {
+                V7Operation::Mul(mul) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1556,7 +1578,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::MvnImmediate(mvn) => {
+                V7Operation::MvnImmediate(mvn) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1578,7 +1600,7 @@ impl Convert for (usize, Thumb) {
                         }
                     ])
                 }
-                Thumb::MvnRegister(mvn) => {
+                V7Operation::MvnRegister(mvn) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1602,8 +1624,8 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Nop(_) => vec![Operation::Nop],
-                Thumb::OrnImmediate(orn) => {
+                V7Operation::Nop(_) => vec![Operation::Nop],
+                V7Operation::OrnImmediate(orn) => {
                     consume!((
                         rn.local_into(),
                         rd.local_into().unwrap_or(rn.clone()),
@@ -1626,7 +1648,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::OrnRegister(orn) => {
+                V7Operation::OrnRegister(orn) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1654,7 +1676,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::OrrImmediate(orr) => {
+                V7Operation::OrrImmediate(orr) => {
                     consume!((
                         rn.local_into(),
                         rd.local_into().unwrap_or(rn.clone()),
@@ -1677,7 +1699,7 @@ impl Convert for (usize, Thumb) {
 
                     ])
                 }
-                Thumb::OrrRegister(orr) => {
+                V7Operation::OrrRegister(orr) => {
                     consume!(
                         (
                             s.unwrap_or(false),
@@ -1703,7 +1725,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Pkh(pkh) => {
+                V7Operation::Pkh(pkh) => {
                     consume!((rd,shift,rn,rm.local_into(),tb) from pkh);
                     let mut ret = Vec::with_capacity(5);
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
@@ -1722,14 +1744,14 @@ impl Convert for (usize, Thumb) {
                     );
                     ret
                 }
-                Thumb::PldImmediate(_pld) => {
+                V7Operation::PldImmediate(_pld) => {
                     todo!(" We need some speciality pre load instruction here")
                 }
-                Thumb::PldLiteral(_) => todo!(" We need some speciality pre load instruction here"),
-                Thumb::PldRegister(_) => todo!(" We need some speciality pre load instruction here"),
-                Thumb::PliImmediate(_) => todo!(" We need some speciality pre load instruction here"),
-                Thumb::PliRegister(_) => todo!(" We need some speciality pre load instruction here"),
-                Thumb::Pop(pop) => {
+                V7Operation::PldLiteral(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PldRegister(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PliImmediate(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PliRegister(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::Pop(pop) => {
                     consume!((registers) from pop);
 
                     let mut jump = false;
@@ -1756,7 +1778,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::Push(push) => {
+                V7Operation::Push(push) => {
                     consume!((registers) from push);
                     // let address_setter = Operand::Local("address".to_owned());
                     // let address = Operand::AddressInLocal("address".to_owned(), 32);
@@ -1793,19 +1815,19 @@ impl Convert for (usize, Thumb) {
                     // }
                     // ret
                 }
-                Thumb::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qadd8(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qasx(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qsub(_) => {
+                V7Operation::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qadd8(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qasx(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsub(_) => {
                     todo!("Need to add in the flags APSR.Q");
                 }
-                Thumb::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
-                Thumb::Rbit(rbit) => {
+                V7Operation::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Rbit(rbit) => {
                     consume!((rd.local_into(),rm.local_into()) from rbit);
                     let mut ret = vec![];
                     local!(intermediate);
@@ -1840,7 +1862,7 @@ impl Convert for (usize, Thumb) {
                     }
                     ret
                 }
-                Thumb::Rev(rev) => {
+                V7Operation::Rev(rev) => {
                     consume!((rd.local_into(),rm.local_into()) from rev);
                     local!(int1, int2, int3, int4);
                     let mut ret = vec![];
@@ -1865,7 +1887,7 @@ impl Convert for (usize, Thumb) {
 
                     ret
                 }
-                Thumb::Rev16(rev) => {
+                V7Operation::Rev16(rev) => {
                     consume!((rd.local_into(),rm.local_into()) from rev);
                     local!(int1, int2, int3, int4);
                     let mut ret = vec![];
@@ -1889,7 +1911,7 @@ impl Convert for (usize, Thumb) {
                         );
                     ret
                 }
-                Thumb::Revsh(revsh) => {
+                V7Operation::Revsh(revsh) => {
                     consume!((rd.local_into(),rm.local_into()) from revsh);
                     local!(int1, int2);
                     let mut ret = vec![];
@@ -1904,10 +1926,8 @@ impl Convert for (usize, Thumb) {
                         ]
                         );
                     ret.push(
-                        // This should be correct as the value has already been shifted over by
-                        // 9
                         Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 },
-                        );
+                    );
                     pseudo!(
                         ret.extend[
                         rd = rd | int2;
@@ -1915,28 +1935,46 @@ impl Convert for (usize, Thumb) {
                         );
                     ret
                 }
-                Thumb::RorImmediate(ror) => {
+                V7Operation::RorImmediate(ror) => {
                     consume!((s,rd.local_into(), rm.local_into(),imm) from ror);
-                    let imm: u32 = imm.into();
                     let shift_n = imm.local_into();
                     let mut ret = vec![Operation::Sror { destination: rd.clone(), operand: rm.clone(), shift: shift_n.clone() }];
                     if let Some(true) = s {
-                        ret.extend([Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlagRor(rd.clone())]);
+                        ret.extend([
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetCFlagRor(rd.clone())
+                        ]);
                     }
                     ret
                 }
-                Thumb::RorRegister(ror) => {
+                V7Operation::RorRegister(ror) => {
                     consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
                     local!(shift_n);
                     let mask = (u8::MAX as u32).local_into();
 
-                    let mut ret = vec![Operation::And { destination: shift_n.clone(), operand1: rm.clone(), operand2: mask }, Operation::Sror { destination: rd.clone(), operand: rn.clone(), shift: shift_n.clone() }];
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm.clone(),
+                            operand2: mask
+                        },
+                        Operation::Sror {
+                            destination: rd.clone(),
+                            operand: rn.clone(),
+                            shift: shift_n.clone()
+                        }
+                    ];
                     if let Some(true) = s {
-                        ret.extend([Operation::SetZFlag(rd.clone()), Operation::SetNFlag(rd.clone()), Operation::SetCFlagRor(rd.clone())]);
+                        ret.extend([
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetCFlagRor(rd.clone())
+                        ]);
                     }
                     ret
                 }
-                Thumb::Rrx(rrx) => {
+                V7Operation::Rrx(rrx) => {
                     consume!((s,rd.local_into(), rm.local_into()) from rrx);
                     // Let's fulhacka
                     let mask = (u32::MAX >> 1).local_into();
@@ -1958,17 +1996,17 @@ impl Convert for (usize, Thumb) {
 
                     if let Some(true) = s {
                         ret.extend([
-                                   Operation::SetNFlag(result.clone()),
-                                   Operation::SetZFlag(result.clone()),
-                                   Operation::Move {
-                                       destination: carry,
-                                       source: lsb
-                                   }
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetZFlag(result.clone()),
+                            Operation::Move {
+                                destination: carry,
+                                source: lsb
+                            }
                         ]);
                     }
                     ret
                 }
-                Thumb::RsbImmediate(rsb) => {
+                V7Operation::RsbImmediate(rsb) => {
                     consume!((s,rd,rn,imm.local_into()) from rsb);
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let carry = Operand::Flag("c".to_owned());
@@ -2006,7 +2044,7 @@ impl Convert for (usize, Thumb) {
                     });
                     ret
                 }
-                Thumb::RsbRegister(rsb) => {
+                V7Operation::RsbRegister(rsb) => {
                     consume!((s,rd,rn,rm.local_into(), shift) from rsb);
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let mut ret = Vec::with_capacity(10);
@@ -2047,7 +2085,7 @@ impl Convert for (usize, Thumb) {
 
                     ret
                 }
-                Thumb::Sadd16(sadd) => {
+                V7Operation::Sadd16(sadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2055,16 +2093,16 @@ impl Convert for (usize, Thumb) {
                             ) from sadd);
                     pseudo!(
                         [
-                        let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
-                        let sum2 = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<31:16>,16)),32);
-                        rd = ZeroExtend(sum1<15:0>,32);
-                        let masked = ZeroExtend(sum2<15:0>,32) << 16.local_into();
-                        rd = rd | masked;
-                        // TODO! Add in ge flags here
+                            let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<31:16>,16)),32);
+                            rd = ZeroExtend(sum1<15:0>,32);
+                            let masked = ZeroExtend(sum2<15:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
                         ]
-                        )
+                    )
                 }
-                Thumb::Sadd8(sadd) => {
+                V7Operation::Sadd8(sadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2072,22 +2110,22 @@ impl Convert for (usize, Thumb) {
                             ) from sadd);
                     pseudo!(
                         [
-                        let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
-                        let sum2 = ZeroExtend(Signed(Resize(rn<15:8>,8) + Resize(rm<15:8>,8)),32);
-                        let sum3 = ZeroExtend(Signed(Resize(rn<23:16>,8) + Resize(rm<23:16>,8)),32);
-                        let sum4 = ZeroExtend(Signed(Resize(rn<31:24>,8) + Resize(rm<31:24>,8)),32);
-                        rd = ZeroExtend(sum1<7:0>,32);
-                        let masked = ZeroExtend(sum2<7:0>,32) << 8.local_into();
-                        rd = rd | masked;
-                        masked = ZeroExtend(sum3<7:0>,32) << 16.local_into();
-                        rd = rd | masked;
-                        masked = ZeroExtend(sum4<7:0>,32) << 24.local_into();
-                        rd = rd | masked;
-                        // TODO! Add in ge flags here
+                            let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<15:8>,8) + Resize(rm<15:8>,8)),32);
+                            let sum3 = ZeroExtend(Signed(Resize(rn<23:16>,8) + Resize(rm<23:16>,8)),32);
+                            let sum4 = ZeroExtend(Signed(Resize(rn<31:24>,8) + Resize(rm<31:24>,8)),32);
+                            rd = ZeroExtend(sum1<7:0>,32);
+                            let masked = ZeroExtend(sum2<7:0>,32) << 8.local_into();
+                            rd = rd | masked;
+                            masked = ZeroExtend(sum3<7:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            masked = ZeroExtend(sum4<7:0>,32) << 24.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
                         ]
-                        )
+                    )
                 }
-                Thumb::Sasx(sasx) => {
+                V7Operation::Sasx(sasx) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2095,16 +2133,16 @@ impl Convert for (usize, Thumb) {
                             ) from sasx);
                     pseudo!(
                         [
-                        let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
-                        let sum  = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<15:0>,16)),32);
-                        rd = ZeroExtend(diff<15:0>,32);
-                        let masked = ZeroExtend(sum<15:0>,32) << 16.local_into();
-                        rd = rd | masked;
-                        // TODO! Add in ge flags here
+                            let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
+                            let sum  = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<15:0>,16)),32);
+                            rd = ZeroExtend(diff<15:0>,32);
+                            let masked = ZeroExtend(sum<15:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
                         ]
-                        )
+                    )
                 }
-                Thumb::SbcImmediate(sbc) => {
+                V7Operation::SbcImmediate(sbc) => {
                     consume!((
                             s.unwrap_or(false), 
                             rn.local_into(), 
@@ -2141,7 +2179,7 @@ impl Convert for (usize, Thumb) {
                     }
                     ret
                 }
-                Thumb::SbcRegister(sbc) => {
+                V7Operation::SbcRegister(sbc) => {
                     consume!((
                             s.unwrap_or(false),
                             rn.local_into(),
@@ -2161,24 +2199,25 @@ impl Convert for (usize, Thumb) {
                         );
                     if s {
                         ret.extend([
-                               Operation::SetZFlag(result.clone()),
-                               Operation::SetNFlag(result.clone()),
-                               Operation::SetCFlag {
-                                   operand1: rn.clone(),
-                                   operand2: intermediate.clone(),
-                                   sub: false,
-                                   carry: true
-                               }, Operation::SetVFlag {
-                                   operand1: rn.clone(),
-                                   operand2: intermediate.clone(),
-                                   sub: false,
-                                   carry: true
-                               }
+                            Operation::SetZFlag(result.clone()),
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetCFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true
+                            },
+                            Operation::SetVFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true
+                            }
                         ]);
                     }
                     ret
                 }
-                Thumb::Sbfx(sbfx) => {
+                V7Operation::Sbfx(sbfx) => {
                     consume!((rd.local_into(), rn.local_into(), lsb, width) from sbfx);
                     let mut ret = vec![];
 
@@ -2194,7 +2233,7 @@ impl Convert for (usize, Thumb) {
                         );
                     ret
                 }
-                Thumb::Sdiv(sdiv) => {
+                V7Operation::Sdiv(sdiv) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2205,9 +2244,9 @@ impl Convert for (usize, Thumb) {
                             rd = result;
                     ])
                 }
-                Thumb::Sel(_) => todo!("SIMD"),
-                Thumb::Sev(_) => todo!("Modelling"),
-                Thumb::Shadd16(shadd) => {
+                V7Operation::Sel(_) => todo!("SIMD"),
+                V7Operation::Sev(_) => todo!("Modelling"),
+                V7Operation::Shadd16(shadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2222,7 +2261,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Shadd8(shadd) => {
+                V7Operation::Shadd8(shadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2243,7 +2282,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Shasx(shasx) => {
+                V7Operation::Shasx(shasx) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2258,7 +2297,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Shsax(shsax) => {
+                V7Operation::Shsax(shsax) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2273,7 +2312,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Shsub16(shsub) => {
+                V7Operation::Shsub16(shsub) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2288,7 +2327,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Shsub8(shsub) => {
+                V7Operation::Shsub8(shsub) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2309,30 +2348,30 @@ impl Convert for (usize, Thumb) {
                             rd = rd | intemediate_result;
                     ])
                 }
-                Thumb::Smla(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlad(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlal(_) => todo!("Need to revisit SInt"),
-                Thumb::SmlalSelective(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlald(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlaw(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlsd(_) => todo!("Need to revisit SInt"),
-                Thumb::Smlsld(_) => todo!("Need to revisit SInt"),
-                Thumb::Smmla(_) => todo!("Need to revisit SInt"),
-                Thumb::Smmls(_) => {
+                V7Operation::Smla(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlad(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlal(_) => todo!("Need to revisit SInt"),
+                V7Operation::SmlalSelective(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlald(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlaw(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlsd(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlsld(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smmla(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smmls(_) => {
                     todo!()
                 }
-                Thumb::Smmul(_) => todo!("Need to revisit SInt"),
-                Thumb::Smuad(_) => todo!("Need to revisit SInt"),
-                Thumb::Smul(_) => todo!("Need to revisit SInt"),
-                Thumb::Smull(_) => todo!("Need to revisit SInt"),
-                Thumb::Smulw(_) => todo!("Need to revisit SInt"),
-                Thumb::Smusd(_) => todo!("Need to revisit SInt"),
-                Thumb::Ssat(_) => todo!("Need to revisit SInt"),
-                Thumb::Ssat16(_) => todo!("Need to revisit SInt"),
-                Thumb::Ssax(_) => todo!("Need to revisit SInt"),
-                Thumb::Ssub16(_) => todo!("Need to revisit SInt"),
-                Thumb::Ssub8(_) => todo!("Need to revisit SInt"),
-                Thumb::Stm(stm) => {
+                V7Operation::Smmul(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smuad(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smul(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smull(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smulw(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smusd(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssat(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssat16(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssax(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssub16(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssub8(_) => todo!("Need to revisit SInt"),
+                V7Operation::Stm(stm) => {
                     consume!((
                             rn.local_into(),
                             registers,
@@ -2353,7 +2392,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::Stmdb(stmdb) => {
+                V7Operation::Stmdb(stmdb) => {
                     consume!((
                             w.unwrap_or(false), 
                             rn.local_into(), 
@@ -2373,7 +2412,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::StrImmediate(str) => {
+                V7Operation::StrImmediate(str) => {
                     consume!((
                             w.unwrap_or(false),
                             add,
@@ -2409,7 +2448,7 @@ impl Convert for (usize, Thumb) {
                             );
                         ret
                 }
-                Thumb::StrRegister(str) => {
+                V7Operation::StrRegister(str) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2429,7 +2468,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::StrbImmediate(strb) => {
+                V7Operation::StrbImmediate(strb) => {
                     consume!(
                         (
                             w.unwrap_or(false),
@@ -2467,7 +2506,7 @@ impl Convert for (usize, Thumb) {
                             );
                         ret
                 }
-                Thumb::StrbRegister(strb) => {
+                V7Operation::StrbRegister(strb) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2486,7 +2525,7 @@ impl Convert for (usize, Thumb) {
                             LocalAddress("address", 8) = rt;
                     ])
                 }
-                Thumb::Strbt(strbt) => {
+                V7Operation::Strbt(strbt) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2501,7 +2540,7 @@ impl Convert for (usize, Thumb) {
 
                     ret
                 }
-                Thumb::StrdImmediate(strd) => {
+                V7Operation::StrdImmediate(strd) => {
                     consume!((
                             rt.local_into(), 
                             rt2.local_into(), 
@@ -2532,7 +2571,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Strex(strex) => {
+                V7Operation::Strex(strex) => {
                     consume!((
                             rd.local_into(),
                             rt.local_into(),
@@ -2547,7 +2586,7 @@ impl Convert for (usize, Thumb) {
                             rd = 0.local_into();
                     ])
                 }
-                Thumb::Strexb(strexb) => {
+                V7Operation::Strexb(strexb) => {
                     consume!((
                             rd.local_into(),
                             rt.local_into(),
@@ -2563,7 +2602,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Strexh(strexh) => {
+                V7Operation::Strexh(strexh) => {
                     consume!((rd.local_into(), rt.local_into(), rn.local_into()) from strexh);
                     let mut ret = vec![];
                     pseudo!(ret.extend[
@@ -2574,7 +2613,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::StrhImmediate(strh) => {
+                V7Operation::StrhImmediate(strh) => {
                     consume!((
                             rt.local_into(), 
                             rn.local_into(), 
@@ -2598,7 +2637,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::StrhRegister(strh) => {
+                V7Operation::StrhRegister(strh) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2619,7 +2658,7 @@ impl Convert for (usize, Thumb) {
                             LocalAddress(address,16) = rt;
                     ])
                 }
-                Thumb::Strht(strht) => {
+                V7Operation::Strht(strht) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2630,7 +2669,7 @@ impl Convert for (usize, Thumb) {
                             LocalAddress(address,16) = rt;
                     ])
                 }
-                Thumb::Strt(strt) => {
+                V7Operation::Strt(strt) => {
                     consume!((
                             rt.local_into(),
                             rn.local_into(),
@@ -2642,7 +2681,7 @@ impl Convert for (usize, Thumb) {
                             LocalAddress(address,32) = data;
                     ])
                 }
-                Thumb::SubImmediate(sub) => {
+                V7Operation::SubImmediate(sub) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2663,7 +2702,7 @@ impl Convert for (usize, Thumb) {
                             rd = result;
                     ])
                 }
-                Thumb::SubRegister(sub) => {
+                V7Operation::SubRegister(sub) => {
                     consume!((
                             s.unwrap_or(false),
                             rn.local_into(),
@@ -2690,7 +2729,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::SubSpMinusImmediate(sub) => {
+                V7Operation::SubSpMinusImmediate(sub) => {
                     consume!((
                             s.unwrap_or(false),
                             rd.local_into().unwrap_or(Operand::Register("SP".to_owned())),
@@ -2711,7 +2750,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::SubSpMinusRegister(sub) => {
+                V7Operation::SubSpMinusRegister(sub) => {
                     let rn = Register::SP.local_into();
                     consume!((
                             s.unwrap_or(false),
@@ -2744,7 +2783,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Sxtab(sxtab) => {
+                V7Operation::Sxtab(sxtab) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2758,7 +2797,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Sxtab16(sxtab) => {
+                V7Operation::Sxtab16(sxtab) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2793,7 +2832,7 @@ impl Convert for (usize, Thumb) {
                             rd =  rd | intemediate_result;
                             ])
                 }
-                Thumb::Sxtah(sxtah) => {
+                V7Operation::Sxtah(sxtah) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2806,7 +2845,7 @@ impl Convert for (usize, Thumb) {
                             rd = rn + SignExtend(rotated,16);
                     ])
                 }
-                Thumb::Sxtb(sxtb) => {
+                V7Operation::Sxtb(sxtb) => {
                     consume!((
                             rd.local_into(),
                             rm.local_into(),
@@ -2818,7 +2857,7 @@ impl Convert for (usize, Thumb) {
                             rd = SignExtend(rotated,8);
                     ])
                 }
-                Thumb::Sxtb16(sxtb) => {
+                V7Operation::Sxtb16(sxtb) => {
                     consume!((
                             rm.local_into(),
                             rd.local_into().unwrap_or(rm.clone()),
@@ -2837,7 +2876,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | msbyte;
                     ])
                 }
-                Thumb::Sxth(sxth) => {
+                V7Operation::Sxth(sxth) => {
                     consume!(
                         (
                             rd.local_into(),
@@ -2850,7 +2889,7 @@ impl Convert for (usize, Thumb) {
                             rd = SignExtend(rotated, 16);
                     ])
                 }
-                Thumb::Tb(tb) => {
+                V7Operation::Tb(tb) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -2875,7 +2914,7 @@ impl Convert for (usize, Thumb) {
                             Jump(target);
                     ])
                 }
-                Thumb::TeqImmediate(teq) => {
+                V7Operation::TeqImmediate(teq) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -2891,7 +2930,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::TeqRegister(teq) => {
+                V7Operation::TeqRegister(teq) => {
                     consume!((
                             rn.local_into(),
                             rm.local_into(),
@@ -2907,7 +2946,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::TstImmediate(tst) => {
+                V7Operation::TstImmediate(tst) => {
                     consume!((
                             rn.local_into(),
                             imm.local_into(),
@@ -2922,7 +2961,7 @@ impl Convert for (usize, Thumb) {
                             }
                     ])
                 }
-                Thumb::TstRegister(tst) => {
+                V7Operation::TstRegister(tst) => {
                     let (rn, rm, shift) = (tst.rn.local_into(), tst.rm.local_into(), tst.shift);
                     let mut ret = vec![];
                     local!(shifted);
@@ -2934,7 +2973,7 @@ impl Convert for (usize, Thumb) {
                     ]);
                     ret
                 }
-                Thumb::Uadd16(uadd) => {
+                V7Operation::Uadd16(uadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2964,7 +3003,7 @@ impl Convert for (usize, Thumb) {
                             // TODO! Fix GE flags
                             ])
                 }
-                Thumb::Uadd8(uadd) => {
+                V7Operation::Uadd8(uadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -2985,7 +3024,7 @@ impl Convert for (usize, Thumb) {
                             // TODO! Add in GE flags
                     ])
                 }
-                Thumb::Uasx(uasx) => {
+                V7Operation::Uasx(uasx) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -3002,7 +3041,7 @@ impl Convert for (usize, Thumb) {
                             // TODO! Implement aspr.ge
                     ])
                 }
-                Thumb::Ubfx(ubfx) => {
+                V7Operation::Ubfx(ubfx) => {
                     consume!(
                         (
                             rd.local_into(),
@@ -3017,8 +3056,8 @@ impl Convert for (usize, Thumb) {
                             rd = rn<msbit:lsb>;
                     ])
                 }
-                Thumb::Udf(_) => vec![Operation::Nop],
-                Thumb::Udiv(udiv) => {
+                V7Operation::Udf(_) => vec![Operation::Nop],
+                V7Operation::Udiv(udiv) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -3031,7 +3070,7 @@ impl Convert for (usize, Thumb) {
                             rd = result;
                     ])
                 }
-                Thumb::Uhadd16(uhadd) => {
+                V7Operation::Uhadd16(uhadd) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -3047,7 +3086,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | sum2_half;
                     ])
                 }
-                Thumb::Uhadd8(uhadd) => {
+                V7Operation::Uhadd8(uhadd) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -3070,7 +3109,7 @@ impl Convert for (usize, Thumb) {
                             rd = rd | sum4_shifted;
                     ])
                 }
-                Thumb::Uhasx(uhasx) => {
+                V7Operation::Uhasx(uhasx) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -3087,7 +3126,7 @@ impl Convert for (usize, Thumb) {
                             // TODO! Implement aspr.ge
                     ])
                 }
-                Thumb::Uhsax(uhsax) => {
+                V7Operation::Uhsax(uhsax) => {
                     consume!(
                         (
                             rn.local_into(),
@@ -3104,7 +3143,7 @@ impl Convert for (usize, Thumb) {
                             // TODO! Implement aspr.ge
                     ])
                 }
-                Thumb::Uhsub16(uhsub) => {
+                V7Operation::Uhsub16(uhsub) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
@@ -3120,27 +3159,27 @@ impl Convert for (usize, Thumb) {
 
                     ])
                 }
-                Thumb::Uhsub8(uhsub) => {
+                V7Operation::Uhsub8(uhsub) => {
                     consume!((
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
                             rm.local_into()
                             ) from uhsub);
                     pseudo!([
-                            let diff1 = rn<7:0> - rm<7:0>;
-                            let diff2 = rn<15:8> - rm<15:8>;
-                            let diff3 = rn<23:16> - rm<23:16>;
-                            let diff4 = rn<31:24> - rm<31:24>;
-                            rd = diff1<8:1>;
-                            let intermediate = diff2<8:1> << 8.local_into();
-                            rd = rd | intermediate;
-                            intermediate = diff3<8:1> << 16.local_into();
-                            rd = rd | intermediate;
-                            intermediate = diff4<8:1> << 24.local_into();
-                            rd = rd | intermediate;
+                        let diff1 = rn<7:0> - rm<7:0>;
+                        let diff2 = rn<15:8> - rm<15:8>;
+                        let diff3 = rn<23:16> - rm<23:16>;
+                        let diff4 = rn<31:24> - rm<31:24>;
+                        rd = diff1<8:1>;
+                        let intermediate = diff2<8:1> << 8.local_into();
+                        rd = rd | intermediate;
+                        intermediate = diff3<8:1> << 16.local_into();
+                        rd = rd | intermediate;
+                        intermediate = diff4<8:1> << 24.local_into();
+                        rd = rd | intermediate;
                     ])
                 }
-                Thumb::Umaal(umaal) => {
+                V7Operation::Umaal(umaal) => {
                     consume!(
                         (
                             rdlo.local_into(),
@@ -3150,16 +3189,16 @@ impl Convert for (usize, Thumb) {
                         ) from umaal
                         );
                     pseudo!([
-                            let result = rn*rm;
+                        let result = rn*rm;
 
-                            result = ZeroExtend(result,64) + ZeroExtend(rdlo,64);
-                            result = result + ZeroExtend(rdhi,64);
+                        result = ZeroExtend(result,64) + ZeroExtend(rdlo,64);
+                        result = result + ZeroExtend(rdhi,64);
 
-                            rdhi = result<63:32:u64>;
-                            rdlo = result<32:0:u64>;
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<32:0:u64>;
                     ])
                 }
-                Thumb::Umlal(umlal) => {
+                V7Operation::Umlal(umlal) => {
                     consume!(
                         (
                             rdlo.local_into(),
@@ -3169,20 +3208,20 @@ impl Convert for (usize, Thumb) {
                         ) from umlal
                         );
                     pseudo!([
-                            let result = rn*rm;
+                        let result = rn*rm;
 
-                            // Compose the rd
-                            let rd_composite= ZeroExtend(0.local_into(), 64);
-                            rd_composite = rdhi << 32.local_into();
-                            rd_composite = rd_composite | rdlo;
+                        // Compose the rd
+                        let rd_composite= ZeroExtend(0.local_into(), 64);
+                        rd_composite = rdhi << 32.local_into();
+                        rd_composite = rd_composite | rdlo;
 
-                            result = ZeroExtend(result,64) + rd_composite;
+                        result = ZeroExtend(result,64) + rd_composite;
 
-                            rdhi = result<63:32:u64>;
-                            rdlo = result<32:0:u64>;
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<32:0:u64>;
                     ])
                 }
-                Thumb::Umull(umull) => {
+                V7Operation::Umull(umull) => {
                     consume!(
                         (
                             rdlo.local_into(),
@@ -3192,122 +3231,114 @@ impl Convert for (usize, Thumb) {
                         ) from umull
                         );
                     pseudo!([
-                            let result = ZeroExtend(0.local_into(),64);
-                            result = ZeroExtend(rn,64)*ZeroExtend(rm,64);
-                            rdhi = result<63:32:u64>;
-                            rdlo = result<31:0:u64>;
+                        let result = ZeroExtend(0.local_into(),64);
+                        result = ZeroExtend(rn,64)*ZeroExtend(rm,64);
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<31:0:u64>;
                     ])
                 }
-                Thumb::Uqadd16(_) => todo!("TODO! Look in to saturating operators"),
-                Thumb::Uqadd8(_) => todo!("TODO! Look in to saturating operators"),
-                Thumb::Uqasx(_) => todo!("TODO! Look in to saturating"),
-                Thumb::Uqsax(_) => todo!("TODO! ^"),
-                Thumb::Uqsub16(_) => todo!("TODO! ^"),
-                Thumb::Uqsub8(_) => todo!("TODO! ^"),
-                Thumb::Uqsad8(_) => todo!("TODO! ^"),
-                Thumb::Usada8(_) => todo!("TODO! ^"),
-                Thumb::Usad8(_) => todo!("TODO! Look in to why ABS is needed here"),
-                Thumb::Usat(_) => todo!("TODO! Look in to why ABS is needed here"),
-                Thumb::Usat16(_) => todo!("TODO! Look in to SAT"),
-                Thumb::Usax(usax) => {
+                V7Operation::Uqadd16(_) => todo!("TODO! Look in to saturating operators"),
+                V7Operation::Uqadd8(_) => todo!("TODO! Look in to saturating operators"),
+                V7Operation::Uqasx(_) => todo!("TODO! Look in to saturating"),
+                V7Operation::Uqsax(_) => todo!("TODO! ^"),
+                V7Operation::Uqsub16(_) => todo!("TODO! ^"),
+                V7Operation::Uqsub8(_) => todo!("TODO! ^"),
+                V7Operation::Uqsad8(_) => todo!("TODO! ^"),
+                V7Operation::Usada8(_) => todo!("TODO! ^"),
+                V7Operation::Usad8(_) => todo!("TODO! Look in to why ABS is needed here"),
+                V7Operation::Usat(_) => todo!("TODO! Look in to why ABS is needed here"),
+                V7Operation::Usat16(_) => todo!("TODO! Look in to SAT"),
+                V7Operation::Usax(usax) => {
                     let (rn, rd, rm) = (usax.rn.local_into(), usax.rd.local_into(), usax.rm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
                     pseudo!([
-                            let sum = rn<15:0> + rm<31:16>;
-                            let diff = rn<31:16> - rm<15:0>;
-                            rd = sum<15:0>;
-                            diff = diff<15:0> << 16.local_into();
-                            rd = rd | diff;
-
-                            // TODO! Look in to the GE register setting
+                        let sum = rn<15:0> + rm<31:16>;
+                        let diff = rn<31:16> - rm<15:0>;
+                        rd = sum<15:0>;
+                        diff = diff<15:0> << 16.local_into();
+                        rd = rd | diff;
+                        // TODO! Look in to the GE register setting
                     ])
                 }
-                Thumb::Usub16(usub) => {
-                    // consume!(
-                    //     (
-                    //         rn.local_into(),
-                    //         rd.local_into().unwrap_or(rn.clone()),
-                    //         rm.local_into(),
-                    //     ) from usub
-                    // );
+                V7Operation::Usub16(usub) => {
                     let (rn, rd, rm) = (usub.rn.local_into(), usub.rd.local_into(), usub.rm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
 
                     pseudo!([
-                            let diff1 = rn<15:0> - rm<15:0>;
-                            let diff2 = rn<31:16> - rm<31:16>;
-                            rd = diff1<15:0>;
-                            diff2 = diff2<15:0> << 16.local_into();
-                            rd = rd | diff2;
+                        let diff1 = rn<15:0> - rm<15:0>;
+                        let diff2 = rn<31:16> - rm<31:16>;
+                        rd = diff1<15:0>;
+                        diff2 = diff2<15:0> << 16.local_into();
+                        rd = rd | diff2;
 
                             // TODO! Look in to the GE register setting
                     ])
                 }
-                Thumb::Usub8(_) => {
+                V7Operation::Usub8(_) => {
                     todo!("SIMD needs more work");
                 }
-                Thumb::Uxtab(uxtab) => {
+                V7Operation::Uxtab(uxtab) => {
                     let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
                     let rd = rd.unwrap_or(rn.clone());
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = rn + ZeroExtend(rotated<7:0>,32);
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn + ZeroExtend(rotated<7:0>,32);
                     ])
                 }
-                Thumb::Uxtab16(uxtab) => {
+                V7Operation::Uxtab16(uxtab) => {
                     let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
                     let rd = rd.unwrap_or(rn.clone());
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = rn<15:0> + ZeroExtend(rotated<7:0>,32);
-                            let intermediate = rn<31:16> + ZeroExtend(rotated<23:16>,32);
-                            intermediate = intermediate<15:0> << 16.local_into();
-                            rd = rd<15:0> | intermediate;
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn<15:0> + ZeroExtend(rotated<7:0>,32);
+                        let intermediate = rn<31:16> + ZeroExtend(rotated<23:16>,32);
+                        intermediate = intermediate<15:0> << 16.local_into();
+                        rd = rd<15:0> | intermediate;
                     ])
                 }
-                Thumb::Uxtah(uxtah) => {
+                V7Operation::Uxtah(uxtah) => {
                     let (rn, rd, rm, rotation) = (uxtah.rn.local_into(), uxtah.rd.local_into(), uxtah.rm.local_into(), uxtah.rotation.unwrap_or(0));
                     let rd = rd.unwrap_or(rn.clone());
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = rn + ZeroExtend(rotated<15:0>,32);
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn + ZeroExtend(rotated<15:0>,32);
                     ])
                 }
-                Thumb::Uxtb(uxtb) => {
+                V7Operation::Uxtb(uxtb) => {
                     let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = ZeroExtend(rotated<7:0>,32);
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<7:0>,32);
                     ])
                 }
-                Thumb::Uxtb16(uxtb) => {
+                V7Operation::Uxtb16(uxtb) => {
                     let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
                     let rd = rd.unwrap_or(rm.clone());
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = ZeroExtend(rotated<7:0>,32);
-                            rotated = rotated<23:16> << 16.local_into();
-                            rd = rd | rotated;
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<7:0>,32);
+                        rotated = rotated<23:16> << 16.local_into();
+                        rd = rd | rotated;
                     ])
                 }
-                Thumb::Uxth(uxth) => {
+                V7Operation::Uxth(uxth) => {
                     let (rd, rm, rotation) = (uxth.rd.local_into(), uxth.rm.local_into(), uxth.rotation.unwrap_or(0));
                     pseudo!([
-                            let rotated = Ror(rm,rotation.local_into());
-                            rd = ZeroExtend(rotated<16:0>,32);
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<16:0>,32);
                     ])
                 }
-                Thumb::Wfe(_) => todo!("This requires extensive system modelling"),
-                Thumb::Wfi(_) => todo!("This requires extensive system modelling"),
-                Thumb::Yield(_) => todo!("This requires extensive system modelling"),
-                Thumb::Svx(_) => todo!(),
-                Thumb::Stc(_) => todo!(),
-                Thumb::Mcr(_) => todo!(),
-                Thumb::Mrc(_) => todo!(),
-                Thumb::Mrrc(_) => todo!(),
-                Thumb::Mcrr(_) => todo!(),
-                Thumb::Cdp(_) => todo!(),
-                Thumb::Ldc(_) => todo!(),
+                V7Operation::Wfe(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Wfi(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Yield(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Svx(_) => todo!(),
+                V7Operation::Stc(_) => todo!(),
+                V7Operation::Mcr(_) => todo!(),
+                V7Operation::Mrc(_) => todo!(),
+                V7Operation::Mrrc(_) => todo!(),
+                V7Operation::Mcrr(_) => todo!(),
+                V7Operation::Cdp(_) => todo!(),
+                V7Operation::Ldc(_) => todo!(),
             }
         }
     }

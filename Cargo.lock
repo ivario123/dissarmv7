@@ -24,7 +24,7 @@ checksum = "91197b4526cc9706ace5dd44334605a8bfdb826f879b844ce9d73d51ee56f11d"
 
 [[package]]
 name = "dissarmv7"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "arch",
  "builder_derive",

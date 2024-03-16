@@ -175,7 +175,7 @@ macro_rules! instruction {
 /// ## Usage
 ///
 /// ```
-/// use dissarmv7::combine;
+/// use disarmv7::combine;
 ///
 /// let i: u8 = 1;
 /// let imm2: u8 = 2;

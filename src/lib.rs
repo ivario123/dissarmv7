@@ -6,6 +6,7 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
+#![deny(rustdoc::all)]
 
 pub mod buffer;
 #[rustfmt::skip]
@@ -13,10 +14,7 @@ pub mod decoder;
 
 pub(crate) mod asm;
 
-/// Internal helpers
 mod helpers;
-// #[cfg(test)]
-// mod test;
 
 use std::fmt::Debug;
 
@@ -78,7 +76,7 @@ pub trait Parse {
     type Target;
     /// Converts the stream in to an instance of [`Target`](Parse::Target).
     ///
-    /// If the parsing is successfull it [`consumes`](Consume) a number
+    /// If the parsing is successful it [`consumes`](Consume) a number
     /// of elements from the [`Stream`]. If it does not successfully
     /// parse an element no elements are consumed from the stream.
     fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
@@ -100,16 +98,16 @@ pub enum ParseError {
 
     /// Thrown when there is no matching 16 bit instruction
     ///
-    /// Occured while parsing the block in question
+    /// Occurred while parsing the block in question
     Invalid16Bit(&'static str),
 
     /// Thrown when there is no matching 32 bit instruction
     ///
-    /// Occured while parsing the block in question
+    /// Occurred while parsing the block in question
     Invalid32Bit(&'static str),
 
     /// Thrown when there is no matching
-    Inclomplete32Bit,
+    Incomplete32Bit,
 
     /// Thrown when a field in an identifier is incorrect
     InvalidField(String),
@@ -117,8 +115,8 @@ pub enum ParseError {
     /// Thrown when a target register does not exist.
     InvalidRegister(u8),
 
-    /// Thrown when an unpredicatable instruction is used
-    Unpredicatable,
+    /// Thrown when an unpredictable instruction is used
+    Unpredictable,
 
     /// Thrown when an undefined instruction is used
     Undefined,

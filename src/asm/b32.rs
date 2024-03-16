@@ -58,11 +58,7 @@ impl B32 {
         let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
         let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
         let op = word.mask::<15, 15>();
-        // println!("
-        //          op1 : {op1:02b}
-        //          op2 : {op2:07b}
-        //          op  : {op:01b}
-        //          ");
+
         if op1 > 3 {
             println!("{op1} > 3");
             return Err(ParseError::InternalError("Masking is broken op1 > 3"));
@@ -71,6 +67,7 @@ impl B32 {
             println!("{op} > 3");
             return Err(ParseError::InternalError("Masking is broken op > 1"));
         }
+
         if op1 == 1 {
             if ((op2 >> 2) & 0b11001) == 0b00000 {
                 return Ok(a5_16::A5_16::parse(iter)?.encoding_specific_operations());
@@ -95,9 +92,11 @@ impl B32 {
             }
             return Ok(a5_13::A5_13::parse(iter)?.encoding_specific_operations());
         }
+
         if (op2 & 0b1110001) == 0b0000000 {
             return Ok(a5_21::A5_21::parse(iter)?.encoding_specific_operations());
         }
+
         match op2 & 0b1100111 {
             0b0000001 => return Ok(a5_20::A5_20::parse(iter)?.encoding_specific_operations()),
             0b0000011 => return Ok(a5_19::A5_19::parse(iter)?.encoding_specific_operations()),
@@ -105,15 +104,19 @@ impl B32 {
             0b0000111 => return Err(ParseError::Undefined),
             _ => {}
         }
+
         if op2 >> 4 == 2 {
             return Ok(a5_24::A5_24::parse(iter)?.encoding_specific_operations());
         }
+
         if op2 >> 3 == 0b0110 {
             return Ok(a5_28::A5_28::parse(iter)?.encoding_specific_operations());
         }
+
         if op2 >> 3 == 0b0111 {
             return Ok(a5_29::A5_29::parse(iter)?.encoding_specific_operations());
         }
+        
         if op2 >> 6 == 1 {
             println!(
                 "

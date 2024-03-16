@@ -143,10 +143,10 @@ impl Parse for A5_20 {
                     return Ok(Self::PldImmediateT2(PldImmediateT2::parse(iter)?));
                 }
                 if (op2 >> 2) == 0b1110 {
-                    return Err(ParseError::Unpredicatable);
+                    return Err(ParseError::Unpredictable);
                 }
                 if (op2 & 0b100100) == 0b100100 {
-                    return Err(ParseError::Unpredicatable);
+                    return Err(ParseError::Unpredictable);
                 }
                 return Err(ParseError::Invalid32Bit("A5_20"));
             }

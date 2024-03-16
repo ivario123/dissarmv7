@@ -80,15 +80,3 @@ impl Parse for B16 {
         Ok((16, ret))
     }
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::mask;
-//     #[test]
-//     fn test_mask() {
-//         assert!(mask::<0, 3>(0b11111) == mask::<0, 3>(0b01111));
-//         assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b01110));
-//         assert!(mask::<0, 3>(0b11111) != mask::<0, 3>(0b00111));
-//         assert!(mask::<1, 3>(0b11111) == mask::<1, 3>(0b11110));
-//     }
-// }

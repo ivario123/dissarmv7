@@ -1,3 +1,4 @@
+//! Defines the [`Condition`] codes that are defined in the system.
 use crate::ArchError;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -11,7 +12,7 @@ pub enum Condition {
     Cs,
     /// Carry clear, C == 0
     Cc,
-    // Minus, negative N == 1
+    /// Minus, negative N == 1
     Mi,
     /// Plus, positive or zero, N >= 0
     Pl,
@@ -33,6 +34,21 @@ pub enum Condition {
     Le,
     /// Unconditional
     None,
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+/// If then Else block
+/// 
+/// This type defines how to [`Parse`](ITCondition::parse)
+/// the condition vector from a base [`Condition`] and a mask.
+pub struct ITCondition {
+    /// The conditions that need to be satisfied for
+    /// the next few instructions to be executed.
+    /// 
+    /// i.e. to execute instruction `i` the condition
+    /// `conditions[i]` must evaluate to true.
+    pub conditions: Vec<Condition>,
 }
 
 impl Condition {
@@ -57,10 +73,6 @@ impl Condition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ITCondition {
-    pub conditions: Vec<Condition>,
-}
 
 impl From<(Condition, u8)> for ITCondition {
     fn from(value: (Condition, u8)) -> Self {
@@ -84,6 +96,7 @@ impl From<ITCondition> for Vec<Condition> {
         val.conditions
     }
 }
+
 impl TryFrom<u8> for Condition {
     type Error = ArchError;
 
@@ -108,6 +121,7 @@ impl TryFrom<u8> for Condition {
         })
     }
 }
+
 impl TryFrom<u16> for Condition {
     type Error = ArchError;
 

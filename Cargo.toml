@@ -1,6 +1,5 @@
-workspace = { members = [ "arch", "operation"] }
 [package]
-name = "dissarmv7"
+name = "disarmv7"
 version = "0.0.1"
 edition = "2021"
 

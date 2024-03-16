@@ -185,7 +185,7 @@ impl Parse for A5_22 {
         );
         if op == 0 {
             if rd == 0b1111 && !s {
-                return Err(ParseError::Unpredicatable);
+                return Err(ParseError::Unpredictable);
             }
             if rd != 0b1111 {
                 return Ok(Self::And(And::parse(iter)?));
@@ -215,7 +215,7 @@ impl Parse for A5_22 {
             }
             return match s {
                 true => Ok(Self::Teq(Teq::parse(iter)?)),
-                false => Err(ParseError::Unpredicatable),
+                false => Err(ParseError::Unpredictable),
             };
         }
         if op == 6 {
@@ -226,7 +226,7 @@ impl Parse for A5_22 {
                 return Ok(Self::Add(Add::parse(iter)?));
             }
             if !s {
-                return Err(ParseError::Unpredicatable);
+                return Err(ParseError::Unpredictable);
             }
             return Ok(Self::Cmn(Cmn::parse(iter)?));
         }
@@ -241,7 +241,7 @@ impl Parse for A5_22 {
                 return Ok(Self::Sub(Sub::parse(iter)?));
             }
             if !s {
-                return Err(ParseError::Unpredicatable);
+                return Err(ParseError::Unpredictable);
             }
             return Ok(Self::Cmp(Cmp::parse(iter)?));
         }

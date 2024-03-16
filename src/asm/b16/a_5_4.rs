@@ -39,29 +39,37 @@ impl Parse for A5_4 {
             Some(b) => Ok(b),
             None => Err(ParseError::IncompleteProgram),
         }?;
+
         let second_byte = match iter.peek::<2>() as Option<u8> {
             Some(b) => Ok(b),
             None => Err(ParseError::IncompleteProgram),
         }?;
+
         let op = ((first_byte & 0b11) << 2) | (second_byte >> 6);
         if op & 0b1100 == 00 {
             return Ok(Self::Add(Add::parse(iter)?));
         }
+
         if op == 0b0100 {
-            return Err(ParseError::Unpredicatable);
+            return Err(ParseError::Unpredictable);
         }
+
         if op == 0b0101 || op & 0b1110 == 0b0110 {
             return Ok(Self::Cmp(Cmp::parse(iter)?));
         }
+
         if op & 0b1100 == 0b1000 {
             return Ok(Self::Mov(Mov::parse(iter)?));
         }
+
         if op & 0b1110 == 0b1100 {
             return Ok(Self::Bx(Bx::parse(iter)?));
         }
+
         if op & 0b1110 == 0b1110 {
             return Ok(Self::Blx(Blx::parse(iter)?));
         }
+
         Err(ParseError::Invalid16Bit("A5_4"))
     }
 }

@@ -22,7 +22,7 @@ disarmv7 = {git = "https://github.com/ivario123/disarmv7"}
 
 ### Using the library
 
-Assuming that you have placed the instructions in an slice of `u8`s (buff) you can call the disassembler like this
+Assuming that you have placed the instructions in an slice of `u8`s (buff) you can call the disassembler like this :
 
 ```rust
 use disarmv7::prelude::*;
@@ -34,12 +34,12 @@ println!("Assembly : {asm:?}");
 
 ## Limitations
 
-This project does not load binaries, nor does it generate a textual representation of the assembly, this is outside of the scope for the project,
-and for things that require textual representations of the program we refer the user to projects like [Capstone](https://github.com/capstone-engine/capstone) which provide a more complete experience.
+This project does not load binaries, nor does it generate a textual representation of the assembly, this is outside of the scope for the project.
+And for things that require textual representations of the program we refer the user to projects like [Capstone](https://github.com/capstone-engine/capstone) which provide a more complete experience.
 
 ## Contributing
 
-If you find this project interesting and or useful feel free to contributing by either the finding an open issue in the [issue tracker](https://github.com/ivario123/dissarmv7/issues) or opening a [`PR`](https://github.com/ivario123/dissarmv7/pulls) with fixes or features that you find useful.
+If you find this project interesting and or useful feel free to contribute by either finding an open issue in the [issue tracker](https://github.com/ivario123/dissarmv7/issues) or opening a [`PR`](https://github.com/ivario123/dissarmv7/pulls) with fixes or features that you find useful.
 Before contributing you should read the short [documentation](./CONTRIBUTING.md) on contributions.
 
 ## License

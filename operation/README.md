@@ -4,7 +4,7 @@
 
 This crate defines the high level representation of the parsed instructions from [`disarmv7`](../).
 Moreover it exports Builders and what we are calling a consumer which ensures that all fields of a struct are extracted,
-this is probably not generally useable but in this case it ensures that the translators are explicit about that fields are not used.
+this is probably not generally useable but in this case it ensures that the translators are explicit about what fields are not used.
 
 ## Syntax
 

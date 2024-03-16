@@ -1,6 +1,6 @@
 use crate::ArchError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Derived from section A7.3
 pub enum Condition {
     /// Exactly equal to, z == 1
@@ -13,7 +13,7 @@ pub enum Condition {
     Cc,
     // Minus, negative N == 1
     Mi,
-    /// Plus, positive or zero, N == 0
+    /// Plus, positive or zero, N >= 0
     Pl,
     /// Overflow, V  == 1
     Vs,
@@ -35,8 +35,58 @@ pub enum Condition {
     None,
 }
 
+impl Condition {
+    fn invert(&self) -> Self {
+        match self {
+            Self::Eq => Self::Ne,
+            Self::Ne => Self::Eq,
+            Self::Cs => Self::Cc,
+            Self::Cc => Self::Cs,
+            Self::Mi => Self::Pl,
+            Self::Pl => Self::Mi,
+            Self::Vs => Self::Vc,
+            Self::Vc => Self::Vs,
+            Self::Hi => Self::Ls,
+            Self::Ls => Self::Hi,
+            Self::Ge => Self::Lt,
+            Self::Lt => Self::Ge,
+            Self::Gt => Self::Le,
+            Self::Le => Self::Gt,
+            Self::None => Self::None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ITCondition {
+    pub conditions: Vec<Condition>,
+}
+
+impl From<(Condition, u8)> for ITCondition {
+    fn from(value: (Condition, u8)) -> Self {
+        let mut conditions = Vec::with_capacity(4);
+        let mut mask = value.1;
+        let cond = value.0;
+        for _i in 0..3 {
+            if mask & 0b1 == 1 {
+                conditions.push(cond.clone());
+            } else {
+                conditions.push(cond.invert());
+            }
+            mask >>= 1;
+        }
+        Self { conditions }
+    }
+}
+
+impl From<ITCondition> for Vec<Condition> {
+    fn from(val: ITCondition) -> Self {
+        val.conditions
+    }
+}
 impl TryFrom<u8> for Condition {
     type Error = ArchError;
+
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(match value {
             0b0 => Self::Eq,
@@ -60,6 +110,7 @@ impl TryFrom<u8> for Condition {
 }
 impl TryFrom<u16> for Condition {
     type Error = ArchError;
+
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         Self::try_from(value as u8)
     }

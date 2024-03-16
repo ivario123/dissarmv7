@@ -1,11 +1,3425 @@
-use crate::prelude::{Condition, ImmShift, Register, RegisterList, Shift, Thumb};
-use general_assembly::operand::DataWord;
+#![allow(missing_docs)]
 use general_assembly::{
-    condition::Condition as GACondition, operand::Operand, operation::Operation,
+    condition::Condition,
+    operand::{DataWord, Operand},
+    operation::Operation,
     shift::Shift as GAShift,
 };
 use paste::paste;
 use transpiler::pseudo;
+
+use crate::prelude::{Condition as ARMCondition, ImmShift, Register, Shift, Operation as V7Operation};
+
+macro_rules! consume {
+    (($($id:ident$($(.$e:expr)+)?),*) from $name:ident) => {
+        #[allow(unused_parens)]
+        let ($($id),*) = {
+            paste!(
+                let consumer = $name.consumer();
+                $(
+                    let ($id,consumer) = consumer.[<consume_ $id>]();
+                    $(let $id = $id$(.$e)+;)?
+                )*
+                consumer.consume();
+            );
+            ($($id),*)
+        };
+    };
+}
+macro_rules! shift {
+    ($ret:ident.$shift:ident $reg:ident -> $target:ident $(set c for $reg_flag:ident)?) => {
+       if let Some(shift) = $shift {
+            let (shift_t, shift_n) = (
+                    shift.shift_t.local_into(),
+                    (shift.shift_n as u32).local_into(),
+            );
+            $ret.push(
+                Operation::Shift {
+                    destination: $target.clone(),
+                    operand: $reg.clone(),
+                    shift_n: shift_n.clone(),
+                    shift_t: shift_t.clone(),
+            });
+            $($ret.push( match shift_t{
+                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Rrx => todo!(),
+                GAShift::Ror => todo!()
+            });)?
+
+       }
+       else {
+
+            $ret.push(
+                Operation::Move{
+                    destination:$target.clone(),
+                    source:$reg.clone()
+                });
+
+       }
+    };
+}
+macro_rules! shift_imm {
+    ($ret:ident.($shift_t:ident,$($shift_n_const:literal)?$($shift_n:ident)?) $reg:ident -> $target:ident $(set c for $reg_flag:ident)?) => {
+        {
+            let (shift_t, shift_n) = (
+                    $shift_t,
+                    $($shift_n)?$($shift_n_const)?,
+            );
+            $($ret.push( match shift_t{
+                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Rrx => todo!(),
+                GAShift::Ror => todo!()
+            });)?
+            $ret.push(
+                Operation::Shift {
+                    destination: $target.clone(),
+                    operand: $reg.clone(),
+                    shift_n,
+                    shift_t,
+            })
+        }
+    };
+}
+
+macro_rules! local {
+    ($($id:ident),*) => {
+        $(
+            let $id = Operand::Local(stringify!($id).to_owned());
+        )*
+    };
+}
+
+
+pub trait Convert {
+    fn convert(self) -> Vec<Operation>;
+}
+impl Convert for (usize, V7Operation) {
+    fn convert(self) -> Vec<Operation> {
+        'outer_block: {
+            match self.1 {
+                V7Operation::AdcImmediate(adc) => {
+                    // Ensure that all fields are used
+                    consume!((s.unwrap_or(false),rd,rn,imm) from adc);
+                    let (rd, rn, imm): (
+                        Option<Operand>,
+                        Operand,
+                        Operand
+                    ) = (
+                        rd.local_into(),
+                        rn.local_into(),
+                        imm.local_into()
+                    );
+                    let rd = rd.unwrap_or(rn.clone());
+                    pseudo!([
+                        let result = rn adc imm;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            SetCFlag(rn,imm,adc);
+                            SetVFlag(rn,imm,adc);
+                        }
+                        rd = result;
+                    ])
+                }
+                V7Operation::AdcRegister(adc) => {
+                    consume!((s.unwrap_or(false),rd,rn,rm,shift) from adc);
+                    let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
+                    let rd = rd.unwrap_or(rn.clone());
+                    local!(shifted);
+                    let mut ret = vec![];
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(ret.extend[
+                        let result = rn adc shifted;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            SetCFlag(rn,shifted,adc);
+                            SetVFlag(rn,shifted,adc);
+                        }
+                        rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::AddImmediate(add) => {
+                    consume!((
+                          s.unwrap_or(false),
+                          rd,
+                          rn,
+                          imm
+                          ) from add);
+                    let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
+                    pseudo!([
+                        let result = imm + rn;
+                        rd = result;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            Flag("c") = 0.local_into();
+                            SetCFlag(imm,rn,add);
+                            SetVFlag(imm,rn,add);
+                        }
+                    ])
+                }
+                V7Operation::AddRegister(add) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from add
+                    );
+                    let should_jump = match rd {
+                        Some(Register::PC) => true,
+                        None =>matches!(rn, Register::PC),
+                        _ => false,
+                    };
+
+                    let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
+                    let rd = rd.unwrap_or(rn.clone());
+
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(ret.extend[
+                        let result = shifted + rn;
+                        if (should_jump) {
+                            Jump(result);
+                        } else {
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                                Flag("c") = 0.local_into();
+                                SetCFlag(shifted,rn,add);
+                                SetVFlag(shifted,rn,add);
+                            }
+                            rd = result;
+                        }
+                    ]);
+                    ret
+                }
+                V7Operation::AddSPImmediate(add) => {
+                    consume!((
+                            s.unwrap_or(false),
+                            rd,
+                            imm
+                        ) from add
+                    );
+                    let (rd, imm) = (
+                        rd.unwrap_or(Register::SP).local_into(),
+                        imm.local_into()
+                    );
+
+                    pseudo!([
+                        let result = Register("SP&") + imm;
+                        
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            SetCFlag(Register("SP&"),imm,add);
+                            SetVFlag(Register("SP&"),imm,add);
+                        }
+                        rd = result;
+                    ])
+                }
+                V7Operation::AddSPRegister(add) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rm,
+                            rd,
+                            shift
+                        ) from add
+                    );
+                    let rd = rd.unwrap_or(rm);
+                    let s = match rd {
+                        Register::PC => false,
+                        _ => s,
+                    };
+                    let (rd, rm) = (
+                        rd.local_into(),
+                        rm.local_into()
+                    );
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(ret.extend[
+                        let result = Register("SP&") + shifted;
+                        
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            SetCFlag(Register("SP&"),shifted,add);
+                            SetVFlag(Register("SP&"),shifted,add);
+                        }
+                        rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::Adr(adr) => {
+                    consume!((rd,imm,add) from adr);
+                    let (rd, imm) = (rd.local_into(), imm.local_into());
+                    pseudo!([
+                        // Alling to 4
+                        let aligned = Register("PC+")  / 4.local_into();
+                        aligned = aligned * 4.local_into();
+
+                        let result = aligned - imm;
+                        if (add) {
+                            result = aligned + imm;
+                        }
+                        rd = result;
+                    ])
+                }
+                V7Operation::AndImmediate(and) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            imm.local_into(),
+                            carry
+                        ) from and
+                    );
+                    pseudo!([
+
+                            let result = rn & imm;
+                            rd = result;
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                            }
+                            if (s && carry.is_some()){
+                                Flag("c") = (carry.unwrap() as u32).local_into();
+                            }
+                    ])
+                }
+                V7Operation::AndRegister(and) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from and
+                    );
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted set c for rm);
+                    pseudo!(ret.extend[
+                        let result = rn & shifted;
+
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                        }
+                        rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::AsrImmediate(asr) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rm,
+                            imm
+                        ) from asr
+                    );
+                    let (rd, rm, imm) = (rd.local_into(), rm.local_into(), imm.local_into());
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                        let result = rm asr imm;
+                    ]);
+                    
+                    if s {
+                        pseudo!(ret.extend[
+                            SetZFlag(result);
+                            SetNFlag(result);
+                        ]);
+                        ret.push(Operation::SetCFlagSra{
+                            operand: rm,
+                            shift: imm
+                        });
+                    }
+                    pseudo!(ret.extend[
+                        rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::AsrRegister(asr) => {
+                    consume!((s,rd,rm,rn) from asr);
+                    let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                        let shift_n = rm<7:0>;
+                        let result = rn asr rm;
+                    ]);
+                    
+                    if let Some(true) = s {
+                        pseudo!(ret.extend[
+                            SetZFlag(result);
+                            SetNFlag(result);
+                        ]);
+                        ret.push(Operation::SetCFlagSra{
+                            operand: rn,
+                            shift: shift_n
+                        });
+                    }
+                    pseudo!(ret.extend[
+                        rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::B(b) => {
+                    consume!((condition,imm) from b);
+                    let (condition, imm) = (condition.local_into(), imm.local_into());
+                    pseudo!([
+                        let target = Register("PC+") + imm;
+                        target = target<31:1> << 1.local_into();
+                        Jump(target,condition);
+                    ])
+                }
+                V7Operation::Bfc(bfc) => {
+                    consume!((rd,lsb,msb) from bfc);
+                    let rd = rd.local_into();
+                    let mask = !mask_dyn(lsb, msb);
+                    vec![
+                        Operation::And { 
+                            destination: rd.clone(), 
+                            operand1: rd,
+                            operand2: Operand::Immidiate(DataWord::Word32(mask)) 
+                        }
+                    ]
+                }
+                V7Operation::Bfi(bfi) => {
+                    consume!((rd,rn,lsb,msb) from bfi);
+                    let (rd, rn) = (rd.local_into(), rn.local_into());
+                    let diff = msb - lsb;
+                    pseudo!([
+                        // Assume happy case here
+                        let mask = ((diff - 1) << lsb).local_into();
+                        mask = ! mask;
+                        rd = rd & mask;
+                        let intermediate = rn<diff:0> << lsb.local_into();
+                        rd = rd | intermediate;
+                    ])
+                }
+                V7Operation::BicImmediate(bic) => {
+                    consume!((s.unwrap_or(false),rd,rn,imm,carry) from bic);
+                    let (rd, rn, imm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), imm.local_into());
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+
+                            let result = !imm;
+                            result = rn & result;
+                            rd = result;
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                            }
+                    ]);
+                    if s {
+                        if let Some(flag) = carry {
+                            let flag: u32 = flag as u32;
+                            pseudo!(ret.extend[
+                                Flag("c") = flag.local_into();
+                            ]);
+                        }
+                    }
+                    ret
+                }
+                V7Operation::BicRegister(bic) => {
+                    consume!((
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from bic
+                    );
+
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
+                    let mut ret = vec![];
+                    local!(shifted);
+
+                    shift!(ret.shift rm -> shifted set c for shifted);
+
+                    pseudo!(ret.extend[
+                       let result = !shifted;
+                       result &= rn;
+                       if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                       }
+                       rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::Bkpt(_) => vec![Operation::Nop],
+                V7Operation::Bl(bl) => {
+                    consume!((imm) from bl);
+                    let imm = imm.local_into();
+
+                    pseudo!([
+                            let next_instr_addr = Register("PC+");
+                            Register("LR") = next_instr_addr<31:1> << 1.local_into();
+                            Register("LR") |= 0b1.local_into();
+                            next_instr_addr = Register("PC+") + imm;
+                            next_instr_addr = next_instr_addr<31:1> << 1.local_into();
+                            Jump(next_instr_addr);
+                    ])
+                }
+                V7Operation::Blx(blx) => {
+                    consume!((rm) from blx);
+                    let rm = rm.local_into();
+                    pseudo!([
+                        let target = rm;
+                        let next_instr_addr = Register("PC+") - 2.local_into();
+                        Register("LR") = next_instr_addr<31:1> << 1.local_into();
+                        Register("LR") |= 1.local_into();
+                        Register("EPSR") = Register("EPSR") | (1 << 27).local_into();
+                        target = target<31:1> << 1.local_into();
+                        Register("PC") = target;
+                    ])
+                }
+
+                V7Operation::Bx(bx) => {
+                    let rm = bx.rm.local_into();
+                    pseudo!([
+                        let next_addr = rm;
+                        next_addr = next_addr<31:1> << 1.local_into();
+                        Register("PC+") = next_addr;
+                    ])
+                }
+                V7Operation::Cbz(cbz) => {
+                    consume!((
+                        non.unwrap_or(false), 
+                        rn.local_into(),
+                        imm
+                        ) from cbz);
+                    let imm = imm.local_into();
+
+                    let cond = match non {
+                        false => Condition::EQ,
+                        true => Condition::NE,
+                    };
+                    pseudo!([
+                        SetZFlag(rn);
+                        let dest = Register("PC+") + imm;
+                        dest = dest<31:1> << 1.local_into();
+                        Jump(dest,cond);
+                    ])
+                }
+                V7Operation::Clrex(_) => todo!("This should not be needed for now"),
+                V7Operation::Clz(_clz) => {
+                    todo!()
+                }
+                V7Operation::CmnImmediate(cmn) => {
+                    consume!((rn,imm) from cmn);
+                    let (rn, imm) = (rn.local_into(), imm.local_into());
+                    pseudo!([
+                        let result = rn + imm;
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetCFlag(rn,imm,false,false);
+                        SetVFlag(rn,imm,false,false);
+                    ])
+                }
+                V7Operation::CmnRegister(cmn) => {
+                    consume!((rn,rm,shift) from cmn);
+                    let (rn, rm) = (rn.local_into(), rm.local_into());
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(ret.extend[
+                        let result = rn + shifted;
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetCFlag(rn,shifted,false,false);
+                        SetVFlag(rn,shifted,false,false);
+                    ]);
+                    ret
+                }
+                V7Operation::CmpImmediate(cmp) => {
+                    consume!((rn,imm) from cmp);
+                    let (rn, imm) = (rn.local_into(), imm.local_into());
+                    pseudo!([
+                        let result = rn - imm;
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetCFlag(rn,imm,true,false);
+                        SetVFlag(rn,imm,true,false);
+                    ])
+                }
+                V7Operation::CmpRegister(cmp) => {
+                    consume!((rn,rm,shift) from cmp);
+                    let (rn, rm) = (rn.local_into(), rm.local_into());
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(ret.extend[
+                        let result = rn - shifted;
+                        SetNFlag(result);
+                        SetZFlag(result);
+                        SetCFlag(rn,shifted,true,false);
+                        SetVFlag(rn,shifted,true,false);
+                    ]);
+                    ret
+                }
+                V7Operation::Cps(cps) => {
+                    consume!((enable,disable,affect_pri,affect_fault) from cps);
+                    assert!(enable != disable);
+                    let mut ret = Vec::with_capacity(1);
+                    if enable {
+                        if affect_pri {
+                            // force lsb to 0
+                            ret.push(
+                                Operation::And { 
+                                    destination: SpecialRegister::PRIMASK.local_into(),
+                                    operand1: SpecialRegister::PRIMASK.local_into(),
+                                    operand2: ((!(0b1u32)).local_into()) 
+                                }
+                            )
+                        }
+                        if affect_fault {
+                            // force lsb to 0
+                            ret.push(
+                                Operation::And { 
+                                    destination: SpecialRegister::FAULTMASK.local_into(),
+                                    operand1: SpecialRegister::FAULTMASK.local_into(),
+                                    operand2: ((!(0b1u32)).local_into()) 
+                                }
+                            )
+                        }
+                    } else {
+                        if affect_pri {
+                            // force lsb to 1
+                            ret.push(
+                                Operation::And { 
+                                    destination: SpecialRegister::PRIMASK.local_into(), 
+                                    operand1: SpecialRegister::PRIMASK.local_into(), 
+                                    operand2: ((0b1u32).local_into()) 
+                                }
+                            )
+                        }
+                        if affect_fault {
+                            // force lsb to 1
+                            ret.push(
+                                Operation::And {
+                                    destination: SpecialRegister::FAULTMASK.local_into(),
+                                    operand1: SpecialRegister::FAULTMASK.local_into(),
+                                    operand2: ((0b1u32).local_into()) 
+                                }
+                            )
+                        }
+                    }
+                    ret
+                }
+                V7Operation::Dbg(_) => vec![Operation::Nop],
+                V7Operation::Dmb(_) => {
+                    // todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
+                    vec![Operation::Nop]
+                }
+                V7Operation::Dsb(_) => {
+                    // todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
+                    vec![Operation::Nop]
+                }
+                V7Operation::EorImmediate(eor) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            imm.local_into(),
+                            carry
+                        ) from eor
+                    );
+                    pseudo!([
+                        let result = rn ^ imm;
+                        rd = result;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                        }
+                        if (s && carry.is_some()){
+                            Flag("c") = (carry.unwrap() as u32).local_into();
+                        }
+                    ])
+                }
+                V7Operation::EorRegister(eor) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from eor
+                    );
+                    let (rd, rn, rm) = (rd.unwrap_or(rn).local_into(), rn.local_into(), rm.local_into());
+                    let mut ret = Vec::with_capacity(10);
+                    local!(shifted);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted)
+                    };
+                    pseudo!(ret.extend[
+                        let result = rn ^ shifted;
+                        
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                        }
+                        rd = result;
+                    ]);
+                    ret
+
+                }
+                V7Operation::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
+                V7Operation::It(it) => vec![
+                    Operation::ConditionalExecution { 
+                        conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect() 
+                    }
+                ],
+                V7Operation::Ldm(ldm) => {
+                    consume!((
+                            rn,
+                            w.unwrap_or(false),
+                            registers
+                        ) from ldm
+                    );
+
+                    let w = w && !registers.regs.contains(&rn);
+                    let rn = rn.local_into();
+
+                    let bc = registers.regs.len() as u32;
+                    let mut contained = false;
+                    let mut to_read: Vec<Operand> = vec![];
+                    for reg in registers.regs.into_iter() {
+                        if reg == Register::PC {
+                            contained = true;
+                        } else {
+                            to_read.push(reg.local_into());
+                        }
+                    }
+                    pseudo!([
+                        let address = rn;
+                        for reg in to_read.into_iter() {
+                            reg = LocalAddress(address,32);
+                            address += 4.local_into();
+                        }
+                        if (contained) {
+                            Jump(LocalAddress(address,4));
+                        }
+                        if (w) {
+                            rn += (4*bc).local_into();
+                        }
+                    ])
+                }
+                V7Operation::Ldmdb(ldmdb) => {
+                    consume!((rn,w,registers) from ldmdb);
+                    let rn_old = rn;
+                    let rn = rn.local_into();
+                    let mut ret = Vec::with_capacity(15);
+                    let address_setter = Operand::Local("address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 32);
+                    ret.push(
+                        Operation::Sub { 
+                            destination: address_setter.clone(),
+                            operand1: rn.clone(),
+                            operand2: (4 * (registers.regs.len() as u32)).local_into() 
+                        }
+                    );
+                    let mut write_back = w.unwrap_or(false);
+                    for register in &registers.regs {
+                        if *register == rn_old {
+                            write_back = false;
+                        }
+                        ret.extend([
+                                   Operation::Move { 
+                                       destination: register.local_into(), 
+                                       source: address.clone()
+                                   },
+                                   Operation::Add {
+                                       destination: address_setter.clone(),
+                                       operand1: address_setter.clone(),
+                                       operand2: 4.local_into()
+                                   }]);
+                    }
+                    if write_back {
+                        ret.push(
+                            Operation::Sub {
+                                destination: rn.clone(),
+                                operand1: rn.clone(),
+                                operand2: (4 * (registers.regs.len() as u32)).local_into()
+                            }
+                        );
+                    }
+                    ret
+                }
+                V7Operation::LdrImmediate(ldr) => {
+                    consume!((index,add,w.unwrap_or(false),rt,rn,imm) from ldr);
+                    let old_rt = rt;
+                    let is_sp = old_rt == Register::PC;
+                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
+
+ 
+                    pseudo!([
+                        let offset_addr = rn-imm;
+                        if (add) {
+                            offset_addr = rn + imm;
+                        }
+                        let address = rn;
+                        if (index) {
+                            address = offset_addr;
+                        }
+                        let data = LocalAddress(address,32);
+                        if (w) {
+                            rn = offset_addr;
+                        }
+
+                        if (is_sp) {
+                            Jump(data);
+                        }
+                        else {
+                            rt = data;
+                        }
+                    ])
+                }
+                V7Operation::LdrLiteral(ldr) => {
+                    consume!(
+                        (
+                            rt,
+                            imm.local_into(),
+                            add
+                        ) from ldr
+                    );
+                    let new_t = rt.local_into();
+                    pseudo!([
+                        let base = Register("PC+")/4.local_into();
+                        base = base*4.local_into();
+                        let address = base-imm;
+                        if (add) {
+                            address = base + imm;
+                        }
+                        let data = LocalAddress(address,32);
+                        if (rt == Register::PC){
+                            Jump(data);
+                        }
+                        else {
+                            new_t = data;
+                        }
+                    ])
+                }
+                V7Operation::LdrRegister(ldr) => {
+                    consume!((w,rt,rn,rm,shift) from ldr);
+                    let _w = w;
+                    let rt_old = rt;
+                    let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
+                    let shift = match shift {
+                        Some(shift) => shift.shift_n as u32,
+                        None => 0u32,
+                    }
+                    .local_into();
+                    pseudo!([
+                       let offset =  rm << shift;
+
+                       // This is true for the ARMV7
+                       let offset_addr = rn + offset;
+                       let address = offset_addr;
+                       let data = LocalAddress(address,32);
+
+                       if (rt_old == Register::PC){
+                           Jump(data);
+                       }
+                       else {
+                           rt = data;
+                       }
+                    ])
+                }
+                V7Operation::LdrbImmediate(ldrb) => {
+                    consume!((index,add.unwrap_or(false),w.unwrap_or(false),rt,rn,imm) from ldrb);
+                    let imm = imm.unwrap_or(0);
+                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.local_into());
+                    pseudo!([
+                        let offset_addr = rn-imm;
+                        if (add) {
+                            offset_addr = rn + imm;
+                        }
+
+                        let address = rn;
+                        if (index) {
+                            address = offset_addr;
+                        }
+
+                        rt = ZeroExtend(LocalAddress(address,8),32);
+                        if (w){
+                            rn = offset_addr;
+                        }
+                    ])
+                }
+                V7Operation::LdrbLiteral(ldrb) => {
+                    consume!((
+                        add.unwrap_or(false),
+                        rt.local_into(),
+                        imm.local_into()
+                        ) from ldrb);
+                    pseudo!([
+                        let base = Register("PC+") /4.local_into();
+                        base = base * 4.local_into();
+                        let address = base-imm;
+                        if (add) {
+                            address = base + imm;
+                        }
+                        rt = ZeroExtend(LocalAddress(address,8),32);
+                    ])
+                }
+                V7Operation::LdrbRegister(ldrb) => {
+                    consume!((rt,rn,rm,shift,add.unwrap_or(false)) from ldrb);
+                    let (rt, rn, rm) = (rt.local_into(), rn.local_into(), rm.local_into());
+                    let shift = match shift {
+                        Some(shift) => shift.shift_n as u32,
+                        _ => 0,
+                    }
+                    .local_into();
+                    pseudo!([
+                        let offset = rm << shift;
+                        let offset_addr = rn - offset;
+                        if (add) {
+                            offset_addr = rn + offset;
+                        }
+                        let address = offset_addr;
+                        rt = ZeroExtend(LocalAddress(address,8),32);
+                    ])
+                }
+                V7Operation::Ldrbt(ldrbt) => {
+                    consume!((rt,rn,imm) from ldrbt);
+                    let (rt, rn, imm) = (rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into());
+                    pseudo!([
+                        let address = rn + imm;
+                        rt = ZeroExtend(LocalAddress(address,8),32);
+                    ])
+                }
+                V7Operation::LdrdImmediate(ldrd) => {
+                    consume!((
+                        rt.local_into(),
+                        rt2.local_into(),
+                        rn.local_into(),
+                        imm.local_into(),
+                        add.unwrap_or(false),
+                        index.unwrap_or(false),
+                        w.unwrap_or(false)
+                        ) from ldrd);
+                    pseudo!([
+                        let offset_addr = rn - imm;
+
+                        if (add) {
+                            offset_addr = rn + imm;
+                        }
+
+                        let address = rn;
+
+                        if (index) {
+                            address = offset_addr;
+                        }
+
+                        rt = LocalAddress(address,32);
+                        address = address + 4.local_into();
+                        rt2 = LocalAddress(address,32);
+
+                        if (w) {
+                            rn = offset_addr;
+                        }
+                    ])
+                }
+                V7Operation::LdrdLiteral(ldrd) => {
+                    consume!((
+                        rt.local_into(),
+                        rt2.local_into(),
+                        imm.local_into(),
+                        add.unwrap_or(false),
+                        w.unwrap_or(false),
+                        index.unwrap_or(false)) from ldrd);
+                    // These are not used in the pseudo code
+                    let (_w, _index) = (w, index);
+                    pseudo!([
+                        let address = Register("PC+") - imm;
+                        if (add) {
+                            address = Register("PC+") + imm;
+                        }
+                        rt = LocalAddress(address,32);
+                        address = address + 4.local_into();
+                        rt2 = LocalAddress(address,32);
+                    ])
+                }
+                V7Operation::Ldrex(_) => todo!("This is probably not needed"),
+                V7Operation::Ldrexb(_) => todo!("This is probably not needed"),
+                V7Operation::Ldrexh(_) => todo!("This is probably not needed"),
+                V7Operation::LdrhImmediate(ldrh) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.local_into(),
+                            add.unwrap_or(false),
+                            w.unwrap_or(false),
+                            index.unwrap_or(false)
+                        ) from ldrh
+                    );
+                    pseudo!([
+                        let offset_addr = rn - imm;
+                        if (add) {
+                            offset_addr = rn + imm;
+                        }
+
+                        let address = rn;
+                        if (index) {
+                            address = offset_addr;
+                        }
+
+                        let data = LocalAddress(address,16);
+                        if (w){
+                            rn = offset_addr;
+                        }
+                        rt = ZeroExtend(data,32);
+                    ])
+                }
+                V7Operation::LdrhLiteral(ldrh) => {
+                    consume!((rt.local_into(),imm.local_into(),add.unwrap_or(false)) from ldrh);
+
+                    pseudo!([
+                        let aligned = Register("PC+") / 4.local_into();
+                        aligned = aligned * 4.local_into();
+
+                        let address = aligned - imm;
+                        if (add) {
+                            address = aligned + imm;
+                        }
+
+                        let data = LocalAddress(address,16);
+                        rt = ZeroExtend(data,32);
+                    ])
+                }
+                V7Operation::LdrhRegister(ldrh) => {
+                    consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrh);
+                    let mut ret = Vec::with_capacity(10);
+                    let offset = Operand::Local("offset".to_owned());
+
+                    shift!(ret.shift rm -> offset);
+                    pseudo!(ret.extend[
+                        let offset_addr = rn + offset;
+                        let address = offset_addr;
+                        let data = ZeroExtend(LocalAddress(address,16),32);
+                        rt = data;
+                    ]); 
+                    ret
+                }
+                V7Operation::Ldrht(ldrht) => {
+                    consume!((rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into()) from ldrht);
+                    let address_setter = Operand::Local("address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 16);
+                    vec![
+                        Operation::Add {
+                            destination: address_setter.clone(),
+                            operand1: rn,
+                            operand2: imm
+                        },
+                        Operation::Move {
+                            destination: rt,
+                            source: address
+                        }
+                    ]
+                }
+                V7Operation::LdrsbImmediate(ldrsb) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into(),
+                            add,
+                            index,
+                            wback
+                        ) from ldrsb
+                    );
+                    pseudo!([
+                        let offset_addr = rn - imm;
+                        if (add) {
+                            offset_addr = rn + imm;
+                        }
+
+                        let address = rn;
+                        if (index) {
+                            address = offset_addr;
+                        }
+
+                        rt = SignExtend(LocalAddress(address,8),8);
+                        if (wback) {
+                            rn = offset_addr;
+                        }
+                    ])
+                }
+                V7Operation::LdrsbLiteral(ldrsb) => {
+                    consume!((
+                            rt.local_into(),
+                            imm.local_into(),
+                            add
+                        ) from ldrsb
+                    );
+                    pseudo!([
+                        let base = Register("PC+")/4.local_into();
+                        base*=4.local_into();
+                        let address = base - imm;
+                        if (add) {
+                            address = base + imm;
+                        }
+                        rt = SignExtend(LocalAddress(address,8),8);
+                    ])
+                }
+                V7Operation::LdrsbRegister(ldrsb) => {
+                    consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsb);
+                    let mut ret = Vec::with_capacity(10);
+                    let offset = Operand::Local("offset".to_owned());
+                    let address_setter = Operand::Local("address".to_owned());
+                    let offset_address = Operand::Local("offset_address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 8);
+
+                    shift!(ret.shift rm -> offset);
+
+                    // This is correct for the ARMV7 probably not for future extensions
+                    ret.extend([
+                               Operation::Add {
+                                   destination: offset_address.clone(),
+                                   operand1: rn,
+                                   operand2: offset
+                               },
+                               Operation::Move {
+                                   destination: address_setter.clone(),
+                                   source: offset_address
+                               },
+                               Operation::Move {
+                                   destination: rt.clone(),
+                                   source: address
+                               },
+                               Operation::SignExtend {
+                                   destination: rt.clone(),
+                                   operand: rt,
+                                   bits: 8
+                               }
+                    ]);
+                    ret
+                }
+                V7Operation::Ldrsbt(ldrsbt) => {
+                    consume!((rt.local_into(), rn.local_into(), imm.local_into()) from ldrsbt);
+                    let address_setter = Operand::Local("address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 8);
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm
+                        },
+                        Operation::SignExtend {
+                            destination: rt,
+                            operand: address,
+                            bits: 8
+                        }
+                    ]
+                }
+                V7Operation::LdrshImmediate(ldrsh) => {
+                    consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsh);
+                    let mut ret = Vec::with_capacity(10);
+                    let address_setter = Operand::Local("address".to_owned());
+                    let offset_address = Operand::Local("offset_address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 16);
+
+                    ret.push(match add {
+                        true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
+                        _ => Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
+                    });
+
+                    ret.push(match index {
+                        true => Operation::Move { destination: address_setter.clone(), source: offset_address.clone() },
+                        _ => Operation::Move { destination: address_setter.clone(), source: rn.clone() },
+                    });
+
+                    ret.extend([
+                        Operation::SignExtend { 
+                            destination: rt,
+                            operand: address,
+                            bits: 16
+                        }
+                    ]);
+
+                    if wback {
+                        ret.push(Operation::Move { destination: rn, source: offset_address })
+                    }
+
+                    ret
+                }
+                V7Operation::LdrshLiteral(ldrsh) => {
+                    consume!(
+                        (
+                            rt.local_into(),
+                            imm.local_into(),
+                            add
+                        ) from ldrsh
+                    );
+                    pseudo!([
+                        let base = Register("PC+")/4.local_into();
+                        base *= 4.local_into();
+                        let address = base - imm;
+                        if (add) {
+                            address = base + imm;
+                        }
+
+                        let data = LocalAddress(address,16);
+                        rt = SignExtend(data,16);
+                    ])
+                }
+                V7Operation::LdrshRegister(ldrsh) => {
+                    consume!(
+                        (
+                            rt.local_into(),
+                            rn.local_into(),
+                            rm.local_into(),
+                            shift
+                        ) from ldrsh
+                    );
+                    let mut ret = Vec::with_capacity(10);
+                    let offset = Operand::Local("offset".to_owned());
+                    let address_setter = Operand::Local("address".to_owned());
+                    let offset_address = Operand::Local("offset_address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 16);
+
+                    shift!(ret.shift rm -> offset);
+
+                    // This is correct for the ARMV7 probably not for future extensions
+                    ret.extend([
+                               Operation::Add {
+                                   destination: offset_address.clone(),
+                                   operand1: rn,
+                                   operand2: offset
+                               },
+                               Operation::Move {
+                                   destination: address_setter.clone(),
+                                   source: offset_address
+                               },
+                               Operation::Move {
+                                   destination: rt.clone(),
+                                   source: address
+                               },
+                               Operation::SignExtend {
+                                   destination: rt.clone(),
+                                   operand: rt,
+                                   bits: 16
+                               }
+                    ]);
+                    ret
+                }
+                V7Operation::Ldrsht(ldrsht) => {
+                    consume!(
+                        (
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                        ) from ldrsht
+                    );
+                    let address_setter = Operand::Local("address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 16);
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm
+                        },
+                        Operation::SignExtend {
+                            destination: rt,
+                            operand: address,
+                            bits: 32
+                        }
+                    ]
+                }
+                V7Operation::Ldrt(ldrt) => {
+                    consume!(
+                        (
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                        ) from ldrt
+                    );
+                    let address_setter = Operand::Local("address".to_owned());
+                    let address = Operand::AddressInLocal("address".to_owned(), 32);
+                    vec![
+                        Operation::Add {
+                            destination: address_setter,
+                            operand1: rn,
+                            operand2: imm
+                        },
+                        Operation::Move {
+                            destination: rt,
+                            source: address
+                        }
+                    ]
+                }
+                V7Operation::LslImmediate(lsl) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            rm.local_into(),
+                            imm
+                        ) from lsl
+                    );
+                    let shift: Option<ImmShift> = Some((Shift::Lsl, imm).into());
+                    let mut ret = vec![];
+                    match s {
+                        true => shift!(ret.shift rm -> rd set c for rm),
+                        false => shift!(ret.shift rm -> rd),
+                    };
+                    ret
+                }
+                V7Operation::LslRegister(lsl) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            rn.local_into(),
+                            rm.local_into()
+                        ) from lsl
+                    );
+                    local!(shift_n);
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm,
+                            operand2: 0xff.local_into()
+                        }
+                    ];
+                    let shift_t = Shift::Lsl.local_into();
+                    match s {
+                        true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
+                        false => shift_imm!(ret.(shift_t,shift_n) rn -> rd),
+                    };
+                    ret
+                }
+                V7Operation::LsrImmediate(lsr) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            rm.local_into(),
+                            imm
+                        ) from lsr
+                    );
+                    let shift: Option<ImmShift> = Some((Shift::Lsr, imm).into());
+                    let mut ret = vec![];
+                    match s {
+                        true => shift!(ret.shift rm -> rd set c for rm),
+                        false => shift!(ret.shift rm -> rd),
+                    };
+                    ret
+                }
+                V7Operation::LsrRegister(lsr) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            rn.local_into(),
+                            rm.local_into()
+                        ) from lsr
+                    );
+                    local!(shift_n);
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm,
+                            operand2: 0xff.local_into()
+                        }
+                    ];
+                    let shift_t = Shift::Lsr.local_into();
+                    match s {
+                        true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
+                        false => shift_imm!(ret.(shift_t,shift_n) rn -> rd),
+                    };
+                    ret
+                }
+                V7Operation::Mla(mla) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            ra.local_into(),
+                            rd.local_into(),
+                            rm.local_into()
+                        ) from mla
+                    );
+                    let mut ret = Vec::with_capacity(3);
+                    pseudo!(
+                        ret.extend[
+                           rd = rn*rm;
+                           rd = rd+ra;
+                        ]
+                    );
+                    ret
+                }
+                V7Operation::Mls(mls) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            ra.local_into(),
+                            rd.local_into(),
+                            rm.local_into()
+                        ) from mls
+                    );
+                    let mut ret = Vec::with_capacity(3);
+                    pseudo!(
+                        ret.extend[
+                            rd = rn*rm;
+                            rd = ra-rd;
+                        ]
+                    );
+                    ret
+                }
+                // One single encoding, this needs to be revisited once it is needed
+                V7Operation::MovImmediate(mov) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            imm.local_into(),
+                            carry
+                        ) from mov
+                    );
+                    pseudo!([
+                        let result = imm;
+                        rd = result;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                        }
+                        if (s && carry.is_some()) {
+                            Flag("c") = (carry.expect("The if check is broken") as u32).local_into();
+                        }
+                    ])
+                }
+                V7Operation::MovRegister(mov) => {
+                    // This might cause some issues, we will disregard BX cases here as we have no
+                    // way of changing the instruciton set
+                    consume!((s,rd, rm.local_into()) from mov);
+                    if rd == Register::PC {
+                        break 'outer_block vec![
+                            Operation::ConditionalJump {
+                                destination: rm,
+                                condition: Condition::None
+                            }
+                        ];
+                    }
+                    let rd = rd.local_into();
+                    let mut ret = vec![
+                        Operation::Move {
+                            destination: rd.clone(),
+                            source: rm
+                        }
+                    ];
+                    if let Some(true) = s {
+                        ret.extend([
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetZFlag(rd)
+                        ]);
+                    }
+                    ret
+                }
+                V7Operation::Movt(movt) => {
+                    consume!((rd.local_into(),imm) from movt);
+                    let imm = (imm as u32).local_into();
+                    let mut ret = Vec::with_capacity(4);
+                    let mask = (u16::MAX as u32).local_into();
+                    let shift = 16.local_into();
+                    local!(intermediate);
+                    pseudo!(
+                        ret.extend[
+                            intermediate = imm << shift;
+                            // Preserve the lower half word
+                            rd = mask & rd;
+                            rd = intermediate | rd;
+                        ]
+                    );
+                    ret
+                }
+                V7Operation::Mrs(mrs) => {
+                    consume!(
+                        (
+                            rd.local_into(),
+                            sysm
+                        ) from mrs
+                    );
+                    pseudo!([
+                        rd = 0.local_into();
+
+                        if (((sysm>>3) & 0b11111) == 0 && (sysm&0b1 == 0)) {
+                            rd = Register("IPSR");
+                            rd = rd <8:0>;
+                        }
+                        // Ignoring the Epsr read as it evaluates to the same as RD already
+                        // contains
+                        if (((sysm>>3) & 0b11111) == 0 && (sysm & 0b10 == 0)) {
+                            let intermediate = Register("APSR");
+                            intermediate <<= 27.local_into();
+                            rd |= intermediate;
+                            // TODO! Add in DSP extension
+                        }
+                        if (((sysm>>3) & 0b11111) == 1 && (sysm & 0b100 == 0)) {
+                            // TODO! Need to track wether or not the mode is priv
+                        }
+
+                        let primask = Register("PRIMASK");
+                        let basepri = Register("BASEPRI");
+                        let faultmask = Register("FAULTMASK");
+
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm & 0b111 == 0)) {
+                            // TODO! Add in priv checks
+                            rd &= (!1u32).local_into();
+                            rd |= primask<0:0>;
+                        }
+
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm & 0b111 == 1)) {
+                            // TODO! Add in priv checks
+                            rd &= (!0b1111111u32).local_into();
+                            rd |= basepri<7:0>;
+                        }
+
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm & 0b111 == 2)) {
+                            // TODO! Add in priv checks
+                            rd &= (!0b1111111u32).local_into();
+                            rd |= basepri<7:0>;
+                        }
+
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm & 0b111 == 3)) {
+                            // TODO! Add in priv checks
+                            rd &= (!1u32).local_into();
+                            rd |= faultmask<0:0>;
+                        }
+
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm & 0b111 == 4)) {
+                            // TODO! Add in floating point support
+                        }
+                    ])
+                }
+                V7Operation::Msr(msr) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            sysm,
+                            mask
+                        ) from msr
+                    );
+                    let mask: u32 = mask.into();
+                    let apsr = SpecialRegister::APSR.local_into();
+                    let primask = SpecialRegister::PRIMASK.local_into();
+                    let basepri = SpecialRegister::BASEPRI.local_into();
+                    let faultmask = SpecialRegister::FAULTMASK.local_into();
+                    pseudo!([
+                        if (((sysm>>3) & 0b11111) == 0 && (sysm&0b100 == 0)) {
+                            if (mask & 0b10 == 2) {
+                                apsr = apsr<27:0>;
+                                let intermediate = rn<31:27><<27.local_into();
+                                apsr |= intermediate;
+                            }
+                        }
+                        // Discarding the SP things for now
+                        // TODO! add in SP things
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm&0b111 == 0)) {
+                            // TODO! Add in priv checks
+                            primask = primask<31:1> << 1.local_into();
+                            let intermediate = rn<0:0>;
+                            apsr |= intermediate;
+                        }
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm&0b111 == 1)) {
+                            // TODO! Add in priv checks
+                            basepri = primask<31:8> << 8.local_into();
+                            let intermediate = rn<7:0>;
+                            basepri |= intermediate;
+                        }
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm&0b111 == 2)) {
+                            // TODO! Add in priv checks
+                            basepri = primask<31:8> << 8.local_into();
+                            let intermediate = rn<7:0>;
+                            basepri |= intermediate;
+                        }
+                        if (((sysm>>3) & 0b11111) == 2 && (sysm&0b111 == 2)) {
+                            // TODO! Add om priv and priority checks here
+                            faultmask = faultmask<31:1> << 1.local_into();
+                            let intermediate = rn<0:0>;
+                            faultmask |= intermediate;
+                        }
+                    ])
+                }
+                V7Operation::Mul(mul) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rn,
+                            rd.unwrap_or(rn).local_into(),
+                            rm.local_into()
+                        ) from mul
+                    );
+                    let rn = rn.local_into();
+                    pseudo!([
+                        rd = rn * rm;
+                        
+                        if (s) {
+                            SetZFlag(rd);
+                            SetNFlag(rd);
+                        }
+                    ])
+                }
+                V7Operation::MvnImmediate(mvn) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            imm.local_into(),
+                            carry
+                        ) from mvn
+                    );
+                    pseudo!([
+                        let result = !imm;
+                        rd = result;
+                        if (s) {
+                            SetNFlag(result);
+                            SetZFlag(result);
+                        }
+                        if (s && carry.is_some()){
+                            let flag = (carry.unwrap() as u32).local_into();
+                            Flag("c") = flag;
+                        }
+                    ])
+                }
+                V7Operation::MvnRegister(mvn) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd.local_into(),
+                            rm.local_into(),
+                            shift
+                        ) from mvn
+                    );
+                    let mut ret = Vec::with_capacity(5);
+                    local!(shifted);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted)
+                    }
+                    pseudo!(ret.extend[
+                        rd = !shifted;
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
+                    ret
+                }
+                V7Operation::Nop(_) => vec![Operation::Nop],
+                V7Operation::OrnImmediate(orn) => {
+                    consume!((
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        imm.local_into(),
+                        carry,
+                        s.unwrap_or(false)
+                        ) from orn);
+                    pseudo!([
+                            imm = !imm;
+                            let result = rn | imm;
+                            rd = result;
+
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                            }
+                            if (s && carry.is_some()){
+                                let flag = (carry.unwrap() as u32).local_into();
+                                Flag("c") = flag;
+                            }
+                    ])
+                }
+                V7Operation::OrnRegister(orn) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rm.local_into(),
+                            rn,
+                            shift
+                        ) from orn
+                    );
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let mut ret = Vec::with_capacity(5);
+                    local!(shifted);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted)
+                    }
+                    pseudo!(ret.extend[
+                        shifted = !shifted;
+                        rd = rn | shifted;
+                    
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
+                    ret
+                }
+                V7Operation::OrrImmediate(orr) => {
+                    consume!((
+                        rn.local_into(),
+                        rd.local_into().unwrap_or(rn.clone()),
+                        imm.local_into(),
+                        carry,
+                        s.unwrap_or(false)
+                        ) from orr);
+                    pseudo!([
+                            let result = rn | imm;
+                            rd = result;
+
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                            }
+                            if (s && carry.is_some()){
+                                let flag = (carry.unwrap() as u32).local_into();
+                                Flag("c") = flag;
+                            }
+
+                    ])
+                }
+                V7Operation::OrrRegister(orr) => {
+                    consume!(
+                        (
+                            s.unwrap_or(false),
+                            rd,
+                            rm.local_into(),
+                            rn,
+                            shift
+                        ) from orr
+                    );
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let mut ret = Vec::with_capacity(5);
+                    local!(shifted);
+                    match s {
+                        true => shift!(ret.shift rm -> shifted set c for rm),
+                        false => shift!(ret.shift rm -> shifted),
+                    }
+                    pseudo!(ret.extend[
+                        rd = rn | shifted;
+                        if (s) {
+                            SetNFlag(rd);
+                            SetZFlag(rd);
+                        }
+                    ]);
+                    ret
+                }
+                V7Operation::Pkh(pkh) => {
+                    consume!((rd,shift,rn,rm.local_into(),tb) from pkh);
+                    let mut ret = Vec::with_capacity(5);
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    let (msh, lsh) = match tb {
+                        true => (rn, shifted),
+                        _ => (shifted, rn),
+                    };
+                    pseudo!(
+                        ret.extend[
+                            lsh = lsh & (u16::MAX as u32).local_into();
+                            msh = msh & (!(u16::MAX as u32)).local_into();
+                            rd = msh | lsh;
+                        ]
+                    );
+                    ret
+                }
+                V7Operation::PldImmediate(_pld) => {
+                    todo!(" We need some speciality pre load instruction here")
+                }
+                V7Operation::PldLiteral(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PldRegister(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PliImmediate(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::PliRegister(_) => todo!(" We need some speciality pre load instruction here"),
+                V7Operation::Pop(pop) => {
+                    consume!((registers) from pop);
+
+                    let mut jump = false;
+                    let mut to_pop = Vec::with_capacity(registers.regs.len());
+                    let bc = registers.regs.len() as u32;
+                    for reg in registers.regs {
+                        if reg == Register::PC {
+                            jump = true;
+                        } else {
+                            to_pop.push(reg.local_into());
+                        }
+                    }
+                    pseudo!([
+                            let address = Register("SP&");
+                            Register("SP") += (4*bc).local_into();
+                            for reg in to_pop.into_iter(){
+                                reg = LocalAddress(address,32);
+                                address += 4.local_into();
+                            }
+                            if (jump) {
+                                address = LocalAddress(address,32);
+                                address = address<31:1> << 1.local_into();
+                                Jump(address);
+                            }
+                    ])
+                }
+                V7Operation::Push(push) => {
+                    consume!((registers) from push);
+                    // let address_setter = Operand::Local("address".to_owned());
+                    // let address = Operand::AddressInLocal("address".to_owned(), 32);
+                    // let sp = Register::SP.local_into();
+                    assert!(!registers.regs.contains(&Register::SP));
+                    assert!(!registers.regs.contains(&Register::PC));
+                    let n = registers.regs.len() as u32;
+                    pseudo!([
+                        let address = Register("SP") - (4*n).local_into();
+
+                        for reg in registers.regs {
+                            LocalAddress(address,32) = reg.local_into();
+                            address = address + 4.local_into();
+                        }
+
+                        Register("SP") = Register("SP&") - (4*n).local_into();
+                    ])
+                    // let mut ret = vec![];
+                    // pseudo!(
+                    //     ret.extend[
+                    //     address_setter = sp - (4*registers.regs.len() as u32).local_into();
+                    //     sp = sp - (4*registers.regs.len() as u32).local_into();
+                    // ]
+                    // );
+                    // let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<Operand>>();
+                    // for reg in regs {
+                    //     pseudo!(
+                    //         ret.extend[
+                    //         // Read the current address in to the specified reg
+                    //         address = reg;
+                    //         address_setter = address_setter + 4.local_into();
+                    //         ]
+                    //     );
+                    // }
+                    // ret
+                }
+                V7Operation::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qadd8(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qasx(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsub(_) => {
+                    todo!("Need to add in the flags APSR.Q");
+                }
+                V7Operation::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
+                V7Operation::Rbit(rbit) => {
+                    consume!((rd.local_into(),rm.local_into()) from rbit);
+                    let mut ret = vec![];
+                    local!(intermediate);
+                    let zero = 0.local_into();
+                    for i in 0..31u32 {
+                        let mask = (1 << i).local_into();
+                        let shift = 31 - (i as i32) * 2i32;
+                        match shift > 0 {
+                            true => {
+                                let shift = (shift as u32).local_into();
+                                pseudo!(
+                                    ret.extend[
+                                    intermediate = zero;
+                                    intermediate = rm & mask;
+                                    intermediate =  intermediate << shift;
+                                    rd = rd|intermediate;
+                                    ]
+                                    );
+                            }
+                            false => {
+                                let shift = (-shift as u32).local_into();
+                                pseudo!(
+                                    ret.extend[
+                                    intermediate = zero;
+                                    intermediate = rm & mask;
+                                    intermediate =  intermediate >> shift;
+                                    rd = rd|intermediate;
+                                    ]
+                                    );
+                            }
+                        }
+                    }
+                    ret
+                }
+                V7Operation::Rev(rev) => {
+                    consume!((rd.local_into(),rm.local_into()) from rev);
+                    local!(int1, int2, int3, int4);
+                    let mut ret = vec![];
+                    let zero = 0.local_into();
+                    pseudo!(
+                        ret.extend[
+                        int1 = rm<7:0>;
+                        int2 = rm<15:8>;
+                        int3 = rm<23:16>;
+                        int4 = rm<31:24>;
+                        int1 = int1 << (24).local_into();
+                        int2 = int2 << (8).local_into();
+                        int3 = int3 >> (8).local_into();
+                        int4 = int4 >> (24).local_into();
+                        rd = zero;
+                        rd = rd | int1;
+                        rd = rd | int2;
+                        rd = rd | int3;
+                        rd = rd | int4;
+                        ]
+                        );
+
+                    ret
+                }
+                V7Operation::Rev16(rev) => {
+                    consume!((rd.local_into(),rm.local_into()) from rev);
+                    local!(int1, int2, int3, int4);
+                    let mut ret = vec![];
+                    let zero = 0.local_into();
+                    pseudo!(
+                        ret.extend[
+                        int1 = rm<7:0>;
+                        int2 = rm<15:8>;
+                        int3 = rm<23:16>;
+                        int4 = rm<31:24>;
+                        int1 = int1 << 8.local_into();
+                        int2 = int2 >> 8.local_into();
+                        int3 = int3 << 8.local_into();
+                        int4 = int4 >> 8.local_into();
+                        rd = zero;
+                        rd = rd | int1;
+                        rd = rd | int2;
+                        rd = rd | int3;
+                        rd = rd | int4;
+                        ]
+                        );
+                    ret
+                }
+                V7Operation::Revsh(revsh) => {
+                    consume!((rd.local_into(),rm.local_into()) from revsh);
+                    local!(int1, int2);
+                    let mut ret = vec![];
+                    let zero = 0.local_into();
+                    pseudo!(
+                        ret.extend[
+                        int1 = rm<7:0>;
+                        int2 = rm<15:8>;
+                        int1 = int1 << 8.local_into();
+                        int2 = int2 >> 8.local_into();
+                        rd = zero;
+                        ]
+                        );
+                    ret.push(
+                        Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 },
+                    );
+                    pseudo!(
+                        ret.extend[
+                        rd = rd | int2;
+                        ]
+                        );
+                    ret
+                }
+                V7Operation::RorImmediate(ror) => {
+                    consume!((s,rd.local_into(), rm.local_into(),imm) from ror);
+                    let shift_n = imm.local_into();
+                    let mut ret = vec![Operation::Sror { destination: rd.clone(), operand: rm.clone(), shift: shift_n.clone() }];
+                    if let Some(true) = s {
+                        ret.extend([
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetCFlagRor(rd.clone())
+                        ]);
+                    }
+                    ret
+                }
+                V7Operation::RorRegister(ror) => {
+                    consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
+                    local!(shift_n);
+                    let mask = (u8::MAX as u32).local_into();
+
+                    let mut ret = vec![
+                        Operation::And {
+                            destination: shift_n.clone(),
+                            operand1: rm.clone(),
+                            operand2: mask
+                        },
+                        Operation::Sror {
+                            destination: rd.clone(),
+                            operand: rn.clone(),
+                            shift: shift_n.clone()
+                        }
+                    ];
+                    if let Some(true) = s {
+                        ret.extend([
+                            Operation::SetZFlag(rd.clone()),
+                            Operation::SetNFlag(rd.clone()),
+                            Operation::SetCFlagRor(rd.clone())
+                        ]);
+                    }
+                    ret
+                }
+                V7Operation::Rrx(rrx) => {
+                    consume!((s,rd.local_into(), rm.local_into()) from rrx);
+                    // Let's fulhacka
+                    let mask = (u32::MAX >> 1).local_into();
+                    let lsb_mask = (1).local_into();
+                    local!(lsb, result, msb);
+                    let carry = Operand::Flag("c".to_owned());
+                    let mut ret = Vec::with_capacity(10);
+                    pseudo!(
+                        ret.extend[
+                        lsb = rm & lsb_mask;
+                        result = rm >> 1.local_into();
+                        msb = carry << 31.local_into();
+                        // Clear the bit first
+                        result = result & mask;
+                        result = result | msb;
+                        rd = result;
+                        ]
+                        );
+
+                    if let Some(true) = s {
+                        ret.extend([
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetZFlag(result.clone()),
+                            Operation::Move {
+                                destination: carry,
+                                source: lsb
+                            }
+                        ]);
+                    }
+                    ret
+                }
+                V7Operation::RsbImmediate(rsb) => {
+                    consume!((s,rd,rn,imm.local_into()) from rsb);
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let carry = Operand::Flag("c".to_owned());
+                    local!(intermediate, old_carry);
+                    let one = 1.local_into();
+
+                    let mut ret = Vec::with_capacity(10);
+
+                    pseudo!(
+                        ret.extend[
+                        // Backup carry bit
+                        old_carry = carry;
+                        // Set carry  bit to 1
+                        carry = one;
+
+                        intermediate = !rn;
+                        // add with carry
+                        rd = intermediate adc imm;
+                        ]
+                        );
+                    ret.extend(match s {
+                        Some(true) => {
+                            vec![
+                                Operation::SetZFlag(rd.clone()),
+                                Operation::SetNFlag(rd.clone()),
+                                Operation::SetCFlag {
+                                    operand1: intermediate,
+                                    operand2: imm,
+                                    sub: false,
+                                    carry: true
+                                }
+                            ]
+                        }
+                        _ => pseudo!([carry = old_carry;]),
+                    });
+                    ret
+                }
+                V7Operation::RsbRegister(rsb) => {
+                    consume!((s,rd,rn,rm.local_into(), shift) from rsb);
+                    let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
+                    let mut ret = Vec::with_capacity(10);
+                    let carry = Operand::Flag("c".to_owned());
+                    let one = 1.local_into();
+
+                    local!(shifted, intermediate, old_carry);
+                    shift!(ret.shift rm -> shifted);
+
+                    pseudo!(
+                        ret.extend[
+                        // Backup carry bit
+                        old_carry = carry;
+                        // Set carry  bit to 1
+                        carry = one;
+
+                        intermediate = !rn;
+
+                        // add with carry
+                        rd = intermediate adc shifted;
+                        ]
+                        );
+                    ret.extend(match s {
+                        Some(true) => {
+                            vec![
+                                Operation::SetZFlag(rd.clone()),
+                                Operation::SetNFlag(rd.clone()),
+                                Operation::SetCFlag {
+                                    operand1: intermediate,
+                                    operand2: shifted,
+                                    sub: false,
+                                    carry: true
+                                }
+                            ]
+                        }
+                        _ => pseudo!([carry = old_carry;]),
+                    });
+
+                    ret
+                }
+                V7Operation::Sadd16(sadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from sadd);
+                    pseudo!(
+                        [
+                            let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<31:16>,16)),32);
+                            rd = ZeroExtend(sum1<15:0>,32);
+                            let masked = ZeroExtend(sum2<15:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
+                        ]
+                    )
+                }
+                V7Operation::Sadd8(sadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from sadd);
+                    pseudo!(
+                        [
+                            let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<15:8>,8) + Resize(rm<15:8>,8)),32);
+                            let sum3 = ZeroExtend(Signed(Resize(rn<23:16>,8) + Resize(rm<23:16>,8)),32);
+                            let sum4 = ZeroExtend(Signed(Resize(rn<31:24>,8) + Resize(rm<31:24>,8)),32);
+                            rd = ZeroExtend(sum1<7:0>,32);
+                            let masked = ZeroExtend(sum2<7:0>,32) << 8.local_into();
+                            rd = rd | masked;
+                            masked = ZeroExtend(sum3<7:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            masked = ZeroExtend(sum4<7:0>,32) << 24.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
+                        ]
+                    )
+                }
+                V7Operation::Sasx(sasx) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from sasx);
+                    pseudo!(
+                        [
+                            let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
+                            let sum  = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<15:0>,16)),32);
+                            rd = ZeroExtend(diff<15:0>,32);
+                            let masked = ZeroExtend(sum<15:0>,32) << 16.local_into();
+                            rd = rd | masked;
+                            // TODO! Add in ge flags here
+                        ]
+                    )
+                }
+                V7Operation::SbcImmediate(sbc) => {
+                    consume!((
+                            s.unwrap_or(false), 
+                            rn.local_into(), 
+                            rd.local_into().unwrap_or(rn.clone()),
+                            imm.local_into()
+                            ) from sbc);
+                    let mut ret = Vec::with_capacity(7);
+                    pseudo!(
+                        ret.extend[
+                        let intermediate = ! imm;
+                        let result = rn adc imm;
+                        rd = result;
+                        ]
+                        );
+                    if s {
+                        ret.extend(
+                            [
+                            Operation::SetZFlag(result.clone()),
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetCFlag {
+                                operand1: rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true
+                            },
+                            Operation::SetVFlag {
+                                operand1: rn.clone(),
+                                operand2: imm.clone(),
+                                sub: false,
+                                carry: true
+                            }
+                            ]
+                        );
+                    }
+                    ret
+                }
+                V7Operation::SbcRegister(sbc) => {
+                    consume!((
+                            s.unwrap_or(false),
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()), 
+                            rm.local_into(),
+                            shift
+                            ) from sbc);
+                    let mut ret = Vec::with_capacity(10);
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+                    pseudo!(
+                        ret.extend[
+                        let intermediate = !shifted;
+                        let result = rn adc intermediate;
+                        rd = result;
+                        ]
+                        );
+                    if s {
+                        ret.extend([
+                            Operation::SetZFlag(result.clone()),
+                            Operation::SetNFlag(result.clone()),
+                            Operation::SetCFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true
+                            },
+                            Operation::SetVFlag {
+                                operand1: rn.clone(),
+                                operand2: intermediate.clone(),
+                                sub: false,
+                                carry: true
+                            }
+                        ]);
+                    }
+                    ret
+                }
+                V7Operation::Sbfx(sbfx) => {
+                    consume!((rd.local_into(), rn.local_into(), lsb, width) from sbfx);
+                    let mut ret = vec![];
+
+                    let msb = lsb + (width - 1);
+                    let mask = ((1 << (msb - lsb)) - 1) << lsb;
+
+                    pseudo!(
+                        ret.extend[
+                        let intermediate = rn & mask.local_into();
+                        intermediate = intermediate >> lsb.local_into();
+                        rd = SignExtend(intermediate,width);
+                        ]
+                        );
+                    ret
+                }
+                V7Operation::Sdiv(sdiv) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from sdiv);
+                    pseudo!([
+                            let result = Signed(rn / rm);
+                            rd = result;
+                    ])
+                }
+                V7Operation::Sel(_) => todo!("SIMD"),
+                V7Operation::Sev(_) => todo!("Modelling"),
+                V7Operation::Shadd16(shadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shadd);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let sum1 = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<15:0>,16)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<31:16>,16)),32);
+                            rd = sum1<16:1>;
+                            let intemediate_result = sum2<16:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Shadd8(shadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shadd);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let sum1 = ZeroExtend(Signed(Resize(rn<7:0>,8) + Resize(rm<7:0>,8)),32);
+                            let sum2 = ZeroExtend(Signed(Resize(rn<15:8>,8) + Resize(rm<15:8>,8)),32);
+                            let sum3 = ZeroExtend(Signed(Resize(rn<23:16>,8) + Resize(rm<23:16>,8)),32);
+                            let sum4 = ZeroExtend(Signed(Resize(rn<31:24>,8) + Resize(rm<31:24>,8)),32);
+                            rd = sum1<8:1>;
+                            let intemediate_result = sum2<8:1> << 8.local_into();
+                            rd = rd | intemediate_result;
+                            intemediate_result = sum3<8:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                            intemediate_result = sum4<8:1> << 24.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Shasx(shasx) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shasx);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let diff = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<31:16>,16)),32);
+                            let sum  = ZeroExtend(Signed(Resize(rn<31:16>,16) + Resize(rm<15:0>,16)),32);
+                            rd = diff<16:1>;
+                            let intemediate_result = sum<16:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Shsax(shsax) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shsax);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let sum = ZeroExtend(Signed(Resize(rn<15:0>,16) + Resize(rm<31:16>,16)),32);
+                            let diff  = ZeroExtend(Signed(Resize(rn<31:16>,16) - Resize(rm<15:0>,16)),32);
+                            rd = diff<16:1>;
+                            let intemediate_result = sum<16:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Shsub16(shsub) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shsub);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let diff1 = ZeroExtend(Signed(Resize(rn<15:0>,16) - Resize(rm<15:0>,16)),32);
+                            let diff2 = ZeroExtend(Signed(Resize(rn<31:16>,16) - Resize(rm<31:16>,16)),32);
+                            rd = diff1<16:1>;
+                            let intemediate_result = diff2<16:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Shsub8(shsub) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from shsub);
+                    // TODO! Check that the overflow here is not problematic
+                    pseudo!([
+                            let diff1 = ZeroExtend(Signed(Resize(rn<7:0>,8) - Resize(rm<7:0>,8)),32);
+                            let diff2 = ZeroExtend(Signed(Resize(rn<15:8>,8) - Resize(rm<15:8>,8)),32);
+                            let diff3 = ZeroExtend(Signed(Resize(rn<23:16>,8) - Resize(rm<23:16>,8)),32);
+                            let diff4 = ZeroExtend(Signed(Resize(rn<31:24>,8) - Resize(rm<31:24>,8)),32);
+                            rd = diff1<8:1>;
+                            let intemediate_result = diff2<8:1> << 8.local_into();
+                            rd = rd | intemediate_result;
+                            intemediate_result = diff3<8:1> << 16.local_into();
+                            rd = rd | intemediate_result;
+                            intemediate_result = diff4<8:1> << 24.local_into();
+                            rd = rd | intemediate_result;
+                    ])
+                }
+                V7Operation::Smla(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlad(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlal(_) => todo!("Need to revisit SInt"),
+                V7Operation::SmlalSelective(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlald(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlaw(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlsd(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smlsld(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smmla(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smmls(_) => {
+                    todo!()
+                }
+                V7Operation::Smmul(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smuad(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smul(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smull(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smulw(_) => todo!("Need to revisit SInt"),
+                V7Operation::Smusd(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssat(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssat16(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssax(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssub16(_) => todo!("Need to revisit SInt"),
+                V7Operation::Ssub8(_) => todo!("Need to revisit SInt"),
+                V7Operation::Stm(stm) => {
+                    consume!((
+                            rn.local_into(),
+                            registers,
+                            w.unwrap_or(false)
+                            ) from stm
+                            );
+                    let bc = registers.regs.len() as u32;
+
+                    pseudo!([
+                            let address = rn;
+
+                            for reg in registers.regs {
+                                LocalAddress(address,32) = reg.local_into();
+                                address += 4.local_into();
+                            }
+                            if (w) {
+                                rn += (4*bc).local_into();
+                            }
+                    ])
+                }
+                V7Operation::Stmdb(stmdb) => {
+                    consume!((
+                            w.unwrap_or(false), 
+                            rn.local_into(), 
+                            registers
+                            ) from stmdb);
+                    let mut ret = vec![];
+                    let n = registers.regs.len() as u32;
+                    pseudo!(ret.extend[
+                            let address = rn - (4*n).local_into();
+                            for reg in registers.regs{
+                                LocalAddress(address,32) = reg.local_into();
+                                address += 4.local_into();
+                            }
+                            if (w) {
+                                rn = rn - (4u32* n).local_into();
+                            }
+                    ]);
+                    ret
+                }
+                V7Operation::StrImmediate(str) => {
+                    consume!((
+                            w.unwrap_or(false),
+                            add,
+                            index.unwrap_or(false), 
+                            rt.local_into(),
+                            rn.local_into(), 
+                            imm.local_into()
+                            ) from str);
+                    let mut ret = Vec::new();
+                    pseudo!(
+                        ret.extend[
+
+                        let offset_addr = 0.local_into();
+                        if (add) {
+                            offset_addr = rn + imm;
+                        } else {
+                            offset_addr = rn - imm;
+                        }
+
+                        let address = 0.local_into();
+                        if (index) {
+                            address = offset_addr;
+                        } else {
+                            address = rn;
+                        }
+
+                        LocalAddress("address",32) = rt;
+
+                        if (w) {
+                            rn = offset_addr;
+                        }
+                        ]
+                            );
+                        ret
+                }
+                V7Operation::StrRegister(str) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            rm.local_into(),
+                            shift) from str);
+                    let shift_n = match shift {
+                        Some(shift) => shift.shift_n as u32,
+                        None => 0,
+                    }
+                    .local_into();
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                            // Shift will allways be LSL on the v7
+                            let offset = rm << shift_n;
+                            let address = rn + offset;
+                            LocalAddress("address", 32) = rt;
+                    ]);
+                    ret
+                }
+                V7Operation::StrbImmediate(strb) => {
+                    consume!(
+                        (
+                            w.unwrap_or(false),
+                            add,
+                            index.unwrap_or(false),
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.local_into()
+                        ) from strb
+                    );
+                    let mut ret = Vec::new();
+                    pseudo!(
+                        ret.extend[
+
+                        let offset_addr = 0.local_into();
+                        if (add) {
+                            offset_addr = rn + imm;
+                        } else {
+                            offset_addr = rn - imm;
+                        }
+
+                        let address = 0.local_into();
+                        if (index) {
+                            address = offset_addr;
+                        } else {
+                            address = rn;
+                        }
+
+                        LocalAddress("address",8) = rt;
+
+                        if (w) {
+                            rn = offset_addr;
+                        }
+                        ]
+                            );
+                        ret
+                }
+                V7Operation::StrbRegister(strb) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            rm.local_into(),
+                            shift
+                            ) from strb);
+                    let shift_n = match shift {
+                        Some(shift) => shift.shift_n as u32,
+                        None => 0,
+                    }
+                    .local_into();
+                    pseudo!([
+                            // Shift will allways be LSL on the v7
+                            let offset = rm << shift_n;
+                            let address = rn + offset;
+                            LocalAddress("address", 8) = rt;
+                    ])
+                }
+                V7Operation::Strbt(strbt) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                            ) from strbt);
+                    let mut ret = vec![];
+                    pseudo!(
+                        ret.extend[
+                        let address = rn + imm;
+                        LocalAddress("address", 8) = rt;
+                        ]);
+
+                    ret
+                }
+                V7Operation::StrdImmediate(strd) => {
+                    consume!((
+                            rt.local_into(), 
+                            rt2.local_into(), 
+                            rn.local_into(),
+                            add,
+                            index.unwrap_or(true),
+                            imm.unwrap_or(0).local_into(),
+                            w.unwrap_or(false)
+                            ) from strd);
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                            let offset_addr = rn - imm;
+                            if (add) {
+                                offset_addr = rn + imm;
+                            }
+
+                            let address = rn;
+                            if (index) {
+                                address = offset_addr;
+                            }
+                            LocalAddress("address",32) = rt;
+                            address = address + 4.local_into();
+                            LocalAddress("address",32) = rt2;
+
+                            if (w) {
+                                rn = offset_addr;
+                            }
+                    ]);
+                    ret
+                }
+                V7Operation::Strex(strex) => {
+                    consume!((
+                            rd.local_into(),
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                            ) from strex
+                            );
+                    pseudo!([
+                            let address = rn + imm;
+                            // TODO! Add in exculisve addresses here
+                            LocalAddress(address,32) = rt;
+                            rd = 0.local_into();
+                    ])
+                }
+                V7Operation::Strexb(strexb) => {
+                    consume!((
+                            rd.local_into(),
+                            rt.local_into(),
+                            rn.local_into()
+                            ) from strexb
+                            );
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                            let address = rn;
+                            // TODO! Add in exculisve addresses here
+                            LocalAddress(address,8) = rt;
+                            rd = 0.local_into();
+                    ]);
+                    ret
+                }
+                V7Operation::Strexh(strexh) => {
+                    consume!((rd.local_into(), rt.local_into(), rn.local_into()) from strexh);
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                            let address = rn;
+                            // TODO! Add in exclusive address here
+                            LocalAddress(address,16) = rt;
+                            rd = 0.local_into();
+                    ]);
+                    ret
+                }
+                V7Operation::StrhImmediate(strh) => {
+                    consume!((
+                            rt.local_into(), 
+                            rn.local_into(), 
+                            imm.unwrap_or(0).local_into(),
+                            w,
+                            index,
+                            add
+                            ) from strh);
+                    pseudo!([
+                            let offset_addr = rn - imm;
+                            if (add) {
+                                offset_addr = rn + imm;
+                            }
+                            let address = rn;
+                            if (index) {
+                                address = offset_addr;
+                            }
+                            LocalAddress(address,16) = rt<15:0>;
+                            if (w) {
+                                rn = offset_addr;
+                            }
+                    ])
+                }
+                V7Operation::StrhRegister(strh) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            rm.local_into(),
+                            shift
+                            ) from strh);
+                    let shift_n = match shift {
+                        Some(shift) => {
+                            assert!(shift.shift_t == Shift::Lsl);
+                            shift.shift_n as u32
+                        }
+                        None => 0,
+                    }
+                    .local_into();
+                    pseudo!([
+                            let offset = rm << shift_n;
+                            let address = rn + offset;
+                            LocalAddress(address,16) = rt;
+                    ])
+                }
+                V7Operation::Strht(strht) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                            ) from strht);
+                    pseudo!([
+                            let address = rn + imm;
+                            LocalAddress(address,16) = rt;
+                    ])
+                }
+                V7Operation::Strt(strt) => {
+                    consume!((
+                            rt.local_into(),
+                            rn.local_into(),
+                            imm.unwrap_or(0).local_into()
+                            ) from strt);
+                    pseudo!([
+                            let address = rn + imm;
+                            let data = rt;
+                            LocalAddress(address,32) = data;
+                    ])
+                }
+                V7Operation::SubImmediate(sub) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            imm.local_into(),
+                            s.unwrap_or(false)
+                            )from sub);
+                    pseudo!([
+                            let old_rn = rn;
+                            let result = rn - imm;
+
+
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                                SetCFlag(old_rn,imm,true,false);
+                                SetVFlag(old_rn,imm,true,false);
+                            }
+                            rd = result;
+                    ])
+                }
+                V7Operation::SubRegister(sub) => {
+                    consume!((
+                            s.unwrap_or(false),
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into(),
+                            shift
+                            ) from sub);
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+
+                    pseudo!(ret.extend[
+                            let old_rn = rn;
+                            let result = rn - shifted;
+
+
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                                SetCFlag(old_rn,shifted,true,false);
+                                SetVFlag(old_rn,shifted,true,false);
+                            }
+                            rd = result;
+                    ]);
+                    ret
+                }
+                V7Operation::SubSpMinusImmediate(sub) => {
+                    consume!((
+                            s.unwrap_or(false),
+                            rd.local_into().unwrap_or(Operand::Register("SP".to_owned())),
+                            imm.local_into()
+                            ) from sub);
+                    let rn = Register::SP.local_into();
+
+                    pseudo!([
+
+                            let result = rn - imm;
+
+                            rd = result;
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                                SetVFlag(rn,imm,true,false);
+                                SetCFlag(rn,imm,true,false);
+                            }
+                    ])
+                }
+                V7Operation::SubSpMinusRegister(sub) => {
+                    let rn = Register::SP.local_into();
+                    consume!((
+                            s.unwrap_or(false),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into(),
+                            shift
+                            ) from sub);
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted);
+
+                    pseudo!(ret.extend[
+                            let intermediate = !shifted;
+
+                            // Backup previous flag
+                            let old_c = Flag("c");
+                            Flag("c") = 1.local_into();
+                            let result = rn adc intermediate;
+
+                            rd = result;
+                            if (s) {
+                                SetNFlag(result);
+                                SetZFlag(result);
+                                SetVFlag(rn,intermediate,false,true);
+                                SetCFlag(rn,intermediate,false,true);
+                            }
+                            else {
+                                Flag("c") = old_c;
+                            }
+                    ]);
+                    ret
+                }
+                V7Operation::Sxtab(sxtab) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into(),
+                            rotation.unwrap_or(0)) from sxtab);
+                    let mut ret = vec![];
+                    pseudo!(ret.extend[
+                            let rotated = Ror(rm, rotation.local_into());
+                            let masked = rotated & (u8::MAX as u32).local_into();
+                            rd = rn + SignExtend(masked,8);
+                    ]);
+                    ret
+                }
+                V7Operation::Sxtab16(sxtab) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into(),
+                            rotation.unwrap_or(0)) from sxtab);
+                    pseudo!([
+                            let rotated = Ror(rm, rotation.local_into());
+
+
+                            // Clear the current rd
+                            rd = 0.local_into();
+
+                            let lsh_mask = (u16::MAX as u32).local_into();
+
+                            let rotated_lsbyte = rotated & (u8::MAX as u32).local_into();
+                            rd = rn & lsh_mask;
+                            // TODO! Make note in the docs for GA that 8 is the msb in the number
+                            // prior to sign extension
+                            rd = rd + SignExtend(rotated_lsbyte,8);
+                            rd = rd & lsh_mask;
+
+
+
+                            //let msh_mask = ((u16::MAX as u32) << 16).local_into();
+                            let msh_intermediate = rn >> 16.local_into();
+                            rotated = rotated >> 16.local_into();
+                            rotated = rotated & (u8::MAX as u32).local_into();
+                            let intemediate_result = msh_intermediate + SignExtend(rotated,8);
+                            intemediate_result = intemediate_result & lsh_mask;
+                            intemediate_result = intemediate_result << 16.local_into();
+
+                            rd =  rd | intemediate_result;
+                            ])
+                }
+                V7Operation::Sxtah(sxtah) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into(),
+                            rotation.unwrap_or(0).local_into()
+                            ) from sxtah);
+                    pseudo!([
+                            let rotated = Ror(rm,rotation);
+                            rotated = rotated & ( u16::MAX as u32).local_into();
+                            rd = rn + SignExtend(rotated,16);
+                    ])
+                }
+                V7Operation::Sxtb(sxtb) => {
+                    consume!((
+                            rd.local_into(),
+                            rm.local_into(),
+                            rotation.unwrap_or(0).local_into()
+                            ) from sxtb);
+                    pseudo!([
+                            let rotated = Ror(rm,rotation);
+                            rotated = rotated & ( u8::MAX as u32).local_into();
+                            rd = SignExtend(rotated,8);
+                    ])
+                }
+                V7Operation::Sxtb16(sxtb) => {
+                    consume!((
+                            rm.local_into(),
+                            rd.local_into().unwrap_or(rm.clone()),
+                            rotation.unwrap_or(0).local_into()
+                            ) from sxtb);
+                    pseudo!([
+                            let rotated = Ror(rm,rotation);
+                            let lsbyte = rotated & ( u8::MAX as u32).local_into();
+                            rd = SignExtend(lsbyte,16) &  (u16::MAX as u32).local_into();
+
+                            let msbyte = rotated >> 16.local_into();
+                            msbyte = msbyte & (u8::MAX as u32).local_into();
+                            msbyte = SignExtend(msbyte,16) & (u16::MAX as u32).local_into();
+                            msbyte = msbyte << 16.local_into();
+
+                            rd = rd | msbyte;
+                    ])
+                }
+                V7Operation::Sxth(sxth) => {
+                    consume!(
+                        (
+                            rd.local_into(),
+                            rm.local_into(),
+                            rotation.unwrap_or(0).local_into()
+                        ) from sxth
+                    );
+                    pseudo!([
+                            let rotated = Ror(rm,rotation) & (u16::MAX as u32).local_into();
+                            rd = SignExtend(rotated, 16);
+                    ])
+                }
+                V7Operation::Tb(tb) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rm.local_into(),
+                            is_tbh.unwrap_or(false)
+                        ) from tb
+                    );
+                    pseudo!([
+                            let halfwords = 0.local_into();
+
+                            if (is_tbh) {
+                                let address = rm << 1.local_into();
+                                address = address + rn;
+                                halfwords = ZeroExtend(LocalAddress(address,16),32);
+                            } else {
+                                let address = rn + rm;
+                                halfwords = ZeroExtend(LocalAddress(address,8),32);
+                            }
+                            let target = halfwords*2.local_into();
+                            target = target + Register("PC+");
+                            target = target<31:1> << 1.local_into();
+                            Jump(target);
+                    ])
+                }
+                V7Operation::TeqImmediate(teq) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            imm.local_into(),
+                            carry
+                        ) from teq);
+                    pseudo!([
+                            let result = rn ^ imm;
+                            SetNFlag(result);
+                            SetZFlag(result);
+                            if (carry.is_some()){
+                                Flag("c") = (carry.unwrap() as u32).local_into();
+                            }
+                    ])
+                }
+                V7Operation::TeqRegister(teq) => {
+                    consume!((
+                            rn.local_into(),
+                            rm.local_into(),
+                            shift
+                            ) from teq);
+                    let mut ret = vec![];
+                    local!(intermediate);
+                    shift!(ret.shift rm -> intermediate set c for rn);
+                    pseudo!(ret.extend[
+                            let result = rn ^ intermediate;
+                            SetZFlag(result);
+                            SetNFlag(result);
+                    ]);
+                    ret
+                }
+                V7Operation::TstImmediate(tst) => {
+                    consume!((
+                            rn.local_into(),
+                            imm.local_into(),
+                            carry
+                            ) from tst);
+                    pseudo!([
+                            let result = rn & imm;
+                            SetZFlag(result);
+                            SetNFlag(result);
+                            if (carry.is_some()){
+                                Flag("c") = (carry.unwrap() as u32).local_into();
+                            }
+                    ])
+                }
+                V7Operation::TstRegister(tst) => {
+                    let (rn, rm, shift) = (tst.rn.local_into(), tst.rm.local_into(), tst.shift);
+                    let mut ret = vec![];
+                    local!(shifted);
+                    shift!(ret.shift rm -> shifted set c for rm);
+                    pseudo!(ret.extend[
+                            let result = rn & shifted;
+                            SetNFlag(result);
+                            SetZFlag(result);
+                    ]);
+                    ret
+                }
+                V7Operation::Uadd16(uadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from uadd);
+                    pseudo!([
+                            let lsh_mask = (u16::MAX as u32).local_into();
+
+                            let rn_lsh = rn & lsh_mask;
+                            let rm_lsh = rm & lsh_mask;
+
+                            let sum1 = rn_lsh + rm_lsh;
+                            sum1 = sum1 & lsh_mask;
+
+                            let rn_msh = rn >> 16.local_into();
+                            rn_msh = rn_msh & lsh_mask;
+
+                            let rm_msh = rm >> 16.local_into();
+                            rm_msh = rm & lsh_mask;
+
+                            let sum2 = rn_msh + rm_msh;
+                            sum2 = sum2 & lsh_mask;
+                            sum2 = sum2 << 16.local_into();
+
+                            rd = sum1 | sum2;
+
+                            // TODO! Fix GE flags
+                            ])
+                }
+                V7Operation::Uadd8(uadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from uadd);
+                    pseudo!([
+                            let sum1 = rn<7:0> + rm<7:0>;
+                            let sum2 = rn<15:8> + rm<15:8>;
+                            let sum3 = rn<23:16> + rm<23:16>;
+                            let sum4 = rn<31:24> + rm<31:24>;
+                            rd = sum1<7:0>;
+                            let intermediate = sum2<7:0> << 8.local_into();
+                            rd = rd | intermediate;
+                            intermediate = sum3<7:0> << 16.local_into();
+                            rd = rd | intermediate;
+                            intermediate = sum4<7:0> << 24.local_into();
+                            rd = rd | intermediate;
+                            // TODO! Add in GE flags
+                    ])
+                }
+                V7Operation::Uasx(uasx) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                        ) from uasx
+                        );
+                    pseudo!([
+                            let diff = rn<15:0> - rm<31:16>;
+                            let sum = rn<31:16> + rm<15:0>;
+                            rd = diff<15:0>;
+                            let shifted = sum<15:0> << 16.local_into();
+                            rd = rd | shifted;
+                            // TODO! Implement aspr.ge
+                    ])
+                }
+                V7Operation::Ubfx(ubfx) => {
+                    consume!(
+                        (
+                            rd.local_into(),
+                            rn.local_into(),
+                            lsb,
+                            width
+                        )
+                        from ubfx
+                        );
+                    let msbit = lsb + (width - 1);
+                    pseudo!([
+                            rd = rn<msbit:lsb>;
+                    ])
+                }
+                V7Operation::Udf(_) => vec![Operation::Nop],
+                V7Operation::Udiv(udiv) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                        ) from udiv
+                        );
+                    pseudo!([
+                            let result = rn/rm;
+                            rd = result;
+                    ])
+                }
+                V7Operation::Uhadd16(uhadd) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                        ) from uhadd
+                        );
+                    pseudo!([
+                            let sum1 = rn<15:0> + rm<15:0>;
+                            let sum2 = rn<31:16> + rm<31:16>;
+                            rd = sum1<16:1>;
+                            let sum2_half = sum2<16:1> << 16.local_into();
+                            rd = rd | sum2_half;
+                    ])
+                }
+                V7Operation::Uhadd8(uhadd) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from uhadd);
+                    pseudo!([
+                            let sum1 = rn<7:0> + rm<7:0>;
+                            let sum2 = rn<15:8> + rm<15:8>;
+                            let sum3 = rn<23:16> + rm<23:16>;
+                            let sum4 = rn<31:24> + rm<31:24>;
+
+                            rd = sum1<8:1>;
+
+                            let sum2_shifted = sum2<8:1> << 8.local_into();
+                            let sum3_shifted = sum3<8:1> << 16.local_into();
+                            let sum4_shifted = sum2<8:1> << 24.local_into();
+
+                            rd = rd | sum2_shifted;
+                            rd = rd | sum3_shifted;
+                            rd = rd | sum4_shifted;
+                    ])
+                }
+                V7Operation::Uhasx(uhasx) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                        ) from uhasx
+                        );
+                    pseudo!([
+                            let diff = rn<15:0> - rm<31:16>;
+                            let sum = rn<31:16> + rm<15:0>;
+                            rd = diff<16:1>;
+                            let shifted = sum<16:1> << 16.local_into();
+                            rd = rd | shifted;
+                            // TODO! Implement aspr.ge
+                    ])
+                }
+                V7Operation::Uhsax(uhsax) => {
+                    consume!(
+                        (
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                        ) from uhsax
+                        );
+                    pseudo!([
+                            let diff = rn<15:0> + rm<31:16>;
+                            let sum = rn<31:16> - rm<15:0>;
+                            rd = diff<16:1>;
+                            let shifted = sum<16:1> << 16.local_into();
+                            rd = rd | shifted;
+                            // TODO! Implement aspr.ge
+                    ])
+                }
+                V7Operation::Uhsub16(uhsub) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from uhsub);
+                    pseudo!([
+                            let diff1 = rn<15:0> + rm<15:0>;
+                            let diff2 = rn<31:16> + rm<31:16>;
+                            rd = diff1<16:1>;
+                            let diff2_shifted = diff2<16:1> << 16.local_into();
+                            rd = rd | diff2_shifted;
+
+
+                    ])
+                }
+                V7Operation::Uhsub8(uhsub) => {
+                    consume!((
+                            rn.local_into(),
+                            rd.local_into().unwrap_or(rn.clone()),
+                            rm.local_into()
+                            ) from uhsub);
+                    pseudo!([
+                        let diff1 = rn<7:0> - rm<7:0>;
+                        let diff2 = rn<15:8> - rm<15:8>;
+                        let diff3 = rn<23:16> - rm<23:16>;
+                        let diff4 = rn<31:24> - rm<31:24>;
+                        rd = diff1<8:1>;
+                        let intermediate = diff2<8:1> << 8.local_into();
+                        rd = rd | intermediate;
+                        intermediate = diff3<8:1> << 16.local_into();
+                        rd = rd | intermediate;
+                        intermediate = diff4<8:1> << 24.local_into();
+                        rd = rd | intermediate;
+                    ])
+                }
+                V7Operation::Umaal(umaal) => {
+                    consume!(
+                        (
+                            rdlo.local_into(),
+                            rdhi.local_into(),
+                            rn.local_into(),
+                            rm.local_into()
+                        ) from umaal
+                        );
+                    pseudo!([
+                        let result = rn*rm;
+
+                        result = ZeroExtend(result,64) + ZeroExtend(rdlo,64);
+                        result = result + ZeroExtend(rdhi,64);
+
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<32:0:u64>;
+                    ])
+                }
+                V7Operation::Umlal(umlal) => {
+                    consume!(
+                        (
+                            rdlo.local_into(),
+                            rdhi.local_into(),
+                            rn.local_into(),
+                            rm.local_into()
+                        ) from umlal
+                        );
+                    pseudo!([
+                        let result = rn*rm;
+
+                        // Compose the rd
+                        let rd_composite= ZeroExtend(0.local_into(), 64);
+                        rd_composite = rdhi << 32.local_into();
+                        rd_composite = rd_composite | rdlo;
+
+                        result = ZeroExtend(result,64) + rd_composite;
+
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<32:0:u64>;
+                    ])
+                }
+                V7Operation::Umull(umull) => {
+                    consume!(
+                        (
+                            rdlo.local_into(),
+                            rdhi.local_into(),
+                            rn.local_into(),
+                            rm.local_into()
+                        ) from umull
+                        );
+                    pseudo!([
+                        let result = ZeroExtend(0.local_into(),64);
+                        result = ZeroExtend(rn,64)*ZeroExtend(rm,64);
+                        rdhi = result<63:32:u64>;
+                        rdlo = result<31:0:u64>;
+                    ])
+                }
+                V7Operation::Uqadd16(_) => todo!("TODO! Look in to saturating operators"),
+                V7Operation::Uqadd8(_) => todo!("TODO! Look in to saturating operators"),
+                V7Operation::Uqasx(_) => todo!("TODO! Look in to saturating"),
+                V7Operation::Uqsax(_) => todo!("TODO! ^"),
+                V7Operation::Uqsub16(_) => todo!("TODO! ^"),
+                V7Operation::Uqsub8(_) => todo!("TODO! ^"),
+                V7Operation::Uqsad8(_) => todo!("TODO! ^"),
+                V7Operation::Usada8(_) => todo!("TODO! ^"),
+                V7Operation::Usad8(_) => todo!("TODO! Look in to why ABS is needed here"),
+                V7Operation::Usat(_) => todo!("TODO! Look in to why ABS is needed here"),
+                V7Operation::Usat16(_) => todo!("TODO! Look in to SAT"),
+                V7Operation::Usax(usax) => {
+                    let (rn, rd, rm) = (usax.rn.local_into(), usax.rd.local_into(), usax.rm.local_into());
+                    let rd = rd.unwrap_or(rn.clone());
+                    pseudo!([
+                        let sum = rn<15:0> + rm<31:16>;
+                        let diff = rn<31:16> - rm<15:0>;
+                        rd = sum<15:0>;
+                        diff = diff<15:0> << 16.local_into();
+                        rd = rd | diff;
+                        // TODO! Look in to the GE register setting
+                    ])
+                }
+                V7Operation::Usub16(usub) => {
+                    let (rn, rd, rm) = (usub.rn.local_into(), usub.rd.local_into(), usub.rm.local_into());
+                    let rd = rd.unwrap_or(rn.clone());
+
+                    pseudo!([
+                        let diff1 = rn<15:0> - rm<15:0>;
+                        let diff2 = rn<31:16> - rm<31:16>;
+                        rd = diff1<15:0>;
+                        diff2 = diff2<15:0> << 16.local_into();
+                        rd = rd | diff2;
+
+                            // TODO! Look in to the GE register setting
+                    ])
+                }
+                V7Operation::Usub8(_) => {
+                    todo!("SIMD needs more work");
+                }
+                V7Operation::Uxtab(uxtab) => {
+                    let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
+                    let rd = rd.unwrap_or(rn.clone());
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn + ZeroExtend(rotated<7:0>,32);
+                    ])
+                }
+                V7Operation::Uxtab16(uxtab) => {
+                    let (rn, rd, rm, rotation) = (uxtab.rn.local_into(), uxtab.rd.local_into(), uxtab.rm.local_into(), uxtab.rotation.unwrap_or(0));
+                    let rd = rd.unwrap_or(rn.clone());
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn<15:0> + ZeroExtend(rotated<7:0>,32);
+                        let intermediate = rn<31:16> + ZeroExtend(rotated<23:16>,32);
+                        intermediate = intermediate<15:0> << 16.local_into();
+                        rd = rd<15:0> | intermediate;
+                    ])
+                }
+                V7Operation::Uxtah(uxtah) => {
+                    let (rn, rd, rm, rotation) = (uxtah.rn.local_into(), uxtah.rd.local_into(), uxtah.rm.local_into(), uxtah.rotation.unwrap_or(0));
+                    let rd = rd.unwrap_or(rn.clone());
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = rn + ZeroExtend(rotated<15:0>,32);
+                    ])
+                }
+                V7Operation::Uxtb(uxtb) => {
+                    let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<7:0>,32);
+                    ])
+                }
+                V7Operation::Uxtb16(uxtb) => {
+                    let (rd, rm, rotation) = (uxtb.rd.local_into(), uxtb.rm.local_into(), uxtb.rotation.unwrap_or(0));
+                    let rd = rd.unwrap_or(rm.clone());
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<7:0>,32);
+                        rotated = rotated<23:16> << 16.local_into();
+                        rd = rd | rotated;
+                    ])
+                }
+                V7Operation::Uxth(uxth) => {
+                    let (rd, rm, rotation) = (uxth.rd.local_into(), uxth.rm.local_into(), uxth.rotation.unwrap_or(0));
+                    pseudo!([
+                        let rotated = Ror(rm,rotation.local_into());
+                        rd = ZeroExtend(rotated<16:0>,32);
+                    ])
+                }
+                V7Operation::Wfe(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Wfi(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Yield(_) => todo!("This requires extensive system modelling"),
+                V7Operation::Svx(_) => todo!(),
+                V7Operation::Stc(_) => todo!(),
+                V7Operation::Mcr(_) => todo!(),
+                V7Operation::Mrc(_) => todo!(),
+                V7Operation::Mrrc(_) => todo!(),
+                V7Operation::Mcrr(_) => todo!(),
+                V7Operation::Cdp(_) => todo!(),
+                V7Operation::Ldc(_) => todo!(),
+            }
+        }
+    }
+}
+
+mod sealed {
+    pub trait Into<T> {
+        fn local_into(self) -> T;
+    }
+    pub trait ToString {
+        fn to_string(self) -> String;
+    }
+}
+
+use sealed::Into;
+
+use self::sealed::ToString;
+
+impl sealed::Into<Operand> for Register {
+    fn local_into(self) -> Operand {
+        Operand::Register(self.to_string())
+    }
+}
+
+impl sealed::Into<Condition> for ARMCondition {
+    fn local_into(self) -> Condition {
+        match self {
+            Self::Eq => Condition::EQ,
+            Self::Ne => Condition::NE,
+            Self::Mi => Condition::MI,
+            Self::Pl => Condition::PL,
+            Self::Vs => Condition::VS,
+            Self::Vc => Condition::VC,
+            Self::Hi => Condition::HI,
+            Self::Ge => Condition::GE,
+            Self::Lt => Condition::LT,
+            Self::Gt => Condition::GT,
+            Self::Ls => Condition::LS,
+            Self::Le => Condition::LE,
+            Self::Cs => Condition::CS,
+            Self::Cc => Condition::CC,
+            Self::None => Condition::None,
+        }
+    }
+}
+
+pub enum SpecialRegister {
+    APSR,
+    IAPSR,
+    EAPSR,
+    XPSR,
+    IPSR,
+    EPSR,
+    IEPSR,
+    MSP,
+    PSP,
+    PRIMASK,
+    CONTROL,
+    FAULTMASK,
+    BASEPRI,
+}
+
+impl Into<Operand> for SpecialRegister {
+    fn local_into(self) -> Operand {
+        Operand::Register(match self {
+            SpecialRegister::APSR => "APSR".to_owned(),
+            SpecialRegister::IAPSR => "IAPSR".to_owned(),
+            SpecialRegister::EAPSR => "EAPSR".to_owned(),
+            SpecialRegister::XPSR => "XPSR".to_owned(),
+            SpecialRegister::IPSR => "IPSR".to_owned(),
+            SpecialRegister::EPSR => "EPSR".to_owned(),
+            SpecialRegister::IEPSR => "IEPSR".to_owned(),
+            SpecialRegister::MSP => "MSP".to_owned(),
+            SpecialRegister::PSP => "PSP".to_owned(),
+            SpecialRegister::PRIMASK => "PRIMASK".to_owned(),
+            SpecialRegister::CONTROL => "CONTROL".to_owned(),
+            SpecialRegister::FAULTMASK => "FAULTMASK".to_owned(),
+            SpecialRegister::BASEPRI => "BASEPRI".to_owned(),
+        })
+    }
+}
 
 impl sealed::ToString for Register {
     fn to_string(self) -> String {
@@ -23,24 +3437,15 @@ impl sealed::ToString for Register {
             Register::R10 => "R10".to_owned(),
             Register::R11 => "R11".to_owned(),
             Register::R12 => "R12".to_owned(),
-            Register::SP => "SP".to_owned(),
+            Register::SP => "SP&".to_owned(),
             Register::LR => "LR".to_owned(),
             Register::PC => "PC+".to_owned(),
         }
     }
 }
-
-impl sealed::Into<Operand> for Register {
-    fn local_into(self) -> Operand {
-        Operand::Register(self.to_string())
-    }
-}
 impl sealed::Into<Option<Operand>> for Option<Register> {
     fn local_into(self) -> Option<Operand> {
-        if self.is_none() {
-            return None;
-        }
-        Some(Operand::Register(self.unwrap().to_string()))
+        Some(Operand::Register(self?.to_string()))
     }
 }
 impl sealed::Into<GAShift> for Shift {
@@ -54,2880 +3459,12 @@ impl sealed::Into<GAShift> for Shift {
         }
     }
 }
-macro_rules! consume {
-    (($($id:ident$($(.$e:expr)+)?),*) from $name:ident) => {
-        #[allow(unused_parens)]
-        let ($($id),*) = {
-            paste!(
-                let consumer = $name.consumer();
-                $(
-                    let ($id,consumer) = consumer.[<consume_ $id>]();
-                    let $id = $id$($(.$e)?)*;
-                )*
-                consumer.consume();
-            );
-            ($($id),*)
-        };
-    };
-}
-macro_rules! shift {
-    ($ret:ident.$shift:ident $reg:ident -> $target:ident $(set c for $reg_flag:ident)?) => {
-       if let Some(shift) = $shift {
-            let (shift_t, shift_n) = (
-                    shift.shift_t.local_into(),
-                    (shift.shift_n as u32).local_into(),
-            );
-            $($ret.push( match shift_t{
-                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
-            });)?
-            $ret.push(
-                Operation::Shift {
-                    destination: $target.clone(),
-                    operand: $reg.clone(),
-                    shift_n,
-                    shift_t,
-            })
-       }
-    };
-}
-macro_rules! shift_imm {
-    ($ret:ident.($shift_t:ident,$($shift_n_const:literal)?$($shift_n:ident)?) $reg:ident -> $target:ident $(set c for $reg_flag:ident)?) => {
-        {
-            let (shift_t, shift_n) = (
-                    $shift_t,
-                    $($shift_n)?$($shift_n_const)?,
-            );
-            $($ret.push( match shift_t{
-                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
-                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
-            });)?
-            $ret.push(
-                Operation::Shift {
-                    destination: $target.clone(),
-                    operand: $reg.clone(),
-                    shift_n,
-                    shift_t,
-            })
-        }
-    };
-}
-macro_rules! backup {
-    ($($id:ident),*) => {
-        {
-
-            paste!(
-                $(
-                    let [<backup_ $id>] = Operand::Local(format!("backup_{}",stringify!($id)));
-                )*
-                let ret = vec![
-                    $(
-                        Operation::Move { destination: [<backup_ $id>].clone(), source: $id.clone() }
-                    ),*
-                ];
-            );
-            paste!(
-                (ret,$([<backup_ $id>]),*)
-            )
-        }
-    };
-}
-macro_rules! local {
-    ($($id:ident),*) => {
-        $(
-            let $id = Operand::Local(stringify!($id).to_owned());
-        )*
-    };
-}
-// These two need to be broken out in to a proc macro to allow any generic expressions and some
-// neater syntax
-macro_rules! bin_op {
-    ($($d:ident = $lhs:ident + $rhs:expr),*) => {
-        $(Operation::Add { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Add carry bit
-    ($($d:ident = $lhs:ident + $rhs:ident + c),*) => {
-        $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Add carry bit
-    ($($d:ident = $lhs:ident adc $rhs:expr),*) => {
-        $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-
-    ($($d:ident = $lhs:ident - $rhs:expr),*) => {
-        $(Operation::Sub { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident * $rhs:expr),*) => {
-        $(Operation::Mul { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident & $rhs:expr),*) => {
-        $(Operation::And { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident | $rhs:expr),*) => {
-        $(Operation::Or { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident ^ $rhs:expr),*) => {
-        $(Operation::Xor { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
-    };
-    // Default to srl
-    ($($d:ident = $lhs:ident >> $rhs:expr),*) => {
-        $(Operation::Srl { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident << $rhs:expr),*) => {
-        $(Operation::Sl { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $lhs:ident sra $rhs:expr),*) => {
-        $(Operation::Sra { destination: $d.clone(), operand: $lhs.clone(), shift: $rhs.clone()}),*
-    };
-    ($($d:ident = $rhs:ident),*) => {
-        $(Operation::Move { destination: $d.clone(), source: $rhs.clone()}),*
-    };
-    ($($d:ident = ! $rhs:ident),*) => {
-        $(Operation::Not { destination: $d.clone(), operand: $rhs.clone()}),*
-    };
-    // ($d:ident = SInt($op:ident,$n:ident)) => {
-    //
-    // }
-}
 
 impl Into<Operand> for u32 {
     fn local_into(self) -> Operand {
         Operand::Immidiate(DataWord::Word32(self))
     }
 }
-const fn mask<const START: usize, const END: usize>() -> u32 {
-    let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
-    mask
-}
 fn mask_dyn(start: u32, end: u32) -> u32 {
-    let mask = ((1 << (end - start + 1) as u32) as u32) - 1 as u32;
-    mask
-}
-macro_rules! mask {
-    ($($id:ident : $start:literal -> $end:literal),*) => {
-        {
-            let mut ret = vec![]
-
-            paste!(
-                $(
-                    let [<shifted_ $id>] = Operand::Local(format!("shifted_{}",stringify!($id)));
-                )*
-                ret.extend([
-                    $(
-                        Operation::Shift {
-                            destination: [<shifted_ $id>],
-                            operand: $id,
-                            shift_n: $start.local_into(),
-                            shift_t: Shift::Lsl,
-                        }
-                    ),*
-                ]);
-            );
-            paste!(
-                (ret,$([<backup_ $id>]),*)
-            )
-        }
-
-    };
-}
-
-impl Into<Vec<Operation>> for Thumb {
-    fn local_into(self) -> Vec<Operation> {
-        'outer_block: {
-            match self {
-            Thumb::AdcImmediate(adc) => {
-                // Ensure that all fields are used
-                consume!((s,rd,rn,imm) from adc);
-                let (rd, rn, imm): (Option<Operand>, Operand, Operand) =
-                    (rd.local_into(), rn.local_into(), imm.local_into());
-                let rd = rd.unwrap_or(rn.clone());
-                let (mut ret, backup_rn) = backup!(rn);
-                ret.extend([Operation::Adc {
-                    destination: rd.clone(),
-                    operand1: imm.clone(),
-                    operand2: rn.clone(),
-                }]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: backup_rn.clone(),
-                            operand2: imm.clone(),
-                            sub: false,
-                            carry: true,
-                        },
-                        Operation::SetVFlag {
-                            operand1: backup_rn.clone(),
-                            operand2: imm.clone(),
-                            sub: false,
-                            carry: true,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AdcRegister(adc) => {
-                consume!((s,rd,rn,rm,shift) from adc);
-                let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
-                let rd = rd.unwrap_or(rn.clone());
-                let (mut ret, local_rn, local_rm) = backup!(rn, rm);
-                ret.extend([Operation::Adc {
-                    destination: rd.clone(),
-                    operand1: rm.clone(),
-                    operand2: rn.clone(),
-                }]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: local_rm.clone(),
-                            sub: false,
-                            carry: true,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: local_rm,
-                            sub: false,
-                            carry: true,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AddImmediate(add) => {
-                consume!((s,rd,rn,imm) from add);
-                let (rd, rn, imm) = (
-                    rd.unwrap_or(rn).local_into(),
-                    rn.local_into(),
-                    imm.local_into(),
-                );
-                let (mut ret, local_rn) = backup!(rn);
-
-                ret.push(Operation::Add {
-                    destination: rd.clone(),
-                    operand1: rn.clone(),
-                    operand2: imm.clone(),
-                });
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: imm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: imm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AddRegister(add) => {
-                consume!((s,rd,rn,rm,shift) from add);
-                let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
-                let rd = rd.unwrap_or(rn.clone());
-                let (mut ret, local_rn, local_rm) = backup!(rn, rm);
-                ret.extend([Operation::Adc {
-                    destination: rd.clone(),
-                    operand1: rm.clone(),
-                    operand2: rn.clone(),
-                }]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: local_rm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: local_rm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AddSPImmediate(add) => {
-                consume!((s,rd,imm) from add);
-                let (rd, rn, imm) = (
-                    rd.unwrap_or(Register::SP).local_into(),
-                    Register::SP.local_into(),
-                    imm.local_into(),
-                );
-                let (mut ret, local_rn) = backup!(rn);
-
-                ret.push(Operation::Add {
-                    destination: rd.clone(),
-                    operand1: rn.clone(),
-                    operand2: imm.clone(),
-                });
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: imm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: imm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: imm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AddSPRegister(add) => {
-                consume!((s,rd,rm,shift) from add);
-
-                let s = match rd {
-                    Some(Register::PC) => Some(false),
-                    _ => s,
-                };
-
-                let (rd, rn, rm) = (
-                    rd.unwrap_or(Register::SP).local_into(),
-                    Register::SP.local_into(),
-                    rm.local_into(),
-                );
-                let (mut ret, local_rn, local_rm) = backup!(rn, rm);
-                ret.extend([Operation::Adc {
-                    destination: rd.clone(),
-                    operand1: rm.clone(),
-                    operand2: rn.clone(),
-                }]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::Add {
-                            destination: rd.clone(),
-                            operand1: rn.clone(),
-                            operand2: rm.clone(),
-                        },
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlag {
-                            operand1: local_rn.clone(),
-                            operand2: local_rm.clone(),
-                            sub: false,
-                            carry: false,
-                        },
-                        Operation::SetVFlag {
-                            operand1: local_rn,
-                            operand2: local_rm,
-                            sub: false,
-                            carry: false,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::Adr(adr) => {
-                consume!((rd,imm,add) from adr);
-                let (rd, imm) = (rd.local_into(), imm.local_into());
-
-                let mut ret = vec![
-                    Operation::Add {
-                        destination: Operand::Local("addr".to_owned()),
-                        operand1: Operand::Register("PC".to_owned()),
-                        operand2: Operand::Immidiate(DataWord::Word32(2)),
-                    },
-                    Operation::And {
-                        destination: Operand::Local("addr".to_owned()),
-                        operand1: Operand::Local("addr".to_owned()),
-                        operand2: Operand::Immidiate(DataWord::Word32(!0b11)),
-                    },
-                ];
-                ret.push(match add {
-                    true => Operation::Add {
-                        destination: rd,
-                        operand1: Operand::Local("addr".to_owned()),
-                        operand2: imm,
-                    },
-                    false => Operation::Sub {
-                        destination: rd,
-                        operand1: Operand::Local("addr".to_owned()),
-                        operand2: imm,
-                    },
-                });
-                ret
-            }
-            Thumb::AndImmediate(and) => {
-                todo!("Need to figure out how to do thumb_expand_imm with ASPR.C");
-                // TODO! Add conditional execution of parts of Operation vector,
-                // this would allow meta functions such as ThumbExpandImm_C
-                //
-                //
-                // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/The-Thumb-Instruction-Set-Encoding/32-bit-Thumb-instruction-encoding/Modified-immediate-constants-in-Thumb-instructions?lang=en
-                // consume!((s,rd,rn,imm) from and);
-                // let (rd,rn,imm) = (rd.unwrap_or(rn).local_into(),rn.local_into(),imm.in
-            }
-            Thumb::AndRegister(and) => {
-                consume!((s,rd,rn,rm,shift) from and);
-                let (rd, rn, rm) = (
-                    rd.unwrap_or(rn).local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                );
-                let mut ret = match shift {
-                    Some(shift) => {
-                        let (shift_t, shift_n) = (
-                            shift.shift_t.local_into(),
-                            (shift.shift_n as u32).local_into(),
-                        );
-                        let flag_setter = match shift_t{
-                            GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Asr => Operation::SetCFlagSra { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Lsr => Operation::SetCFlagSrl { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                            GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
-                        };
-                        vec![
-                            flag_setter,
-                            Operation::Shift {
-                                destination: rm.clone(),
-                                operand: rm.clone(),
-                                shift_n,
-                                shift_t,
-                            },
-                        ]
-                    }
-                    None => vec![],
-                };
-                ret.push(Operation::And {
-                    destination: rd.clone(),
-                    operand1: rn,
-                    operand2: rm,
-                });
-                if let Some(true) = s {
-                    // The shift should already set the shift carry bit
-                    ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
-                }
-                ret
-            }
-            Thumb::AsrImmediate(asr) => {
-                consume!((s,rd,rm,imm) from asr);
-                let (rd, rm, imm) = (rd.local_into(), rm.local_into(), imm.local_into());
-                let mut ret = vec![Operation::Sra {
-                    destination: rd.clone(),
-                    operand: rm.clone(),
-                    shift: imm.clone(),
-                }];
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlagSra {
-                            operand: rm,
-                            shift: imm,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::AsrRegister(asr) => {
-                consume!((s,rd,rm,rn) from asr);
-                let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
-                let intermediate = Operand::Local("intermediate".to_owned());
-                let mut ret = vec![
-                    // Extract 8- least significant bits
-                    Operation::And {
-                        destination: intermediate.clone(),
-                        operand1: rm.clone(),
-                        operand2: Operand::Immidiate(DataWord::Word8(u8::MAX)),
-                    },
-                    Operation::Sra {
-                        destination: rd.clone(),
-                        operand: rn.clone(),
-                        shift: intermediate.clone(),
-                    },
-                ];
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetCFlagSra {
-                            operand: rm,
-                            shift: intermediate,
-                        },
-                    ]);
-                }
-                ret
-            }
-            Thumb::B(b) => {
-                consume!((condition,imm) from b);
-                todo!("This needs to be fixed, imm is signed here");
-                let (condition, imm) = (condition.local_into(), imm.local_into());
-                let intermediate = Operand::Local("intermediate".to_owned());
-                vec![
-                    Operation::Move {
-                        destination: intermediate.clone(),
-                        source: Register::PC.local_into().clone(),
-                    },
-                    Operation::Add {
-                        destination: intermediate.clone(),
-                        operand1: intermediate.clone(),
-                        operand2: imm.clone(),
-                    },
-                    // Discard last bit
-                    Operation::Srl {
-                        destination: intermediate.clone(),
-                        operand: intermediate.clone(),
-                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                    Operation::Sl {
-                        destination: intermediate.clone(),
-                        operand: intermediate.clone(),
-                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                    Operation::ConditionalJump {
-                        destination: intermediate,
-                        condition,
-                    },
-                ]
-            }
-            Thumb::Bfc(bfc) => {
-                consume!((rd,lsb,msb) from bfc);
-                let rd = rd.local_into();
-                let mask = !mask_dyn(lsb, msb);
-                vec![Operation::And {
-                    destination: rd.clone(),
-                    operand1: rd,
-                    operand2: Operand::Immidiate(DataWord::Word32(mask)),
-                }]
-            }
-            Thumb::Bfi(bfi) => {
-                consume!((rd,rn,lsb,msb) from bfi);
-                let (rd, rn) = (rd.local_into(), rn.local_into());
-                let p_mask = mask_dyn(0, msb - lsb);
-                let n_mask = !mask_dyn(lsb, msb);
-                let intermediate = Operand::Local("intermediate".to_owned());
-                vec![
-                    // Clear out the field
-                    Operation::And {
-                        destination: rd.clone(),
-                        operand1: rd.clone(),
-                        operand2: Operand::Immidiate(DataWord::Word32(n_mask)),
-                    },
-                    // Clear out the field
-                    Operation::And {
-                        destination: intermediate.clone(),
-                        operand1: rn,
-                        operand2: Operand::Immidiate(DataWord::Word32(p_mask)),
-                    },
-                    // Align the fields
-                    Operation::Sl {
-                        destination: intermediate.clone(),
-                        operand: intermediate.clone(),
-                        shift: Operand::Immidiate(DataWord::Word32(lsb)),
-                    },
-                    // Replace the field
-                    Operation::Or {
-                        destination: rd.clone(),
-                        operand1: rd,
-                        operand2: intermediate,
-                    },
-                ]
-            }
-            Thumb::BicImmediate(bic) => {
-                consume!((s,rd,rn,imm) from bic);
-                let (rd, rn, imm) = (
-                    rd.unwrap_or(rn.clone()).local_into(),
-                    rn.local_into(),
-                    imm.local_into(),
-                );
-                let intermediate = Operand::Local("intermediate".to_owned());
-                let mut ret = vec![
-                    Operation::Not {
-                        destination: intermediate.clone(),
-                        operand: imm,
-                    },
-                    Operation::And {
-                        destination: rd.clone(),
-                        operand1: rn.clone(),
-                        operand2: intermediate.clone(),
-                    },
-                ];
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                    ]);
-                }
-                ret
-            }
-            Thumb::BicRegister(bic) => {
-                consume!((s,rd,rn,rm,shift) from bic);
-
-                let (rd, rn, rm) = (
-                    rd.unwrap_or(rn).local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                );
-                let mut ret = match shift {
-                    Some(shift) => {
-                        let (shift_t, shift_n) = (
-                            shift.shift_t.local_into(),
-                            (shift.shift_n as u32).local_into(),
-                        );
-                        let flag_setter = match shift_t{
-                            GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Asr => Operation::SetCFlagSra { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Lsr => Operation::SetCFlagSrl { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                            GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
-                        };
-                        vec![
-                            flag_setter,
-                            Operation::Shift {
-                                destination: rm.clone(),
-                                operand: rm.clone(),
-                                shift_n,
-                                shift_t,
-                            },
-                        ]
-                    }
-                    None => vec![],
-                };
-                let intermediate = Operand::Local("intermediate".to_owned());
-                ret.extend([
-                    Operation::Not {
-                        destination: intermediate.clone(),
-                        operand: rm.clone(),
-                    },
-                    Operation::And {
-                        destination: rd.clone(),
-                        operand1: rn.clone(),
-                        operand2: intermediate.clone(),
-                    },
-                ]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd.clone()),
-                    ]);
-                }
-                ret
-            }
-            Thumb::Bkpt(_) => vec![Operation::Nop],
-            Thumb::Bl(bl) => {
-                let imm = bl.imm;
-                let add = imm >= 0;
-                let target = Operand::Local("target".to_owned());
-                // 1. Set intermediate
-                let mut ret = match add {
-                    true => {
-                        let imm = imm as u32;
-                        vec![Operation::Add {
-                            destination: target.clone(),
-                            operand1: Register::PC.local_into(),
-                            operand2: imm.local_into(),
-                        }]
-                    }
-                    false => {
-                        let imm = (-imm) as u32;
-                        vec![Operation::Sub {
-                            destination: target.clone(),
-                            operand1: Register::PC.local_into(),
-                            operand2: imm.local_into(),
-                        }]
-                    }
-                };
-                // 1.5. discard last bit
-                ret.extend([
-                    Operation::Srl {
-                        destination: target.clone(),
-                        operand: target.clone(),
-                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                    Operation::Sl {
-                        destination: target.clone(),
-                        operand: target.clone(),
-                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                ]);
-                // 2. Copy pc in to LR
-                ret.extend([
-                    Operation::Move {
-                        destination: Register::LR.local_into(),
-                        source: Register::PC.local_into(),
-                    },
-                    // Set LSB to 1, i.e. next instrution
-                    Operation::Or {
-                        destination: Register::LR.local_into(),
-                        operand1: Register::LR.local_into(),
-                        operand2: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                ]);
-                // 3. Branch to the new target
-                ret.push(Operation::ConditionalJump {
-                    destination: target,
-                    condition: Condition::None.local_into(),
-                });
-                ret
-            }
-            Thumb::Blx(blx) => {
-                consume!((rm) from blx);
-                let rm = rm.local_into();
-                let target = Operand::Local("target".to_owned());
-                let ret_addr = Operand::Local("ret_addr".to_owned());
-                let intermediate = Operand::Local("intermediate".to_owned());
-                let mask_intermediate = Operand::Local("mask".to_owned());
-                let mut ret = vec![
-                    Operation::Move {
-                        destination: target.clone(),
-                        source: rm.clone(),
-                    },
-                    Operation::Sub {
-                        destination: ret_addr.clone(),
-                        operand1: Register::PC.local_into(),
-                        operand2: Operand::Immidiate(DataWord::Word8(0b10)),
-                    },
-                    // Set last bit to 1
-                    Operation::Or {
-                        destination: Register::LR.local_into(),
-                        operand1: ret_addr.clone(),
-                        operand2: Operand::Immidiate(DataWord::Word8(0b1)),
-                    },
-                    // BLXWritePc https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
-
-                    // 1. Set the EPSR.T reg to the LSB in the target
-                    Operation::And {
-                        destination: intermediate.clone(),
-                        operand1: target.clone(),
-                        operand2: Operand::Immidiate(DataWord::Word32(1)),
-                    },
-                    Operation::Sl {
-                        destination: intermediate.clone(),
-                        operand: intermediate.clone(),
-                        shift: 23.local_into(),
-                    },
-                    // TODO! Clear the bit here first
-                    Operation::Sl {
-                        destination: mask_intermediate.clone(),
-                        operand: 0b1.local_into(),
-                        shift: 23.local_into(),
-                    },
-                    Operation::Not {
-                        destination: mask_intermediate.clone(),
-                        operand: mask_intermediate.clone(),
-                    },
-                    Operation::And {
-                        destination: SpecialRegister::EPSR.local_into(),
-                        operand1: SpecialRegister::EPSR.local_into(),
-                        operand2: mask_intermediate,
-                    },
-                    Operation::Or {
-                        destination: SpecialRegister::EPSR.local_into(),
-                        operand1: SpecialRegister::EPSR.local_into(),
-                        // Set bit nr 24 to 1
-                        operand2: intermediate,
-                    },
-                    // 2. Force final bit to 0
-                    Operation::And {
-                        destination: target.clone(),
-                        operand1: target.clone(),
-                        operand2: { !(0b1 as u32) }.local_into(),
-                    },
-                    Operation::ConditionalJump {
-                        destination: target,
-                        condition: Condition::None.local_into(),
-                    },
-                ];
-                ret
-            }
-
-            Thumb::Bx(bx) => {
-                // TODO! Add edge case here for panics
-                let rm = bx.rm.local_into();
-                // Simply implements https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
-                let intermediate = Operand::Local("intermediate".to_owned());
-                let mask_intermediate = Operand::Local("mask".to_owned());
-
-                vec![
-                    // BXWritePc https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
-
-                    // 1. Set the EPSR.T reg to the LSB in the target
-                    Operation::And {
-                        destination: intermediate.clone(),
-                        operand1: rm.clone(),
-                        operand2: Operand::Immidiate(DataWord::Word32(1)),
-                    },
-                    Operation::Sl {
-                        destination: intermediate.clone(),
-                        operand: intermediate.clone(),
-                        shift: 23.local_into(),
-                    },
-                    // TODO! Clear the bit here first
-                    Operation::Sl {
-                        destination: mask_intermediate.clone(),
-                        operand: 0b1.local_into(),
-                        shift: 23.local_into(),
-                    },
-                    Operation::Not {
-                        destination: mask_intermediate.clone(),
-                        operand: mask_intermediate.clone(),
-                    },
-                    Operation::And {
-                        destination: SpecialRegister::EPSR.local_into(),
-                        operand1: SpecialRegister::EPSR.local_into(),
-                        operand2: mask_intermediate,
-                    },
-                    Operation::Or {
-                        destination: SpecialRegister::EPSR.local_into(),
-                        operand1: SpecialRegister::EPSR.local_into(),
-                        // Set bit nr 24 to 1
-                        operand2: intermediate,
-                    },
-                    // 2. Force final bit to 0
-                    Operation::And {
-                        destination: rm.clone(),
-                        operand1: rm.clone(),
-                        operand2: { !(0b1 as u32) }.local_into(),
-                    },
-                    Operation::ConditionalJump {
-                        destination: rm,
-                        condition: Condition::None.local_into(),
-                    },
-                ]
-            }
-            Thumb::Cbz(cbz) => {
-                consume!((non, rn,imm) from cbz);
-                let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = Operand::Flag("z".to_owned());
-                let intermediate = Operand::Local("z_intermediate".to_owned());
-
-                let condition = match non {
-                    Some(true) => Condition::Ne,
-                    _ => Condition::Eq,
-                }
-                .local_into();
-                let target = Operand::Local("target".to_owned());
-                vec![
-                    Operation::Move {
-                        destination: intermediate.clone(),
-                        source: flag.clone(),
-                    },
-                    Operation::SetZFlag(rn.clone()),
-                    Operation::And {
-                        destination: target.clone(),
-                        operand1: imm,
-                        operand2: 0b1.local_into(),
-                    },
-                    Operation::ConditionalJump {
-                        destination: target,
-                        condition,
-                    },
-                    Operation::Move {
-                        destination: flag,
-                        source: intermediate,
-                    },
-                ]
-            }
-            Thumb::Clrex(_) => todo!("This should not be needed for now"),
-            Thumb::Clz(clz) => {
-                // TODO! Fix this,
-                //
-                // This instruction should produce the actual amount of leading zeros,
-                // at the time of writing it simply produces a new symbol that is unconstrained
-                // and limits it to 32
-                //
-                //
-                //
-                // TODO! Change this to use a register read hook to generate symbolic values
-                let rd_old = clz.rd.clone();
-                let rd = clz.rd.local_into();
-                vec![
-                    Operation::Symbolic {
-                        destination: rd.clone(),
-                        name: rd_old.to_string(),
-                    },
-                    // No value larger than 2^5 is valid
-                    Operation::And {
-                        destination: rd.clone(),
-                        operand1: rd,
-                        operand2: 32.local_into(),
-                    },
-                ]
-            } //todo!("This is quite resonable but it needs to set the destination register to random symbolic"),
-            Thumb::CmnImmediate(cmn) => {
-                consume!((rn,imm) from cmn);
-                let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = Operand::Flag("v".to_owned());
-                let intermediate = Operand::Local("v_intermediate".to_owned());
-                let result = Operand::Local("result".to_owned());
-
-                vec![
-                    Operation::Move {
-                        destination: intermediate.clone(),
-                        source: flag.clone(),
-                    },
-                    Operation::Move {
-                        destination: flag.clone(),
-                        source: 0.local_into(),
-                    },
-                    Operation::Adc {
-                        destination: result.clone(),
-                        operand1: rn.clone(),
-                        operand2: imm.clone(),
-                    },
-                    Operation::SetNFlag(result.clone()),
-                    Operation::SetZFlag(result.clone()),
-                    Operation::SetCFlag {
-                        operand1: rn.clone(),
-                        operand2: imm.clone(),
-                        sub: false,
-                        carry: true,
-                    },
-                    Operation::SetVFlag {
-                        operand1: rn,
-                        operand2: imm,
-                        sub: false,
-                        carry: true,
-                    },
-                ]
-            }
-            Thumb::CmnRegister(cmn) => {
-                consume!((rn,rm,shift) from cmn);
-                let (rn, rm) = (rn.local_into(), rm.local_into());
-                let shifted = Operand::Local("destination".to_owned());
-                let mut ret = match shift {
-                    Some(shift) => {
-                        let (shift_t, shift_n) = (
-                            shift.shift_t.local_into(),
-                            (shift.shift_n as u32).local_into(),
-                        );
-                        vec![Operation::Shift {
-                            destination: shifted.clone(),
-                            operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
-                        }]
-                    }
-                    // If no shift is applied just move the value in to the register
-                    None => vec![Operation::Move {
-                        destination: shifted.clone(),
-                        source: rm.clone(),
-                    }],
-                };
-                let result = Operand::Local("result".to_owned());
-                ret.extend([
-                    Operation::Move {
-                        destination: Operand::Flag("v".to_owned()),
-                        source: 0.local_into(),
-                    },
-                    Operation::Adc {
-                        destination: result.clone(),
-                        operand1: rn.clone(),
-                        operand2: shifted.clone(),
-                    },
-                    Operation::SetNFlag(result.clone()),
-                    Operation::SetZFlag(result.clone()),
-                    Operation::SetCFlag {
-                        operand1: rn.clone(),
-                        operand2: shifted.clone(),
-                        sub: false,
-                        carry: true,
-                    },
-                    Operation::SetVFlag {
-                        operand1: rn,
-                        operand2: shifted,
-                        sub: false,
-                        carry: true,
-                    },
-                ]);
-                ret
-            }
-            Thumb::CmpImmediate(cmp) => {
-                consume!((rn,imm) from cmp);
-                let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = Operand::Flag("v".to_owned());
-                let intermediate = Operand::Local("v_intermediate".to_owned());
-                let result = Operand::Local("result".to_owned());
-                let imm_intermediate = Operand::Local("imm_intermediate".to_owned());
-                vec![
-                    Operation::Not {
-                        destination: imm_intermediate.clone(),
-                        operand: imm,
-                    },
-                    Operation::Move {
-                        destination: intermediate.clone(),
-                        source: flag.clone(),
-                    },
-                    Operation::Move {
-                        destination: flag.clone(),
-                        source: 1.local_into(),
-                    },
-                    Operation::Adc {
-                        destination: result.clone(),
-                        operand1: rn.clone(),
-                        operand2: imm_intermediate.clone(),
-                    },
-                    Operation::SetNFlag(result.clone()),
-                    Operation::SetZFlag(result.clone()),
-                    Operation::SetCFlag {
-                        operand1: rn.clone(),
-                        operand2: imm_intermediate.clone(),
-                        sub: false,
-                        carry: true,
-                    },
-                    Operation::SetVFlag {
-                        operand1: rn,
-                        operand2: imm_intermediate,
-                        sub: false,
-                        carry: true,
-                    },
-                ]
-            }
-            Thumb::CmpRegister(cmp) => {
-                consume!((rn,rm,shift) from cmp);
-                let (rn, rm) = (rn.local_into(), rm.local_into());
-                let shifted = Operand::Local("destination".to_owned());
-                let mut ret = match shift {
-                    Some(shift) => {
-                        let (shift_t, shift_n) = (
-                            shift.shift_t.local_into(),
-                            (shift.shift_n as u32).local_into(),
-                        );
-                        vec![Operation::Shift {
-                            destination: shifted.clone(),
-                            operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
-                        }]
-                    }
-                    // If no shift is applied just move the value in to the register
-                    None => vec![Operation::Move {
-                        destination: shifted.clone(),
-                        source: rm.clone(),
-                    }],
-                };
-                let result = Operand::Local("result".to_owned());
-                ret.extend([
-                    Operation::Not {
-                        destination: shifted.clone(),
-                        operand: shifted.clone(),
-                    },
-                    Operation::Move {
-                        destination: Operand::Flag("v".to_owned()),
-                        source: 1.local_into(),
-                    },
-                    Operation::Adc {
-                        destination: result.clone(),
-                        operand1: rn.clone(),
-                        operand2: shifted.clone(),
-                    },
-                    Operation::SetNFlag(result.clone()),
-                    Operation::SetZFlag(result.clone()),
-                    Operation::SetCFlag {
-                        operand1: rn.clone(),
-                        operand2: shifted.clone(),
-                        sub: false,
-                        carry: true,
-                    },
-                    Operation::SetVFlag {
-                        operand1: rn,
-                        operand2: shifted,
-                        sub: false,
-                        carry: true,
-                    },
-                ]);
-                ret
-            }
-            Thumb::Cps(cps) => {
-                consume!((enable,disable,affect_pri,affect_fault) from cps);
-                assert!(enable != disable);
-                let mut ret = Vec::with_capacity(2);
-                if enable {
-                    if affect_pri {
-                        // force lsb to 0
-                        ret.push(Operation::And {
-                            destination: SpecialRegister::PRIMASK.local_into(),
-                            operand1: SpecialRegister::PRIMASK.local_into(),
-                            operand2: ((!(0b1u32)).local_into()),
-                        })
-                    }
-                    if affect_fault {
-                        // force lsb to 0
-                        ret.push(Operation::And {
-                            destination: SpecialRegister::FAULTMASK.local_into(),
-                            operand1: SpecialRegister::FAULTMASK.local_into(),
-                            operand2: ((!(0b1u32)).local_into()),
-                        })
-                    }
-                } else {
-                    if affect_pri {
-                        // force lsb to 1
-                        ret.push(Operation::And {
-                            destination: SpecialRegister::PRIMASK.local_into(),
-                            operand1: SpecialRegister::PRIMASK.local_into(),
-                            operand2: ((0b1u32).local_into()),
-                        })
-                    }
-                    if affect_fault {
-                        // force lsb to 1
-                        ret.push(Operation::And {
-                            destination: SpecialRegister::FAULTMASK.local_into(),
-                            operand1: SpecialRegister::FAULTMASK.local_into(),
-                            operand2: ((0b1u32).local_into()),
-                        })
-                    }
-                }
-                ret
-            }
-            Thumb::Dbg(_) => vec![Operation::Nop],
-            Thumb::Dmb(_) => {
-                todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
-            }
-            Thumb::Dsb(_) => {
-                todo!("This requires an exhaustive rewrite of the system to allow memory barriers")
-            }
-            Thumb::EorImmediate(eor) => {
-                todo!("Depends on more complex system, we need ThumbExpandImm_C");
-                // consume!((s,rd,rn,imm) from eor);
-                // let mut ret = vec![
-                //
-                // ];
-                // todo!()
-            }
-            Thumb::EorRegister(eor) => {
-                consume!((s,rd,rn,rm,shift) from eor);
-                let (rd, rn, rm) = (
-                    rd.unwrap_or(rn.clone()).local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                );
-                let mut ret = Vec::with_capacity(10);
-                let shifted = Operand::Local("destination".to_owned());
-                ret.extend(match shift {
-                    Some(shift) => {
-                        let (shift_t, shift_n) = (
-                            shift.shift_t.local_into(),
-                            (shift.shift_n as u32).local_into(),
-                        );
-
-                        let mut flag_setter = match shift_t{
-                            GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Asr => Operation::SetCFlagSra { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Lsr => Operation::SetCFlagSrl { operand: rm.clone(), shift: shift_n.clone() },
-                            GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
-                            GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
-                        };
-                        if let Some(true) = s {
-                            flag_setter = Operation::Nop;
-                        }
-                        vec![Operation::Shift {
-                            destination: shifted.clone(),
-                            operand: rm.clone(),
-                            shift_n: shift_n,
-                            shift_t: shift_t,
-                        },
-                        flag_setter
-                        ]
-                    }
-                    // If no shift is applied just move the value in to the register
-                    None =>{
-                        let mut flag_setter = Operation::Move {
-                            destination: Operand::Flag("c".to_owned()),
-                            source: 0.local_into()
-                        };
-                        if let Some(true) = s {
-                            flag_setter = Operation::Nop;
-                        }
-                        vec![Operation::Move {
-                        destination: shifted.clone(),
-                        source: rm.clone(),
-                        },
-                        flag_setter
-
-                    ]
-                    }
-                });
-
-                ret.push(Operation::Xor { destination: rd.clone(), operand1: rn.clone(), operand2: shifted.clone() });
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd)
-                    ]);
-                }
-                ret
-            }
-            Thumb::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
-            Thumb::It(_) => todo!("Leaving this for when https://github.com/s7rul/symex/tree/conditional-execution is completed"),
-            Thumb::Ldm(ldm) => {
-                consume!((rn,w,registers) from ldm);
-                let rn_old = rn.clone();
-                let rn = rn.local_into();
-                let mut ret = Vec::with_capacity(15);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone() });
-                let mut write_back = w.unwrap_or(false);
-                for register in &registers.regs {
-                    if *register == rn_old{
-                        write_back = false;
-                    }
-                    ret.extend([
-                        Operation::Move { destination: register.clone().local_into(), source: address.clone() },
-                        Operation::Add { destination: address_setter.clone(), operand1: address.clone(), operand2: 4.local_into() }
-                    ]
-                    );
-                }
-                // TODO! Add LoadWritePC
-                if write_back{
-                    ret.push(
-                        Operation::Add { destination: rn.clone(), operand1: rn.clone(), operand2: (4*(registers.regs.len() as u32)).local_into() }
-                        );
-                }
-                ret
-
-            },
-            Thumb::Ldmdb(ldmdb) =>{
-                consume!((rn,w,registers) from ldmdb);
-                let rn_old = rn.clone();
-                let rn = rn.local_into();
-                let mut ret = Vec::with_capacity(15);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                ret.push(Operation::Sub { destination: address_setter.clone(), operand1: rn.clone(), operand2: (4*(registers.regs.len() as u32)).local_into() });
-                let mut write_back = w.unwrap_or(false);
-                for register in &registers.regs {
-                    if *register == rn_old{
-                        write_back = false;
-                    }
-                    ret.extend([
-                        Operation::Move { destination: register.clone().local_into(), source: address.clone() },
-                        Operation::Add { destination: address_setter.clone(), operand1: address_setter.clone(), operand2: 4.local_into() }
-                    ]
-                    );
-                }
-                // TODO! Add LoadWritePC
-                if write_back{
-                    ret.push(
-                        Operation::Sub { destination: rn.clone(), operand1: rn.clone(), operand2: (4*(registers.regs.len() as u32)).local_into() }
-                        );
-                }
-                ret
-            },
-            Thumb::LdrImmediate(ldr) => {
-                consume!((index,add,w,rt,rn,imm) from ldr);
-                let old_rt = rt.clone();
-                let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.local_into());
-                let mut ret = Vec::with_capacity(5);
-                local!(offset_addr,data);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                match add {
-                    true => ret.push(Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
-                    _ => ret.push(Operation::Sub { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
-                }
-                match index {
-                    true => ret.push(Operation::Move { destination: address.clone(), source: offset_addr.clone()}),
-                    _ => ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone()}),
-                }
-                ret.push(Operation::Move { destination: data.clone(), source: address });
-                match old_rt {
-                    Register::PC => todo!("We need to check the 2 lsbs of address here which is un achievable at this time"),
-                    _ => ret.push(Operation::Move { destination: rt, source: data })
-                }
-                ret
-            },
-            Thumb::LdrLiteral(ldr) => {
-                todo!("Align PC 4")
-            },
-            Thumb::LdrRegister(ldr) => {
-                // TODO! Validate that the documentation is correct
-                // It seems that index is allways true
-                // add is allways true and w is allways false.
-                consume!((w,rt,rn,rm,shift) from ldr);
-                let rt_old = rt.clone();
-                let (rt,rn,rm) = (rt.local_into(), rn.local_into(),rm.local_into());
-                let mut ret = Vec::with_capacity(10);
-                local!(offset,offset_addr,data);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(),32);
-                ret.push(Operation::Move { destination: offset.clone(), source: rm.clone() });
-                if let Some(shift) = shift{
-                    ret.push(Operation::Sl { destination: offset.clone(), operand: offset.clone(), shift: (shift.shift_n as u32).local_into() });
-                }
-                // Continuing with the assumptions mentioned above
-                ret.extend([
-                    Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: offset.clone() },
-                    Operation::Move { destination: address_setter.clone(), source: offset_addr },
-                    Operation::Move { destination: data.clone(), source: address }
-                ]);
-                match rt_old {
-                        Register::PC => todo!("LoadWritePc"),
-                        _ => {ret.push(Operation::Move { destination: rt, source: data });}
-                }
-                ret
-            },
-            Thumb::LdrbImmediate(ldrb) => {
-                consume!((index,add,w,rt,rn,imm) from ldrb);
-                let imm = imm.unwrap_or(0);
-                let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.local_into());
-                let mut ret = Vec::with_capacity(5);
-                local!(offset_addr,data);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 8);
-                match add {
-                    Some(true) => ret.push(Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
-                    _ => ret.push(Operation::Sub { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
-                }
-                match index {
-                    true => ret.push(Operation::Move { destination: address.clone(), source: offset_addr.clone()}),
-                    _ => ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone()}),
-                }
-                ret.push(Operation::Move { destination: data.clone(), source: address });
-                ret.push(Operation::Move { destination: rt.clone(), source: data });
-                ret.push(Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 });
-                if let Some(true) = w {
-                    ret.push(Operation::Move { destination: rn, source: offset_addr })
-                }
-                ret
-            },
-            Thumb::LdrbLiteral(_) => todo!("Align PC 4"),
-            Thumb::LdrbRegister(ldrb) =>{
-                // TODO! Validate that the documentation is correct
-                // It seems that index is allways true
-                // add is allways true and w is allways false.
-                consume!((rt,rn,rm,shift,add) from ldrb);
-                let (rt,rn,rm) = (rt.local_into(), rn.local_into(),rm.local_into());
-                let mut ret = Vec::with_capacity(10);
-                local!(offset,offset_addr,data);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(),8);
-                ret.push(Operation::Move { destination: offset.clone(), source: rm.clone() });
-                if let Some(shift) = shift{
-                    ret.push(Operation::Sl { destination: offset.clone(), operand: offset.clone(), shift: (shift.shift_n as u32).local_into() });
-                }
-                // Continuing with the assumptions mentioned above
-                ret.extend([
-                    Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: offset.clone() },
-                    Operation::Move { destination: address_setter.clone(), source: offset_addr },
-                    Operation::Move { destination: data.clone(), source: address }
-                ]);
-                ret.extend([Operation::Move { destination: rt.clone(), source: data },
-                    Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 },]);
-                ret
-            },
-            Thumb::Ldrbt(ldrbt) => {
-                consume!((rt,rn,imm) from ldrbt);
-                let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into());
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(),8);
-                vec![
-                    Operation::Add { destination: address_setter.clone(), operand1: rn, operand2: imm },
-                    Operation::Move { destination: rt.clone(), source: address },
-                    Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 },
-                ]
-            },
-            Thumb::LdrdImmediate(ldrd) => {
-                consume!((rt.local_into(),rt2.local_into(),rn.local_into(),imm.local_into(),add,index,w) from ldrd);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                let mut ret = Vec::with_capacity(23);
-                
-                match add{
-                    Some(true) => ret.push(Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm }),
-                    _ => ret.push(Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm }),
-                }
-                match index{
-                    Some(true) => ret.push(Operation::Move { destination: address_setter.clone(), source: offset_address.clone() }),
-                    _ => ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone() })
-                }
-
-                ret.extend([
-                           Operation::Move { destination: rt.clone(), source: address.clone()},
-                           Operation::Add { destination: address_setter.clone(), operand1: address_setter.clone(), operand2: 4.local_into() },
-                           Operation::Move { destination: rt2.clone(), source: address.clone()},
-                           Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 },
-                           Operation::ZeroExtend { destination: rt2.clone(), operand: rt2, bits: 32 }
-                ]);
-                if let Some(true) = w {
-                    ret.push(Operation::Move { destination: rn, source: offset_address })
-                }
-                ret
-            },
-            Thumb::LdrdLiteral(ldrd) => {
-                consume!((rt.local_into(),rt2.local_into(),imm.local_into(),add,w,index) from ldrd);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                let mut ret = Vec::with_capacity(10);
-
-                match add {
-                    Some(true) => ret.push(Operation::Add { destination: address_setter.clone(), operand1: Register::PC.local_into(), operand2: imm }),
-                    _ => ret.push(Operation::Sub { destination: address_setter.clone(), operand1: Register::PC.local_into(), operand2: imm }),
-                }
-
-                ret.extend([
-                    Operation::Move { destination: rt.clone(), source: address.clone() },
-                    Operation::Add { destination: address_setter.clone(), operand1: address_setter, operand2: 4.local_into() },
-                    Operation::Move { destination: rt2.clone(), source: address.clone() },
-                    Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 },
-                    Operation::ZeroExtend { destination: rt2.clone(), operand: rt2, bits: 32 }
-                ]);
-                
-                ret
-            },
-            Thumb::Ldrex(_) => todo!("This is probably not needed"),
-            Thumb::Ldrexb(_) => todo!("This is probably not needed"),
-            Thumb::Ldrexh(_) => todo!("This is probably not needed"),
-            Thumb::LdrhImmediate(ldrh) => {
-                consume!((rt.local_into(),rn.local_into(),imm.local_into(),add,w,index) from ldrh);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                let mut ret = Vec::with_capacity(4);
-                
-                match add{
-                    Some(true) => ret.push(Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm }),
-                    _ => ret.push(Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm }),
-                }
-                match index{
-                    Some(true) => ret.push(Operation::Move { destination: address_setter.clone(), source: offset_address.clone() }),
-                    _ => ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone() })
-                }
-
-                ret.extend([
-                           Operation::Move { destination: rt.clone(), source: address.clone()},
-                        Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 }
-                ]);
-                if let Some(true) = w {
-                    ret.push(Operation::Move { destination: rn, source: offset_address })
-                }
-                ret
-            }
-            Thumb::LdrhLiteral(ldrh) => {
-                consume!((rt.local_into(),imm.local_into(),add) from ldrh);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                let mut ret = Vec::with_capacity(23);
-                // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: address_setter.clone(), source: Operand::Register("PCA".to_owned()) });
-                
-                ret.push(match add {
-                    Some(true) => Operation::Add { destination: address_setter.clone(), operand1: address_setter, operand2: imm },
-                    _ => Operation::Sub { destination: address_setter.clone(), operand1: address_setter, operand2: imm },
-                });
-
-                ret.extend([
-                    Operation::Move { destination: rt.clone(), source: address },
-
-                    Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 }
-                ]);
-                ret
-            },
-            Thumb::LdrhRegister(ldrh) => {
-                consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrh);
-                let mut ret = Vec::with_capacity(10);
-                let offset = Operand::Local("offset".to_owned());
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                
-                shift!(ret.shift rm -> offset);
-                
-                // This is correct for the ARMV7 probably not for future extensions
-                ret.extend([
-                    Operation::Add { destination: offset_address.clone(), operand1: rn, operand2:  offset},
-                    Operation::Move { destination: address_setter.clone(), source: offset_address },
-                    Operation::Move { destination: rt.clone(), source: address },
-                    Operation::ZeroExtend { destination: rt.clone(), operand: rt, bits: 32 }
-                ]);
-                
-                ret
-            },
-            Thumb::Ldrht(ldrht) => {
-                consume!((rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into()) from ldrht);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                vec![
-                    Operation::Add { destination: address_setter.clone(), operand1: rn, operand2: imm },
-                    Operation::Move { destination: rt, source: address }
-                ]
-            },
-            Thumb::LdrsbImmediate(ldrsb) => {
-                consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsb);
-                let mut ret = Vec::with_capacity(10);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 8);
-                
-                ret.push(match add {
-                    true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
-                    _ => Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
-                });
-
-                ret.push(match index{
-                    true => Operation::Move { destination: address_setter.clone(), source: offset_address.clone() },
-                    _ => Operation::Move { destination: address_setter.clone(), source: rn.clone() },
-                });
-
-                ret.extend(
-                    [
-                    Operation::SignExtend { destination: rt, operand: address, bits: 32 }
-                    ]
-                    );
-
-                if wback{
-                    ret.push(Operation::Move { destination: rn, source: offset_address })
-                }
-
-                ret
-            },
-            Thumb::LdrsbLiteral(ldrsb) => {
-                consume!((rt.local_into(),imm.local_into(),add) from ldrsb);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 8);
-                let mut ret = Vec::with_capacity(23);
-                // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: offset_address.clone(), source: Operand::Register("PCA".to_owned()) });
-
-                           
-                ret.push(match add {
-                    true => Operation::Add { destination: address_setter.clone(), operand1: offset_address, operand2: imm }, 
-                    false => Operation::Sub { destination: address_setter.clone(), operand1: offset_address, operand2: imm }, 
-                });
-
-                ret.push(Operation::SignExtend { destination: rt, operand: address, bits: 32 });
-                ret
-            },
-            Thumb::LdrsbRegister(ldrsb) => {
-                consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsb);
-                let mut ret = Vec::with_capacity(10);
-                let offset = Operand::Local("offset".to_owned());
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 8);
-                
-                shift!(ret.shift rm -> offset);
-                
-                // This is correct for the ARMV7 probably not for future extensions
-                ret.extend([
-                    Operation::Add { destination: offset_address.clone(), operand1: rn, operand2:  offset},
-                    Operation::Move { destination: address_setter.clone(), source: offset_address },
-                    Operation::Move { destination: rt.clone(), source: address },
-                    Operation::SignExtend { destination: rt.clone(), operand: rt, bits: 32 }
-                ]);
-                
-                ret
-            },
-            Thumb::Ldrsbt(ldrsbt) => {
-                consume!((rt.local_into(), rn.local_into(), imm.local_into()) from ldrsbt);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 8);
-                vec![
-                    Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
-                    Operation::SignExtend { destination: rt, operand: address, bits: 32 }
-                ]
-            },
-            Thumb::LdrshImmediate(ldrsh) => {
-                consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsh);
-                let mut ret = Vec::with_capacity(10);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                
-                ret.push(match add {
-                    true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
-                    _ => Operation::Sub { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
-                });
-
-                ret.push(match index{
-                    true => Operation::Move { destination: address_setter.clone(), source: offset_address.clone() },
-                    _ => Operation::Move { destination: address_setter.clone(), source: rn.clone() },
-                });
-
-                ret.extend(
-                    [
-                    Operation::SignExtend { destination: rt, operand: address, bits: 32 }
-                    ]
-                    );
-
-                if wback{
-                    ret.push(Operation::Move { destination: rn, source: offset_address })
-                }
-
-                ret
-            },
-            Thumb::LdrshLiteral(ldrsh) => {
-                consume!((rt.local_into(),imm.local_into(),add) from ldrsh);
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                let mut ret = Vec::with_capacity(23);
-                // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: offset_address.clone(), source: Operand::Register("PCA".to_owned()) });
-
-                           
-                ret.push(match add {
-                    true => Operation::Add { destination: address_setter.clone(), operand1: offset_address, operand2: imm }, 
-                    false => Operation::Sub { destination: address_setter.clone(), operand1: offset_address, operand2: imm }, 
-                });
-
-                ret.push(Operation::SignExtend { destination: rt, operand: address, bits: 32 });
-                ret
-            },
-            Thumb::LdrshRegister(ldrsh) => {
-                consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsh);
-                let mut ret = Vec::with_capacity(10);
-                let offset = Operand::Local("offset".to_owned());
-                let address_setter = Operand::Local("address".to_owned());
-                let offset_address = Operand::Local("offset_address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                
-                shift!(ret.shift rm -> offset);
-                
-                // This is correct for the ARMV7 probably not for future extensions
-                ret.extend([
-                    Operation::Add { destination: offset_address.clone(), operand1: rn, operand2:  offset},
-                    Operation::Move { destination: address_setter.clone(), source: offset_address },
-                    Operation::Move { destination: rt.clone(), source: address },
-                    Operation::SignExtend { destination: rt.clone(), operand: rt, bits: 32 }
-                ]);
-                
-                ret
-            },
-            Thumb::Ldrsht(ldrsht) => {
-                consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrsht);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 16);
-                vec![
-                    Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
-                    Operation::SignExtend { destination: rt, operand: address, bits: 32 }
-                ]
-            },
-            Thumb::Ldrt(ldrt) => {
-                consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrt);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                vec![
-                    Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
-                    Operation::Move { destination: rt, source: address }
-                ]
-            },
-            Thumb::LslImmediate(lsl) => {
-                consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsl);
-                let shift:Option<ImmShift> = Some((Shift::Lsl,imm).try_into().unwrap());
-                let mut ret = vec![];
-                match s {
-                    true => shift!(ret.shift rm -> rd set c for rm),
-                    false => shift!(ret.shift rm -> rd),
-                };
-                ret
-            },
-            Thumb::LslRegister(lsl) => {
-                consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsl);
-                local!(shift_n,result);
-                let mut ret = vec![
-                    Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
-                ];
-                let shift_t = Shift::Lsl.local_into();
-                match s {
-                    true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
-                    false => shift_imm!(ret.(shift_t,shift_n) rn -> rd)
-                };
-                ret
-
-            },
-            Thumb::LsrImmediate(lsr) => {
-                consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsr);
-                let shift:Option<ImmShift> = Some((Shift::Lsr,imm).try_into().unwrap());
-                let mut ret = vec![];
-                match s {
-                    true => shift!(ret.shift rm -> rd set c for rm),
-                    false => shift!(ret.shift rm -> rd),
-                };
-                ret
-            },
-            Thumb::LsrRegister(lsr) => {
-                consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsr);
-                local!(shift_n,result);
-                let mut ret = vec![
-                    Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
-                ];
-                let shift_t = Shift::Lsr.local_into();
-                match s {
-                    true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
-                false => shift_imm!(ret.(shift_t,shift_n) rn -> rd)
-                };
-                ret
-            },
-            Thumb::Mla(mla) => {
-                // S is allway false for >= V7
-                //
-                // TODO! s in to the thumb instruction definition and make dissarmv7 set it to
-                // false
-                consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mla);
-                // TODO! Validate that the usage of SInt or UInt is irrelevant
-                let mut ret = Vec::with_capacity(3);
-                pseudo!(
-                    ret.extend[
-                       rd = rn*rm;
-                       rd = rd+ra;
-                    ]
-                );
-                ret
-            },
-            Thumb::Mls(mls) => {
-                consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mls);
-                let mut ret = Vec::with_capacity(3);
-                pseudo!(
-                    ret.extend[
-                        rd = rn*rm;
-                        rd = ra-rd;
-                    ]
-                );
-                ret
-            },
-            // One single encoding, this needs to be revisited once it is needed
-            Thumb::MovImmediate(mov) => {todo!("This requires ThumbExpandImm_C")},
-            Thumb::MovImmediatePlain(mov) =>{
-                consume!((s,rd.local_into(),imm.local_into()) from mov);
-                let mut ret = Vec::with_capacity(4);
-                // Carry is unchanged here, the only time that carry changes is in
-                // [`Thumb::MovImmediatePlain`]
-                ret.push(bin_op!(rd = imm));
-                if let Some(true) = s{
-                    ret.extend(
-                        [
-                            Operation::SetNFlag(rd.clone()),
-                            Operation::SetZFlag(rd)
-                        ]
-                    );
-                }
-                ret
-            }
-            Thumb::MovReg(mov) => {
-                // This might cause some issues, we will disregard BX cases here as we have no way
-                // of changing the instruciton set
-                consume!((s,rd, rm.local_into()) from mov);
-                if rd == Register::PC {
-                    break 'outer_block vec![
-                        Operation::ConditionalJump { destination: rm, condition: Condition::None.local_into() }
-                    ];
-                }
-                let rd = rd.local_into();
-                let mut ret = vec![Operation::Move { destination: rd.clone(), source: rm }];
-                if let Some(true) = s{
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd)
-                    ]);
-                }
-                ret
-            },
-            Thumb::Movt(movt) => {
-                
-                    consume!((rd.local_into(),imm) from movt);
-                    let imm = (imm as u32).local_into();
-                    let mut ret = Vec::with_capacity(4);
-                    let mask = (u16::MAX as u32).local_into();
-                    let shift = 16.local_into();
-                    local!(intermediate);
-                    pseudo!(
-                        ret.extend[
-                            intermediate = imm << shift;
-                            // Perserve the lower half word
-                            rd = mask & rd;
-                            rd = intermediate | rd;
-                        ]
-                    );
-                    ret
-            },
-            Thumb::Mrs(_) => todo!("TODO! need to revisit and check if there is any strange behaviour"),
-            Thumb::Msr(_) => todo!("TODO! need to revisit and check if there is any strange behaviour"),
-            Thumb::Mul(mul) => {
-                consume!((s,rn, rd.unwrap_or(rn.clone()).local_into(),rm.local_into()) from mul);
-                let rn = rn.local_into();
-                let mut ret = vec![bin_op!(rd = rn*rm)];
-                if let Some(true) = s { 
-                    ret.extend([
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetNFlag(rd)
-                    ]);
-                }
-                ret
-            },
-            Thumb::MvnImmediate(mvn) => {
-                todo!("Needs ThumbExpandImm_C also needs to fix the conversion in dissarmv7");
-            },
-            Thumb::MvnRegister(mvn) => {
-                consume!((s,rd.local_into(), rm.local_into(),shift) from mvn);
-                let mut ret =  Vec::with_capacity(5);
-                local!(shifted);
-                shift!(ret.shift rm -> shifted set c for rm);
-                ret.push(bin_op!(rd = ! shifted));
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd)
-                    ]);
-                }
-                ret
-            },
-            Thumb::Nop(_) => vec![Operation::Nop],
-            Thumb::OrnImmediate(_) => todo!("Needs ThumbExpandImm_C"),
-            Thumb::OrnRegister(orn) => {
-                consume!((s,rd, rm.local_into(),rn,shift) from orn);
-                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                let mut ret =  Vec::with_capacity(5);
-                local!(shifted);
-                shift!(ret.shift rm -> shifted set c for rm);
-                ret.extend([
-                           bin_op!(shifted = !shifted),
-                           bin_op!(rd = rn | shifted)
-                ]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd)
-                    ]);
-                }
-                ret
-            },
-            Thumb::OrrImmediate(orr) => todo!("Needs ThumbExpandImm_c"),
-            Thumb::OrrRegister(orr) => {
-                consume!((s,rd, rm.local_into(),rn,shift) from orr);
-                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                let mut ret =  Vec::with_capacity(5);
-                local!(shifted);
-                shift!(ret.shift rm -> shifted set c for rm);
-                ret.extend([
-                           bin_op!(rd = rn | shifted)
-                ]);
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetZFlag(rd)
-                    ]);
-                }
-                ret
-            },
-            Thumb::Pkh(pkh) => {
-                consume!((rd,shift,rn,rm.local_into(),tb) from pkh);
-                let mut ret = Vec::with_capacity(5);
-                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                local!(shifted);
-                shift!(ret.shift rm -> shifted);
-                let (msh,lsh) = match tb {
-                    true => (rn,shifted),
-                    _ => (shifted,rn)
-                };
-                pseudo!(
-                    ret.extend[
-                        lsh = lsh & (u16::MAX as u32).local_into();
-                        msh = msh & (!(u16::MAX as u32)).local_into();
-                        rd = msh | lsh;
-                    ]
-                );
-                ret
-            },
-            Thumb::PldImmediate(pld) => {
-                todo!(" We need some speciality pre load instruction here")
-            },
-            Thumb::PldLiteral(_) => todo!(" We need some speciality pre load instruction here"),
-            Thumb::PldRegister(_) => todo!(" We need some speciality pre load instruction here"),
-            Thumb::PliImmediate(_) => todo!(" We need some speciality pre load instruction here"),
-            Thumb::PliRegister(_) => todo!(" We need some speciality pre load instruction here"),
-            Thumb::Pop(pop) => {
-                consume!((registers) from pop);
-
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                let sp = Register::SP.local_into();
-                
-                let mut ret = vec![];
-                pseudo!(
-
-                    ret.extend[
-                        address_setter = sp;
-                        sp = sp + (4*registers.regs.len() as u32).local_into();
-                    ]
-                );
-                let mut pc = false;
-                let regs = registers.regs.iter().map(|reg| {if *reg == Register::PC{pc =true};reg.local_into()}).collect::<Vec<Operand>>();
-                for reg in regs {
-                    pseudo!(
-                        ret.extend[
-                            // Read the current address in to the specified reg
-                            reg = address;
-                            address_setter = address_setter + 4.local_into();
-                        ]
-                    );
-                }
-                if pc {
-                    todo!("LoadWritePc")
-                }
-                ret
-            },
-            Thumb::Push(push) => {
-                consume!((registers) from push);
-                let address_setter = Operand::Local("address".to_owned());
-                let address = Operand::AddressInLocal("address".to_owned(), 32);
-                let sp = Register::SP.local_into();
-                
-                let mut ret = vec![];
-                pseudo!(
-                    ret.extend[
-                        address_setter = sp - (4*registers.regs.len() as u32).local_into();
-                        sp = sp - (4*registers.regs.len() as u32).local_into();
-                    ]
-                );
-                let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<Operand>>();
-                for reg in regs {
-                    pseudo!(
-                        ret.extend[
-                            // Read the current address in to the specified reg
-                            reg = address;
-                            address_setter = address_setter + 4.local_into();
-
-                        ]
-                    );
-                }
-                ret
-            },
-            Thumb::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qadd8(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qasx(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qsub(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
-            Thumb::Rbit(rbit) => {
-                consume!((rd.local_into(),rm.local_into()) from rbit);
-                let mut ret =  vec![];
-                local!(intermediate);
-                let zero = 0.local_into();
-                for i in 0..31u32 {
-                    let mask = ( 1 << i ).local_into();
-                    let shift = 31 - (i as i32)*2i32;
-                    match shift >  0{
-                        true => {
-                            let shift = (shift as u32).local_into();
-                            pseudo!(
-                                ret.extend[
-                                    intermediate = zero;
-                                    intermediate = rm & mask;
-                                    intermediate =  intermediate << shift;
-                                    rd = rd|intermediate;
-                                ]
-                            );
-                        }
-                        false => {
-                            let shift = (-shift as u32).local_into();
-                            pseudo!(
-                                ret.extend[
-                                    intermediate = zero;
-                                    intermediate = rm & mask;
-                                    intermediate =  intermediate >> shift;
-                                    rd = rd|intermediate;
-                                ]
-                            );
-                        }
-                    }
-                }
-                ret
-            },
-            Thumb::Rev(rev) => {
-                consume!((rd.local_into(),rm.local_into()) from rev);
-                local!(int1,int2,int3,int4);
-                let mut ret = vec![];
-                let m = u8::MAX as u32;
-                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
-                let zero = 0.local_into();
-                pseudo!(
-                    ret.extend[
-                        int1 = rm & mask(m,0);
-                        int2 = rm & mask(m,1);
-                        int3 = rm & mask(m,2);
-                        int4 = rm & mask(m,3);
-                        int1 = int1 << (24).local_into();
-                        int2 = int2 << (8).local_into();
-                        int3 = int3 >> (8).local_into();
-                        int4 = int4 >> (24).local_into();
-                        rd = zero;
-                        rd = rd | int1;
-                        rd = rd | int2;
-                        rd = rd | int3;
-                        rd = rd | int4;
-                    ]
-                );
-
-                
-                ret
-            },
-            Thumb::Rev16(rev) => {
-                consume!((rd.local_into(),rm.local_into()) from rev);
-                local!(int1,int2,int3,int4);
-                let mut ret = vec![];
-                let m = u8::MAX as u32;
-                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
-                let zero = 0.local_into();
-                pseudo!(
-                    ret.extend[
-                        int1 = rm & mask(m,0);
-                        int2 = rm & mask(m,1);
-                        int3 = rm & mask(m,2);
-                        int4 = rm & mask(m,3);
-                        int1 = int1 << (8).local_into();
-                        int2 = int2 >> (8).local_into();
-                        int3 = int3 << (8).local_into();
-                        int4 = int4 >> (8).local_into();
-                        rd = zero;
-                        rd = rd | int1;
-                        rd = rd | int2;
-                        rd = rd | int3;
-                        rd = rd | int4;
-                    ]
-                );
-                ret
-            },
-            Thumb::Revsh(revsh) => {
-                consume!((rd.local_into(),rm.local_into()) from revsh);
-                local!(int1,int2);
-                let mut ret = vec![];
-                let m = u8::MAX as u32;
-                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
-                let zero = 0.local_into();
-                pseudo!(
-                    ret.extend[
-                        int1 = rm & mask(m,0);
-                        int2 = rm & mask(m,1);
-                        int1 = int1 << (8).local_into();
-                        int2 = int2 >> (8).local_into();
-                        rd = zero;
-                    ]
-                );
-                ret.push(
-                    // This should be correct as the value has already been shifted over by
-                    // 9
-                    Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 }
-                );
-                pseudo!(
-                    ret.extend[
-                        rd = rd | int2;
-                    ]
-                );
-                ret
-            },
-            Thumb::RorImmediate(ror) => {
-                consume!((s,rd.local_into(), rm.local_into(),imm) from ror);
-                let imm: u32 = imm.into();
-                let shift_n = imm.local_into();
-                let mut ret = vec![
-                    Operation::Sror { destination: rd.clone(), operand: rm.clone(), shift: shift_n.clone() },
-                ];
-                if let Some(true) = s{
-                    ret.extend([
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetCFlagRor(rd.clone())
-                    ]);
-                }
-                ret
-            },
-            Thumb::RorRegister(ror) => {
-                consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
-                local!(shift_n);
-                let mask = (u8::MAX as u32).local_into();
-
-                let mut ret = vec![
-                    Operation::And { destination: shift_n.clone(), operand1: rm.clone(), operand2: mask },
-                    Operation::Sror { destination: rd.clone(), operand: rn.clone(), shift: shift_n.clone() },
-                ];
-                if let Some(true) = s{
-                    ret.extend([
-                        Operation::SetZFlag(rd.clone()),
-                        Operation::SetNFlag(rd.clone()),
-                        Operation::SetCFlagRor(rd.clone())
-                    ]);
-                }
-                ret
-            },
-            Thumb::Rrx(rrx) => {
-                consume!((s,rd.local_into(), rm.local_into()) from rrx);
-                // Let's fulhacka
-                let mask = (u32::MAX >> 1).local_into();
-                let lsb_mask = (1).local_into();
-                local!(lsb,result,msb);
-                let carry = Operand::Flag("c".to_owned());
-                let mut ret = Vec::with_capacity(10);
-                pseudo!(
-                    ret.extend[
-                        lsb = rm & lsb_mask;
-                        result = rm >> 1.local_into();
-                        msb = carry << 31.local_into();
-                        // Clear the bit first
-                        result = result & mask;
-                        result = result | msb;
-                        rd = result;
-                    ]
-                );
-
-                if let Some(true) = s {
-                    ret.extend([
-                        Operation::SetNFlag(result.clone()),
-                        Operation::SetZFlag(result.clone()),
-                        Operation::Move { destination: carry, source: lsb }
-                    ]);
-                }
-                ret
-            },
-            Thumb::RsbImmediate(rsb) => {
-                consume!((s,rd,rn,imm.local_into()) from rsb);
-                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                let carry = Operand::Flag("c".to_owned());
-                local!(intermediate,old_carry);
-                let one = 1.local_into();
-
-                let mut ret = Vec::with_capacity(10);
-
-                pseudo!(
-                    ret.extend[
-                        // Backup carry bit
-                        old_carry = carry;
-                        // Set carry  bit to 1 
-                        carry = one;
-
-                        intermediate = !rn;
-                        // add with carry
-                        rd = intermediate adc imm;
-                    ]
-                );
-                ret.extend(
-                    match s {
-                        Some(true)  => {
-                            vec![
-                                Operation::SetZFlag(rd.clone()),
-                                Operation::SetNFlag(rd.clone()),
-                                Operation::SetCFlag { operand1: intermediate, operand2: imm, sub: false, carry: true }
-                            ]
-                        }
-                        _ => vec![bin_op!(carry = old_carry)]
-                    }
-                );
-                ret
-            },
-            Thumb::RsbRegister(rsb) => {
-                consume!((s,rd,rn,rm.local_into(), shift) from rsb);
-                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                let mut ret = Vec::with_capacity(10);
-                let carry = Operand::Flag("c".to_owned());
-                let one = 1.local_into();
-
-                local!(shifted,intermediate,old_carry);
-                shift!(ret.shift rm -> shifted);
-
-                pseudo!(
-                    ret.extend[
-                        // Backup carry bit
-                        old_carry = carry;
-                        // Set carry  bit to 1 
-                        carry = one;
-
-                        intermediate = !rn;
-
-                        // add with carry
-                        rd = intermediate adc shifted;
-                    ]
-                );
-                ret.extend(
-                    match s {
-                        Some(true)  => {
-                            vec![
-                                Operation::SetZFlag(rd.clone()),
-                                Operation::SetNFlag(rd.clone()),
-                                Operation::SetCFlag { operand1: intermediate, operand2: shifted, sub: false, carry: true }
-                            ]
-                        }
-                        _ => vec![bin_op!(carry = old_carry)]
-                    }
-                );
-
-
-                ret
-            },
-            Thumb::Sadd16(sadd) => {
-                consume!((
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()),
-                    rm.local_into()
-                ) from sadd); 
-
-                let mut ret = Vec::with_capacity(20);
-                local!(rn_lsh,rn_msh,rm_lsh,rm_msh,sum1,sum2,ge_lsh,ge_msh);
-                let msh_mask = (!(u16::MAX as u32)).local_into();
-                let lsh_mask = (u16::MAX as u32).local_into();
-                let msh_shift = 16.local_into();
-
-                pseudo!(
-                    ret.extend[
-                        // Field extraction
-                        rn_lsh = rn & lsh_mask;
-                        rn_msh = rn & msh_mask;
-                        rn_msh = rn_msh >> msh_shift;
-
-                        rm_lsh = rm & lsh_mask;
-                        rm_msh = rm & msh_mask;
-                        rm_msh = rm_msh >> msh_shift;
-                        // [rn_lsh = SInt(rn_lsh,16)];
-                    ]
-                );
-                // This is likely incorrect, we should implement some version of SInt 
-                ret.extend([
-                           Operation::SignExtend { destination: rn_lsh.clone(), operand: rn_lsh.clone(), bits: 16  },
-                           Operation::SignExtend { destination: rn_msh.clone(), operand: rn_msh.clone(), bits: 16 },
-                           Operation::SignExtend { destination: rm_lsh.clone(), operand: rm_lsh.clone(), bits: 16 },
-                           Operation::SignExtend { destination: rm_msh.clone(), operand: rm_msh.clone(), bits: 16 },
-                ]);
-                pseudo!(
-                    ret.extend[
-                        sum1 = rn_lsh + rm_lsh;
-                        sum2 = rn_msh + rm_msh;
-
-                        // Assign 
-                        rd = sum2 << msh_shift;
-                        sum1 = sum1 & lsh_mask;
-                        rd = rd | sum1;
-                    ]
-                );
-                todo!("look in to SInt")
-            },
-            Thumb::Sadd8(_) => todo!(),
-            Thumb::Sasx(_) => todo!(),
-            Thumb::SbcImmediate(sbc) => {
-                consume!((
-                    s.unwrap_or(false), 
-                    rn.local_into(), 
-                    rd.local_into().unwrap_or(rn.clone()),
-                    imm.local_into()
-                ) from sbc);
-                let mut ret = Vec::with_capacity(7);
-                pseudo!(
-                    ret.extend[
-                        let intermediate = ! imm;
-                        let result = rn adc imm;
-                        rd = result;
-                    ]
-                );
-                if s {
-                    ret.extend([
-                        Operation::SetZFlag(result.clone()),
-                        Operation::SetNFlag(result.clone()),
-                        Operation::SetCFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true },
-                        Operation::SetVFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true }
-
-                    ]);
-                }
-                ret
-            },
-            Thumb::SbcRegister(sbc) => {
-                consume!((
-                    s.unwrap_or(false),
-                    rn.local_into(),
-                    rd.local_into().unwrap_or(rn.clone()), 
-                    rm.local_into(),
-                    shift
-                ) from sbc);
-                let mut ret = Vec::with_capacity(10);
-                local!(shifted);
-                shift!(ret.shift rm -> shifted);
-                pseudo!(
-                    ret.extend[
-                        let intermediate = !shifted;
-                        let result = rn adc intermediate;
-                        rd = result;
-                    ]
-                );
-                if s{
-                    ret.extend([
-                        Operation::SetZFlag(result.clone()),
-                        Operation::SetNFlag(result.clone()),
-                        Operation::SetCFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true },
-                        Operation::SetVFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true }
-                    ]);
-                }
-                ret
-            },
-            Thumb::Sbfx(sbfx) => {
-                consume!((rd.local_into(), rn.local_into(), lsb, width) from sbfx);
-                let mut ret = vec![];
-                
-                let msb = lsb + (width-1);
-                let mask = ((1<<(msb-lsb))-1) << lsb;
-                
-                pseudo!(
-                    ret.extend[
-                        let intermediate = rn & mask.local_into();
-                        intermediate = intermediate >> lsb.local_into();
-                        rd = SignExtend(intermediate,width);
-                    ]
-                );
-                ret
-            },
-            Thumb::Sdiv(_) => todo!("Need to revisit both SInt and div"),
-            Thumb::Sel(_) => todo!("This will likely need a big rewrite as it changes behaviour based on value of flags"),
-            Thumb::Sev(_) => todo!("This is likely not needed"),
-            Thumb::Shadd16(_) => todo!("Need to revisit SInt"),
-            Thumb::Shadd8(_) => todo!("Need to revisit SInt"),
-            Thumb::Shasx(_) => todo!("Need to revisit SInt"),
-            Thumb::Shsax(_) => todo!("Need to reivist SInt"),
-            Thumb::Shsub16(_) => todo!("Need to revisit SInt"),
-            Thumb::Shsub8(_) => todo!("Need to revisit SInt"),
-            Thumb::Smla(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlad(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlal(_) => todo!("Need to revisit SInt"),
-            Thumb::SmlalSelective(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlald(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlaw(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlsd(_) => todo!("Need to revisit SInt"),
-            Thumb::Smlsld(_) => todo!("Need to revisit SInt"),
-            Thumb::Smmla(_) => todo!("Need to revisit SInt"),
-            Thumb::Smmls(_) => todo!("Need to revisit SInt"),
-            Thumb::Smmul(_) => todo!("Need to revisit SInt"),
-            Thumb::Smuad(_) => todo!("Need to revisit SInt"),
-            Thumb::Smul(_) => todo!("Need to revisit SInt"),
-            Thumb::Smull(_) => todo!("Need to revisit SInt"),
-            Thumb::Smulw(_) => todo!("Need to revisit SInt"),
-            Thumb::Smusd(_) => todo!("Need to revisit SInt"),
-            Thumb::Ssat(_) => todo!("Need to revisit SInt"),
-            Thumb::Ssat16(_) => todo!("Need to revisit SInt"),
-            Thumb::Ssax(_) => todo!("Need to revisit SInt"),
-            Thumb::Ssub16(_) => todo!("Need to revisit SInt"),
-            Thumb::Ssub8(_) => todo!("Need to revisit SInt"),
-            Thumb::Stm(stm) => {
-                consume!((rn.local_into(), registers, w.unwrap_or(false)) from stm);
-                let mut ret = vec![];
-                pseudo!(
-                    ret.extend[
-                        let address = rn;
-                    ]
-                );
-                let n = registers.regs.len() as u32;
-                for register in registers.regs{
-                    pseudo!(
-                        ret.extend[
-                            LocalAddress("address",32) = register.local_into();
-                            address = address + 4.local_into();
-                        ]
-                    );
-                }
-                if w {
-                    pseudo!(
-                        ret.extend[
-                            rn = rn + n.local_into();
-                        ]
-                    );
-                }
-                ret
-            },
-            Thumb::Stmdb(stmdb) => {
-                consume!((
-                    w.unwrap_or(false), 
-                    rn.local_into(), 
-                    registers
-                ) from stmdb);
-                let mut ret = vec![];
-                let n = registers.regs.len() as u32;
-                pseudo!(ret.extend[
-                    let address = rn - (4*n).local_into();
-                    for reg in registers.regs{
-                            LocalAddress("address",32) = reg.local_into();
-                            address = address + 4.local_into();
-                    }
-                    if w {
-                        rn = rn - (4u32* n).local_into();
-                    }
-                ]);
-                ret
-
-            },
-            Thumb::StrImmediate(str) => {
-                consume!((
-                    w.unwrap_or(false),
-                    add,
-                    index.unwrap_or(false), 
-                    rt.local_into(),
-                    rn.local_into(), 
-                    imm.local_into()
-                ) from str);
-                let mut ret = Vec::new();
-                // TODO! Revisit why these block compilation all together
-                pseudo!(
-                    ret.extend[
-
-                        let offset_addr = 0.local_into();
-                        if add {
-                            offset_addr = rn + imm;
-                        } else {
-                            offset_addr = rn - imm;
-                        }
-
-                        let address = 0.local_into();
-                        if index {
-                            address = offset_addr;
-                        } else {
-                            address = rn;
-                        }
-                        
-                        LocalAddress("address",32) = rt;
-                        
-                        if w {
-                            rn = offset_addr;
-                        }
-                    ]
-                );
-                ret
-            },
-            Thumb::StrRegister(str) => {
-                consume!((
-                    rt.local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                    shift) from str);
-                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    // Shift will allways be LSL on the v7
-                    let offset = rm << shift_n;
-                    let address = rn + offset;
-                    LocalAddress("address", 32) = rt;
-                ]);
-                ret
-            },
-            Thumb::StrbImmediate(strb) => {
-                consume!((w.unwrap_or(false),add,index.unwrap_or(false), rt.local_into(),rn.local_into(), imm.local_into()) from strb);
-                let mut ret = Vec::new();
-                pseudo!(
-                    ret.extend[
-
-                        let offset_addr = 0.local_into();
-                        if add {
-                            offset_addr = rn + imm;
-                        } else {
-                            offset_addr = rn - imm;
-                        } 
-
-                        let address = 0.local_into();
-                        if index {
-                            address = offset_addr;
-                        } else {
-                            address = rn;
-                        }
-                        
-                        // TODO! Ensure that this is correct for writing only LS byte
-                        LocalAddress("address",8) = rt;
-                        
-                        if w {
-                            rn = offset_addr;
-                        }
-                    ]
-                );
-                ret
-            },
-            Thumb::StrbRegister(strb) => {
-                consume!((
-                    rt.local_into(),
-                    rn.local_into(),
-                    rm.local_into(),
-                    shift
-                ) from strb);
-                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    // Shift will allways be LSL on the v7
-                    let offset = rm << shift_n;
-                    let address = rn + offset;
-                    LocalAddress("address", 8) = rt;
-                ]);
-                ret
-            },
-            Thumb::Strbt(strbt) => {
-                consume!((
-                    rt.local_into(),
-                    rn.local_into(),
-                    imm.unwrap_or(0).local_into()
-                ) from strbt);
-                let mut ret =  vec![];
-                pseudo!(
-                    ret.extend[
-                        let address = rn + imm;
-                        LocalAddress("address", 8) = rt;
-                ]);
-
-                ret
-            },
-            Thumb::StrdImmediate(strd) => {
-                consume!((
-                    rt.local_into(), 
-                    rt2.local_into(), 
-                    rn.local_into(),
-                    add,
-                    index.unwrap_or(true),
-                    imm.unwrap_or(0).local_into(),
-                    w.unwrap_or(false)
-                ) from strd);
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    let offset_addr = rn - imm;
-                    if add {
-                        offset_addr = rn + imm;
-                    }
-
-                    let address = rn;
-                    if index {
-                        address = offset_addr;                    
-                    }
-                    LocalAddress("address",32) = rt;
-                    address = address + 4.local_into();
-                    LocalAddress("address",32) = rt2;
-
-                    if w {
-                        rn = offset_addr;
-                    }
-                ]);
-                ret
-            },
-            Thumb::Strex(strex) => {
-                consume!((
-                        rd.local_into(),
-                        rt.local_into(),
-                        rn.local_into(),
-                        imm.unwrap_or(0).local_into()
-                        ) from strex
-                    );
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    let address = rn + imm;
-                    // TODO! Add in exculisve addresses here
-                    LocalAddress(address,32) = rt;
-                    rd = 0.local_into();
-                ]);
-                todo!()
-            },
-            Thumb::Strexb(strexb) => {
-                consume!((
-                        rd.local_into(),
-                        rt.local_into(),
-                        rn.local_into()
-                        ) from strexb
-                    );
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    let address = rn;
-                    // TODO! Add in exculisve addresses here
-                    LocalAddress(address,8) = rt;
-                    rd = 0.local_into();
-                ]);
-                ret
-            },
-            Thumb::Strexh(strexh) => {
-                consume!((rd.local_into(), rt.local_into(), rn.local_into()) from strexh);
-                let mut ret =  vec![];
-                pseudo!(ret.extend[
-                    let address = rn;
-                    // TODO! Add in exclusive address here
-                    LocalAddress(address,16) = rt;
-                    rd = 0.local_into();
-                ]);
-                ret
-            },
-            Thumb::StrhImmediate(strh) => {
-                consume!((
-                            rt.local_into(), 
-                            rn.local_into(), 
-                            imm.unwrap_or(0).local_into(),
-                            w,
-                            index,
-                            add
-                        ) from strh);
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    let offset_addr = rn - imm;
-                    if add {
-                        offset_addr = rn + imm;
-                    }
-                    let address = rn;
-                    if index {
-                        address = offset_addr;
-                    }
-                    LocalAddress(address,16) = rt;
-                    if w {
-                        rn = offset_addr;
-                    }
-                ]);
-                ret
-            },
-            Thumb::StrhRegister(strh) => {
-                consume!((
-                        rt.local_into(),
-                        rn.local_into(),
-                        rm.local_into(),
-                        shift
-                        ) from strh);
-                let shift_n = match shift{
-                    Some(shift) => {
-                        assert!(shift.shift_t == Shift::Lsl);
-                        shift.shift_n as u32
-                    },
-                    None => 0
-                }.local_into();
-                pseudo!([
-                   let offset = rm << shift_n; 
-                   let address = rn + offset;
-                   LocalAddress(address,16) = rt;
-                ])
-            },
-            Thumb::Strht(strht) => {
-                consume!((
-                        rt.local_into(),
-                        rn.local_into(),
-                        imm.unwrap_or(0).local_into()
-                        ) from strht);
-                pseudo!([
-                    let address = rn + imm;
-                    LocalAddress(address,16) = rt;
-                ])
-            },
-            Thumb::Strt(strt) => {
-                consume!((
-                        rt.local_into(),
-                        rn.local_into(),
-                        imm.unwrap_or(0).local_into()
-                        ) from strt);
-                pseudo!([
-                    let address = rn + imm;
-                    let data = rt;
-                    LocalAddress(address,32) = data;
-                ])
-            },
-            Thumb::SubImmediate(sub) => {
-                consume!((
-                        rn.local_into(),
-                        rd.local_into().unwrap_or(rn.clone()),
-                        imm.local_into(),
-                        s.unwrap_or(false)
-                        )from sub);
-                pseudo!([
-                    let intermediate = !imm;
-
-                    // Backup previous flag
-                    let old_c = Flag("c");
-                    Flag("c") = 1.local_into();
-
-                    let result = rn adc intermediate;
-                    rd = result;
-
-                    Flag("c") = old_c;
-                    
-                    if s {
-                        SetNFlag(result);
-                        SetZFlag(result);
-                        SetCFlag(rn,intermediate,true,false);
-                        SetVFlag(rn,intermediate,true,false);
-                    }
-                ])
-            },
-            Thumb::SubRegister(sub) => {
-
-            },
-            Thumb::SubSpMinusImmediate(_) => todo!(),
-            Thumb::SubSpMinusReg(_) => todo!(),
-            Thumb::Sxtab(_) => todo!(),
-            Thumb::Sxtab16(_) => todo!(),
-            Thumb::Sxtah(_) => todo!(),
-            Thumb::Sxtb(_) => todo!(),
-            Thumb::Sxtb16(_) => todo!(),
-            Thumb::Sxth(_) => todo!(),
-            Thumb::Tb(_) => todo!(),
-            Thumb::TeqImmediate(_) => todo!(),
-            Thumb::TeqRegister(_) => todo!(),
-            Thumb::TstImmediate(_) => todo!(),
-            Thumb::TstRegister(_) => todo!(),
-            Thumb::Uadd16(_) => todo!(),
-            Thumb::Uadd8(_) => todo!(),
-            Thumb::Uasx(_) => todo!(),
-            Thumb::Ubfx(_) => todo!(),
-            Thumb::Udf(_) => todo!(),
-            Thumb::Udiv(_) => todo!(),
-            Thumb::Uhadd16(_) => todo!(),
-            Thumb::Uhadd8(_) => todo!(),
-            Thumb::Uhasx(_) => todo!(),
-            Thumb::Uhsax(_) => todo!(),
-            Thumb::Uhsub16(_) => todo!(),
-            Thumb::Uhsub8(_) => todo!(),
-            Thumb::Umaal(_) => todo!(),
-            Thumb::Umlal(_) => todo!(),
-            Thumb::Umull(_) => todo!(),
-            Thumb::Uqadd16(_) => todo!(),
-            Thumb::Uqadd8(_) => todo!(),
-            Thumb::Uqasx(_) => todo!(),
-            Thumb::Uqsax(_) => todo!(),
-            Thumb::Uqsub16(_) => todo!(),
-            Thumb::Uqsub8(_) => todo!(),
-            Thumb::Uqsad8(_) => todo!(),
-            Thumb::Usada8(_) => todo!(),
-            Thumb::Usad8(_) => todo!(),
-            Thumb::Usat(_) => todo!(),
-            Thumb::Usat16(_) => todo!(),
-            Thumb::Usax(_) => todo!(),
-            Thumb::Usub16(_) => todo!(),
-            Thumb::Usub8(_) => todo!(),
-            Thumb::Uxtab(_) => todo!(),
-            Thumb::Uxtab16(_) => todo!(),
-            Thumb::Uxtah(_) => todo!(),
-            Thumb::Uxtb(_) => todo!(),
-            Thumb::Uxtb16(_) => todo!(),
-            Thumb::Uxth(_) => todo!(),
-            Thumb::Wfe(_) => todo!(),
-            Thumb::Wfi(_) => todo!(),
-            Thumb::Yield(_) => todo!(),
-            Thumb::Svx(_) => todo!(),
-            Thumb::Stc(_) => todo!(),
-            Thumb::Mcr(_) => todo!(),
-            Thumb::Mrc(_) => todo!(),
-            Thumb::Mrrc(_) => todo!(),
-            Thumb::Mcrr(_) => todo!(),
-            Thumb::Cdp(_) => todo!(),
-            Thumb::Ldc(_) => todo!(),
-        }
-        }
-    }
-}
-
-// impl Translatable for Thumb {
-//     fn translate(&self) -> GAInstruction {
-//         // let op: Vec<Operation> = self.local_into();
-//         GAInstruction {
-//             instruction_size: 32,
-//             operations: vec![Operation::Nop],
-//             max_cycle: instruction::CycleCount::Value(1),
-//         }
-//     }
-// }
-
-mod sealed {
-    pub trait Into<T> {
-        fn local_into(self) -> T;
-    }
-    pub trait ToString {
-        fn to_string(self) -> String;
-    }
-    pub trait ToInt {
-        fn to_u32(self) -> u32;
-    }
-}
-
-use sealed::Into;
-
-use self::sealed::ToString;
-
-impl sealed::Into<GACondition> for Condition {
-    fn local_into(self) -> GACondition {
-        match self {
-            Self::Eq => GACondition::EQ,
-            Self::Ne => GACondition::NE,
-            Self::Mi => GACondition::MI,
-            Self::Pl => GACondition::PL,
-            Self::Vs => GACondition::VS,
-            Self::Vc => GACondition::VC,
-            Self::Hi => GACondition::HI,
-            Self::Ge => GACondition::GE,
-            Self::Lt => GACondition::LT,
-            Self::Gt => GACondition::GT,
-            Self::Ls => GACondition::LS,
-            Self::Le => GACondition::LE,
-            Self::Cs => GACondition::CS,
-            Self::Cc => GACondition::CC,
-            Self::None => GACondition::None,
-        }
-    }
-}
-pub enum SpecialRegister {
-    APSR,
-    IAPSR,
-    EAPSR,
-    XPSR,
-    IPSR,
-    EPSR,
-    IEPSR,
-    MSP,
-    PSP,
-    PRIMASK,
-    CONTROL,
-    FAULTMASK,
-}
-impl Into<Operand> for SpecialRegister {
-    fn local_into(self) -> Operand {
-        Operand::Register(match self {
-            SpecialRegister::APSR => "APSR".to_owned(),
-            SpecialRegister::IAPSR => "IAPSR".to_owned(),
-            SpecialRegister::EAPSR => "EAPSR".to_owned(),
-            SpecialRegister::XPSR => "XPSR".to_owned(),
-            SpecialRegister::IPSR => "IPSR".to_owned(),
-            SpecialRegister::EPSR => "EPSR".to_owned(),
-            SpecialRegister::IEPSR => "IEPSR".to_owned(),
-            SpecialRegister::MSP => "MSP".to_owned(),
-            SpecialRegister::PSP => "PSP".to_owned(),
-            SpecialRegister::PRIMASK => "PRIMASK".to_owned(),
-            SpecialRegister::CONTROL => "CONTROL".to_owned(),
-            SpecialRegister::FAULTMASK => "FAULTMASK".to_owned(),
-        })
-    }
+    (1 << (end - start + 1)) - 1
 }

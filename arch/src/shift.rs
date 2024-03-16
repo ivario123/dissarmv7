@@ -18,6 +18,7 @@ pub enum Shift {
 
 impl TryFrom<u8> for Shift {
     type Error = ArchError;
+
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Lsl),
@@ -31,7 +32,7 @@ impl TryFrom<u8> for Shift {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ImmShift {
     pub shift_n: u8,
     pub shift_t: Shift,

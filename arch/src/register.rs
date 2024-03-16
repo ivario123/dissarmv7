@@ -1,5 +1,3 @@
-use std::collections::binary_heap::Iter;
-
 use crate::ArchError;
 
 macro_rules! reg {
@@ -25,12 +23,12 @@ macro_rules! reg {
                 Err(ArchError::InvalidRegister(value))
             }
         }
-        impl Into<u8> for Register {
+        impl From<Register> for u8 {
             #[allow(unused_assignments)]
-            fn into(self) -> u8 {
+            fn from(val:Register) -> u8 {
                 let mut i = 0;
                 $(
-                    if Self::$reg == self{
+                    if Register::$reg == val{
                         return i;
                     }
                     i+=1;
@@ -44,6 +42,7 @@ reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC);
 
 impl TryFrom<u16> for Register {
     type Error = ArchError;
+
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         (value as u8).try_into()
     }
@@ -51,14 +50,15 @@ impl TryFrom<u16> for Register {
 
 /// Register lists lifted from a bit vector to allow
 /// type level representations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RegisterList {
     pub regs: Vec<Register>,
 }
 
 impl IntoIterator for RegisterList {
-    type Item = Register;
     type IntoIter = <Vec<Register> as IntoIterator>::IntoIter;
+    type Item = Register;
+
     fn into_iter(self) -> Self::IntoIter {
         self.regs.into_iter()
     }
@@ -72,6 +72,7 @@ impl From<Register> for RegisterList {
 
 impl TryFrom<u16> for RegisterList {
     type Error = ArchError;
+
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         let mut regs = vec![];
         for i in 0..16_u8 {

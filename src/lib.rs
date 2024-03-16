@@ -1,48 +1,67 @@
-//! Defines an instruction decoder for the armv7 instructions
+//! Defines an instruction decoder for the Armv7 instruction set.
+//!
+//! The main export of this crate is the [`ASM`] object, which can be
+//! constructed by [`parsing`](ASM::parse) from a byte
+//! [`Stream`].
+#![deny(clippy::all)]
+#![deny(warnings)]
+#![deny(missing_docs)]
 
-pub mod architechture;
-pub mod asm;
 pub mod buffer;
+#[rustfmt::skip]
 pub mod decoder;
-// pub mod condition;
+
+pub(crate) mod asm;
+
 /// Internal helpers
 mod helpers;
-// pub mod register;
-// pub mod shift;
+// #[cfg(test)]
+// mod test;
 
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use arch::ArchError;
-use asm::{halfword::HalfWord, Statement};
-use thumb::Thumb;
+use asm::b16::B16;
+use operation::Operation;
 
-use crate::asm::wholeword::{self, FullWord};
+use crate::asm::b32::B32;
 
+/// Representation of a armv7 program.
+///
+/// This struct is constructed via
+/// [`ASM`](ASM::parse).
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct ASM {
+    statements: Vec<(usize, operation::Operation)>,
+}
+
+/// Denotes that the element can be peeked `N` elements in to the future.
 pub trait Peek<T: Sized>: Sized {
     /// Peeks `N` steps forward.
     ///
-    /// If the value `N` exceeds the remaining buffer then the function returns None.
+    /// If the value `N` exceeds the remaining buffer then the function returns
+    /// None.
     fn peek<const N: usize>(&mut self) -> Option<T>;
 }
-pub trait Branch {
-    /// Creates a new Branch
-    ///
-    /// This branch has no access to the previous scope
-    fn branch(&self) -> Self;
-}
 
+/// Denotes that a caller can consume `N` elements from the type.
 pub trait Consume<T: Sized>: Sized + Peek<T> {
-    // Consumes `N` items of type `T` forward.
-    //
-    // If the value of `N` exceeds the remaining buffer then the function returns None
-    // and no items are consumed.
+    /// Consumes `N` items of type `T` forward.
+    ///
+    /// If the value of `N` exceeds the remaining buffer then the function
+    /// returns None and no items are consumed.
     fn consume<const N: usize>(&mut self) -> Option<[T; N]>;
 }
 
+/// Denotes that the type can be treated as a stream to be [`parsed`](Parse)
+/// from.
 pub trait Stream: Consume<u32> + Consume<u16> + Consume<u8> + Debug {
+    /// consumes a single byte from the stream.
     fn step(&mut self) -> Option<u8> {
         Some(self.consume::<1>()?[0])
     }
+    /// Gets the next element of type `T` in the buffer.
     fn next<T>(&mut self) -> Result<T, ParseError>
     where
         Self: Peek<T>,
@@ -53,8 +72,27 @@ pub trait Stream: Consume<u32> + Consume<u16> + Consume<u8> + Debug {
         }
     }
 }
+/// Denotes that the type can be constructed from a [`Stream`].
+pub trait Parse {
+    /// What the parser parses in to.
+    type Target;
+    /// Converts the stream in to an instance of [`Target`](Parse::Target).
+    ///
+    /// If the parsing is successfull it [`consumes`](Consume) a number
+    /// of elements from the [`Stream`]. If it does not successfully
+    /// parse an element no elements are consumed from the stream.
+    fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+    where
+        Self: Sized;
+}
+
+pub(crate) trait ToOperation {
+    /// Translates the encoded value in to a [`Operation`] instruction
+    fn encoding_specific_operations(self) -> operation::Operation;
+}
 
 #[derive(Debug)]
+/// Enumerates the errors that might occur during parsing [`ASM`].
 pub enum ParseError {
     /// Thrown when the buffer is not long enough.
     /// The current instruction was not valid
@@ -92,7 +130,7 @@ pub enum ParseError {
     InvalidCondition,
 
     /// Thrown when the parsing fails part way through parsing
-    PartiallyParsed(Box<Self>, Vec<Thumb>),
+    PartiallyParsed(Box<Self>, Vec<Operation>),
 
     /// Sub-crate [`arch`] threw an error
     ArchError(ArchError),
@@ -101,106 +139,66 @@ pub enum ParseError {
     InternalError(&'static str),
 }
 
-pub trait Parse {
-    type Target;
-    fn parse<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
-    where
-        Self: Sized;
-}
-pub trait ParseExact {
-    type Target;
-
-    fn parse_exact<T: Stream, const N: usize>(iter: &mut T) -> Result<Self::Target, ParseError>
-    where
-        Self: Sized;
-}
-
-pub trait ParseSingle {
-    type Target;
-
-    fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
-    where
-        Self: Sized;
-}
-pub trait ToThumb {
-    /// Translates the encoded value in to a [`Thumb`] instruction
-    fn encoding_specific_operations(self) -> thumb::Thumb;
-}
-pub struct StreamParser {
-    //
-}
-
-/// Semanitcly different from [`StreamParser`] as this cannot be constructed without parsing from a
-/// [`StreamParser`].
-#[derive(Debug)]
-pub struct ASM {
-    statements: Vec<thumb::Thumb>,
-}
-
-impl From<Vec<Thumb>> for ASM {
-    fn from(value: Vec<thumb::Thumb>) -> Self {
-        Self { statements: value }
-    }
-}
 impl Parse for ASM {
-    type Target = ASM;
+    type Target = Self;
+
     fn parse<T: Stream>(iter: &mut T) -> Result<ASM, ParseError>
     where
         Self: Sized,
     {
         let mut stmts = Vec::new();
         while let Some(_halfword) = iter.peek::<1>() as Option<u16> {
-            match Thumb::parse_single(iter) {
+            match Operation::parse(iter) {
                 Ok(el) => stmts.push(el),
-                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
+                Err(e) => {
+                    return Err(ParseError::PartiallyParsed(
+                        Box::new(e),
+                        stmts.into_iter().map(|el| el.1).collect(),
+                    ))
+                }
             };
         }
         Ok(stmts.into())
     }
 }
-impl ParseExact for ASM {
-    type Target = Self;
-    fn parse_exact<T: Stream, const N: usize>(iter: &mut T) -> Result<Self::Target, ParseError>
-    where
-        Self: Sized,
-    {
-        let mut stmts = Vec::new();
-        for _ in 0..N {
-            match Thumb::parse_single(iter) {
-                Ok(el) => stmts.push(el),
-                Err(e) => return Err(ParseError::PartiallyParsed(Box::new(e), stmts)),
-            };
-        }
-        Ok(stmts.into())
-    }
-}
-impl ParseSingle for thumb::Thumb {
-    type Target = thumb::Thumb;
-    fn parse_single<T: Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
+
+impl Parse for operation::Operation {
+    type Target = (usize, operation::Operation);
+
+    fn parse<T: Stream>(iter: &mut T) -> Result<(usize, operation::Operation), ParseError>
     where
         Self: Sized,
     {
         let halfword: Option<u16> = iter.peek::<1>();
-        if let None = halfword {
+        if halfword.is_none() {
             return Err(ParseError::IncompleteProgram);
         }
         let halfword = halfword.unwrap();
 
         Ok(match halfword >> 11 {
-            0b11101 | 0b11110 | 0b11111 => <Box<dyn FullWord>>::parse(iter)?,
-            _ => <Box<dyn HalfWord>>::parse(iter)?,
+            0b11101..=0b11111 => B32::parse(iter)?,
+            _ => B16::parse(iter)?,
         })
     }
 }
 
+impl From<Vec<(usize, Operation)>> for ASM {
+    fn from(value: Vec<(usize, operation::Operation)>) -> Self {
+        Self { statements: value }
+    }
+}
+
+impl From<ASM> for Vec<(usize, Operation)> {
+    fn from(value: ASM) -> Vec<(usize, Operation)> {
+        value.statements
+    }
+}
+
+/// Re-exports the needed types to use this crate.
 pub mod prelude {
-    pub use super::{Parse, ParseExact, Stream, ASM};
+    pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
+    pub use operation::Operation;
+
+    pub use super::{Parse, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
-    pub use arch::wrapper_types::*;
-    pub use arch::Condition;
-    pub use arch::ImmShift;
-    pub use arch::Register;
-    pub use arch::RegisterList;
-    pub use arch::Shift;
-    pub use thumb::Thumb;
 }

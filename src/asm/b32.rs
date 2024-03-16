@@ -22,9 +22,9 @@ pub mod a5_30;
 use crate::{asm::Mask, Parse, ParseError, ToOperation};
 
 /// A 32-bit wide instruction
-pub enum FullWord {}
+pub enum B32 {}
 
-impl Parse for FullWord {
+impl Parse for B32 {
     type Target = (usize, operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
@@ -47,7 +47,7 @@ impl Parse for FullWord {
 }
 
 /// A 32-bit wide instruction
-impl FullWord {
+impl B32 {
     fn parse_interal<T: crate::Stream>(
         iter: &mut T,
     ) -> Result<operation::Operation, crate::ParseError> {

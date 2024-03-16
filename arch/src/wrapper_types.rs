@@ -22,11 +22,11 @@ macro_rules! combine {
     };
 }
 impl Imm12 {
-    pub fn thumb_expand_imm(self) -> u32 {
-        self.thumb_expand_imm_c().0
+    pub fn expand_imm(self) -> u32 {
+        self.expand_imm_c().0
     }
 
-    pub fn thumb_expand_imm_c(self) -> (u32, Option<bool>) {
+    pub fn expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
         let zero = 0;
         if repr.mask::<10, 11>() == 0 {

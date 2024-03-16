@@ -322,7 +322,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::AddImmediate::builder()
             .set_imm(0b100110001000u32)
@@ -343,7 +343,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Adr::builder()
             .set_imm(0b100110001000u32)
@@ -363,7 +363,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Adr::builder()
             .set_imm(0b100110001000u32)
@@ -401,7 +401,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::SubImmediate::builder()
             .set_imm(0b100110001000u32)
@@ -422,7 +422,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Movt::builder()
             .set_imm(0b0010100110001000u16)
@@ -441,7 +441,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let shift = Shift::try_from(0b10).unwrap();
         let shift = ImmShift::from((shift, 0b00111u8));
@@ -464,7 +464,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Ssat16::builder()
             .set_rn(Register::R2)
@@ -484,7 +484,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Sbfx::builder()
             .set_rn(Register::R2)
@@ -505,7 +505,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Bfi::builder()
             .set_rn(Register::R2)
@@ -526,7 +526,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Bfc::builder()
             .set_rd(Register::R1)
@@ -546,7 +546,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let shift: Shift = Shift::try_from(0b10).unwrap();
         let shift = ImmShift::from((shift, 0b00101));
@@ -569,7 +569,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         // let shift: Shift = Shift::try_from(0b10).unwrap();
         // let shift = ImmShift::from((shift, 0b00101));
@@ -591,7 +591,7 @@ mod test {
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let (_imm, _carry) = Imm12::try_from(0b100110001000u16)
             .unwrap()
-            .thumb_expand_imm_c();
+            .expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::Ubfx::builder()
             .set_rn(Register::R2)

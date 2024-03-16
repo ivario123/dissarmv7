@@ -11,15 +11,15 @@ pub mod simply_defined;
 
 use super::Mask;
 use crate::{
-    asm::halfword::{a_5_2::A5_2, a_5_3::A5_3, a_5_4::A5_4, a_5_5::A5_5, a_5_6::A5_6, a_5_8::A5_8},
+    asm::b16::{a_5_2::A5_2, a_5_3::A5_3, a_5_4::A5_4, a_5_5::A5_5, a_5_6::A5_6, a_5_8::A5_8},
     Parse,
     ParseError,
     ToOperation,
 };
 
 /// A 16-bit wide instruction
-pub enum HalfWord {}
-impl HalfWord {
+pub enum B16 {}
+impl B16 {
     fn parse_interal<T: crate::Stream>(
         iter: &mut T,
     ) -> Result<operation::Operation, crate::ParseError> {
@@ -65,7 +65,7 @@ impl HalfWord {
         Err(ParseError::Invalid16Bit("Half word"))
     }
 }
-impl Parse for HalfWord {
+impl Parse for B16 {
     type Target = (usize, operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>

@@ -2,8 +2,8 @@
 
 use crate::ParseError;
 
-pub mod halfword;
-pub mod wholeword;
+pub mod b16;
+pub mod b32;
 
 pub(crate) trait LocalTryInto<T> {
     fn local_try_into(self) -> Result<T, ParseError>;

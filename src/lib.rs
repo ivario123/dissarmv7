@@ -21,10 +21,10 @@ mod helpers;
 use std::fmt::Debug;
 
 use arch::ArchError;
-use asm::halfword::HalfWord;
+use asm::b16::B16;
 use operation::Operation;
 
-use crate::asm::wholeword::{self, FullWord};
+use crate::asm::b32::B32;
 
 /// Representation of a armv7 program.
 ///
@@ -176,8 +176,8 @@ impl Parse for operation::Operation {
         let halfword = halfword.unwrap();
 
         Ok(match halfword >> 11 {
-            0b11101..=0b11111 => FullWord::parse(iter)?,
-            _ => HalfWord::parse(iter)?,
+            0b11101..=0b11111 => B32::parse(iter)?,
+            _ => B16::parse(iter)?,
         })
     }
 }

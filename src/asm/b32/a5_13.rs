@@ -1,11 +1,14 @@
 use paste::paste;
 
 use crate::{
-    asm::{LocalTryInto, Mask},
+    asm::{
+        b32::{a5_14::A5_14, a5_15::A5_15},
+        LocalTryInto,
+        Mask,
+    },
     combine,
     instruction,
     prelude::*,
-    wholeword::{a5_14::A5_14, a5_15::A5_15},
     ParseError,
     ToOperation,
 };

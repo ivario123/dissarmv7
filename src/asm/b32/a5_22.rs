@@ -5,7 +5,7 @@ use crate::{
     combine,
     instruction,
     prelude::*,
-    wholeword::a5_23::A5_23,
+    asm::b32::a5_23::A5_23,
     ParseError,
     ToOperation,
 };

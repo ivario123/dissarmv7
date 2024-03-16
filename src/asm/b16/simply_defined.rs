@@ -42,6 +42,7 @@ impl ToOperation for Ldr {
             .into()
     }
 }
+
 impl ToOperation for Adr {
     fn encoding_specific_operations(self) -> operation::Operation {
         operation::Adr::builder()
@@ -52,6 +53,7 @@ impl ToOperation for Adr {
             .into()
     }
 }
+
 impl ToOperation for Add {
     fn encoding_specific_operations(self) -> operation::Operation {
         operation::AddSPImmediate::builder()
@@ -62,6 +64,7 @@ impl ToOperation for Add {
             .into()
     }
 }
+
 impl ToOperation for Stm {
     fn encoding_specific_operations(self) -> operation::Operation {
         operation::Stm::builder()
@@ -72,6 +75,7 @@ impl ToOperation for Stm {
             .into()
     }
 }
+
 impl ToOperation for Ldm {
     fn encoding_specific_operations(self) -> operation::Operation {
         operation::Ldm::builder()
@@ -82,6 +86,7 @@ impl ToOperation for Ldm {
             .into()
     }
 }
+
 impl ToOperation for B {
     fn encoding_specific_operations(self) -> operation::Operation {
         let mut imm: Imm12 = ((self.imm11) << 1).try_into().unwrap();

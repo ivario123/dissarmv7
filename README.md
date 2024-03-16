@@ -2,7 +2,7 @@
   Disarmv7
 </h1>
 
-Disarmv7 is a disassembler for the Arm®V7-M instruction set. It provides a fast enough disassembler that lifts [most$^1$](#foot-notes) of the Arm®V7-m instructions to a rust `enum` which is ideal if you want to do semantic analysis, [`symbolic execution`](https://github.com/ivario123/symex) or similar on
+Disarmv7 is a disassembler for the ArmV7-M instruction set. It provides a fast enough disassembler that lifts [most$^1$](#foot-notes) of the ArmV7-m instructions to a rust `enum` which is ideal if you want to do semantic analysis, [`symbolic execution`](https://github.com/ivario123/symex) or similar on
 the assembly/machine code level. As of now it does not provide a textual representation of the assembly instructions.
 This project is mainly written as a support project for the [`Symex`](https://github.com/ivario123/symex) project which is a symbolic execution engine.
 
@@ -35,11 +35,16 @@ println!("Assembly : {asm:?}");
 ## Limitations
 
 This project does not load binaries, nor does it generate a textual representation of the assembly, this is outside of the scope for the project,
-and for things that require textual representations of the program we refer the user to projects like [`Capstone`](https://github.com/capstone-engine/capstone) or [`Binary Ninja`](https://binary.ninja/) which provide a more complete experience.
+and for things that require textual representations of the program we refer the user to projects like [`Capstone`](https://github.com/capstone-engine/capstone) which provide a more complete experience.
+
+## Contributing
+
+If you find this project interesting and or useful feel free to contributing by either the finding an open issue in the [`issue tracker`](https://github.com/ivario123/dissarmv7/issues) or opening a [`PR`](https://github.com/ivario123/dissarmv7/pulls) with fixes or features that you find useful.
+Before contributing you should read the short [`documentation`](./CONTRIBUTING.md) on contributions.
 
 ## License
 
-
+This repository is licensed under the [`MIT`](./LICENSE) license and any contributions shall be licensed under the same license unless explicitly stated otherwise.
 
 ## Foot notes
 

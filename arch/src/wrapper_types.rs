@@ -22,10 +22,16 @@ macro_rules! combine {
     };
 }
 impl Imm12 {
+    /// Expands the value using [`expand_imm_c`](Imm12::expand_imm_c) and
+    /// discards the carry flag.
     pub fn expand_imm(self) -> u32 {
         self.expand_imm_c().0
     }
 
+    /// Expands the immediate value in the manner described in the 
+    /// [`documentation`](
+    ///     https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjc6YCk0fiEAxUSLhAIHU-1BY8QFnoECBQQAQ&url=https%3A%2F%2Fdocumentation-service.arm.com%2Fstatic%2F5f8fef3af86e16515cdbf816%3Ftoken%3D&usg=AOvVaw1Pwok2Ulie5wtDRP5IwyNw&opi=89978449
+    /// )
     pub fn expand_imm_c(self) -> (u32, Option<bool>) {
         let repr: u16 = self.into();
         let zero = 0;
@@ -55,6 +61,8 @@ mod sealed {
         const BIT: usize;
     }
 }
+
+/// Replaces all bits after `BIT` with the value of `BIT`.
 pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
     let np1: u32 = 1 << BIT;
     let sign = *el & np1;
@@ -67,6 +75,8 @@ pub fn sign_extend<const BIT: usize>(el: &u32) -> i32 {
 
     ret as i32
 }
+
+/// Replaces all bits after `BIT` with the value of `BIT`.
 pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     let np1: u32 = 1 << BIT;
     let sign = *el & np1;
@@ -79,16 +89,18 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
     mask | *el
 }
 
+/// Allows the implementor to be extended with the value at index `BIT`.
 pub trait SignExtendGeneric<T: Sized> {
     /// Extends the resto fo the value with the bit at index BIT.
     /// indexes start at 0
     fn sign_extend<const BIT: usize>(&mut self) -> T;
 }
 
+/// Allows the implementor to be extended with the value at index defined by SignBit.
 pub trait SignExtend<T: Sized>: sealed::SignBit {
     /// The number of bits in the target
     const TARGET_SIZE: usize = std::mem::size_of::<T>() * 8;
-    /// Extends the resto fo the value with the bit at index BIT.
+    /// Extends the rest of the value with the bit at index BIT.
     /// indexes start at 0
     fn sign_extend(&mut self) -> T;
 }
@@ -102,14 +114,11 @@ macro_rules! impl_try {
                 if std::mem::size_of::<$source>() * 8 < (<Self as sealed::SignBit>::BIT + 1) {
                     return Err(ArchError::InvalidField("Immediate".to_string()));
                 }
-                let max: $source =
-                    (((1 as u32) << (<Self as sealed::SignBit>::BIT + 1)) - 1) as $source;
+                let max: $source = (((1 as u32) << (<Self as sealed::SignBit>::BIT + 1)) - 1) as $source;
                 if value > max {
                     return Err(ArchError::InvalidField("Immediate".to_string()));
                 }
-                Ok(Self {
-                    val: value as $type,
-                })
+                Ok(Self { val: value as $type })
             }
         }
     };
@@ -118,6 +127,10 @@ macro_rules! imm {
     ($($id:ident($type:ty)),*) => {
         $(
             #[derive(Debug,Clone,Copy,PartialEq)]
+            /// A size limited immediate value.
+            /// 
+            /// These can be sign or zero
+            /// extended in to longer representations.
             pub struct $id {
                 val:$type
             }
@@ -175,18 +188,7 @@ macro_rules! signextend {
     };
 }
 
-imm!(
-    Imm2(u8),
-    Imm3(u8),
-    Imm4(u8),
-    Imm5(u8),
-    Imm8(u8),
-    Imm9(u16),
-    Imm12(u16),
-    Imm21(u32),
-    Imm22(u32),
-    Imm25(u32)
-);
+imm!(Imm2(u8), Imm3(u8), Imm4(u8), Imm5(u8), Imm8(u8), Imm9(u16), Imm12(u16), Imm21(u32), Imm22(u32), Imm25(u32));
 
 into!(
     Imm2 => {u8,u16,u32}
@@ -250,9 +252,9 @@ mod test {
     #[test]
     fn sign_extend_test() {
         let mut i: Imm2 = 0b10u8.try_into().unwrap();
-        let exptected: u8 = 0b1111_1110;
+        let expected: u8 = 0b1111_1110;
         let res: u8 = i.sign_extend();
 
-        assert_eq!(res, exptected)
+        assert_eq!(res, expected)
     }
 }

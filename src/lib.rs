@@ -6,6 +6,7 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
+#![deny(rustdoc::all)]
 
 pub mod buffer;
 #[rustfmt::skip]
@@ -13,10 +14,7 @@ pub mod decoder;
 
 pub(crate) mod asm;
 
-/// Internal helpers
 mod helpers;
-// #[cfg(test)]
-// mod test;
 
 use std::fmt::Debug;
 

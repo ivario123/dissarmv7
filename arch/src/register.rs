@@ -1,9 +1,13 @@
+//! Defines the [`Register`]s that are available in the system.
 use crate::ArchError;
 
 macro_rules! reg {
     ($($reg:ident),*) => {
         #[repr(u8)]
         #[derive(Debug,Copy,Clone,PartialEq)]
+        /// Enumerates the registers that are available
+        /// to the system
+        #[allow(missing_docs)]
         pub enum Register {
         $(
             $reg
@@ -40,19 +44,20 @@ macro_rules! reg {
 }
 reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC);
 
+/// Register lists lifted from a bit vector to allow
+/// type level representations
+#[derive(Debug, Clone, PartialEq)]
+pub struct RegisterList {
+    /// All of the registers in the register list.
+    pub regs: Vec<Register>,
+}
+
 impl TryFrom<u16> for Register {
     type Error = ArchError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         (value as u8).try_into()
     }
-}
-
-/// Register lists lifted from a bit vector to allow
-/// type level representations
-#[derive(Debug, Clone, PartialEq)]
-pub struct RegisterList {
-    pub regs: Vec<Register>,
 }
 
 impl IntoIterator for RegisterList {

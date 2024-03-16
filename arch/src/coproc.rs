@@ -1,4 +1,4 @@
-//! Defines the standard co processor ids
+//! Defines the standard [`co processor`](CoProcessor) ids
 
 use crate::ArchError;
 
@@ -6,6 +6,9 @@ macro_rules! coproc {
     ($($coproc:ident),*) => {
         #[repr(u8)]
         #[derive(Debug,Copy,Clone,PartialEq)]
+        /// Enumerates the co processors that are available
+        /// to the system
+        #[allow(missing_docs)]
         pub enum CoProcessor {
         $(
             $coproc

@@ -30,7 +30,7 @@ impl Parse for A5_8 {
             return Ok(Self::Svc(Svc::parse(iter)?));
         }
         if opcode == 0b1110 {
-            return Err(ParseError::Unpredicatable);
+            return Err(ParseError::Unpredictable);
         }
         Ok(Self::B(B::parse(iter)?))
     }

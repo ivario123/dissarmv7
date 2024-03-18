@@ -123,7 +123,7 @@ impl ToOperation for A5_3 {
     fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::And(and) => operation::AndRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(and.rdn)
                 .set_rm(and.rm)
@@ -131,7 +131,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Eor(eor) => operation::EorRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(eor.rdn)
                 .set_rm(eor.rm)
@@ -139,28 +139,28 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Lsl(lsl) => operation::LslRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(lsl.rdn)
                 .set_rn(lsl.rdn)
                 .set_rm(lsl.rm)
                 .complete()
                 .into(),
             Self::Lsr(lsr) => operation::LsrRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(lsr.rdn)
                 .set_rn(lsr.rdn)
                 .set_rm(lsr.rm)
                 .complete()
                 .into(),
             Self::Asr(asr) => operation::AsrRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(asr.rdn)
                 .set_rn(asr.rdn)
                 .set_rm(asr.rm)
                 .complete()
                 .into(),
             Self::Adc(adc) => operation::AdcRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(adc.rdn)
                 .set_rm(adc.rm)
@@ -168,7 +168,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Sbc(sbc) => operation::SbcRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(sbc.rdn)
                 .set_rm(sbc.rm)
@@ -176,7 +176,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Ror(ror) => operation::RorRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(ror.rdn)
                 .set_rn(ror.rdn)
                 .set_rm(ror.rm)
@@ -189,7 +189,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Rsb(rsb) => operation::RsbImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(Some(rsb.rd))
                 .set_rn(rsb.rn)
                 .set_imm(0)
@@ -208,7 +208,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Orr(orr) => operation::OrrRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(orr.rdn)
                 .set_rm(orr.rm)
@@ -216,14 +216,14 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Mul(mul) => operation::MulBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(Some(mul.rdm))
                 .set_rn(mul.rn)
                 .set_rm(mul.rdm)
                 .complete()
                 .into(),
             Self::Bic(bic) => operation::BicRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(Some(bic.rdn))
                 .set_rn(bic.rdn)
                 .set_rm(bic.rm)
@@ -231,7 +231,7 @@ impl ToOperation for A5_3 {
                 .complete()
                 .into(),
             Self::Mvn(mvn) => operation::MvnRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(mvn.rd)
                 .set_rm(mvn.rm)
                 .set_shift(None)
@@ -244,6 +244,8 @@ impl ToOperation for A5_3 {
 #[cfg(test)]
 mod test {
 
+    use arch::set_flags::SetFlags;
+
     use crate::prelude::*;
 
     #[test]
@@ -253,7 +255,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AndRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(None)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -270,7 +272,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::EorRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(None)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -287,7 +289,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LslRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R3)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -303,7 +305,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LsrRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R3)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -319,7 +321,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AsrRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R3)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -335,7 +337,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AdcRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(None)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -352,7 +354,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::SbcRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(None)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -369,7 +371,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::RorRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R3)
             .set_rm(Register::R0)
             .set_rn(Register::R3)
@@ -400,7 +402,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::RsbImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Some(Register::R3))
             .set_rn(Register::R0)
             .set_imm(0)
@@ -447,7 +449,7 @@ mod test {
 
         let target: Operation = operation::OrrRegister::builder()
             .set_rd(None)
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rn(Register::R3)
             .set_rm(Register::R0)
             .set_shift(None)
@@ -464,7 +466,7 @@ mod test {
 
         let target: Operation = operation::Mul::builder()
             .set_rd(Some(Register::R3))
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rn(Register::R0)
             .set_rm(Register::R3)
             .complete()
@@ -480,7 +482,7 @@ mod test {
 
         let target: Operation = operation::BicRegister::builder()
             .set_rd(Some(Register::R3))
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rm(Register::R0)
             .set_rn(Register::R3)
             .set_shift(None)
@@ -497,7 +499,7 @@ mod test {
 
         let target: Operation = operation::MvnRegister::builder()
             .set_rd(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rm(Register::R0)
             .set_shift(None)
             .complete()

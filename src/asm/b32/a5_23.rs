@@ -99,7 +99,7 @@ impl ToOperation for A5_23 {
             Self::Lsl(el) => {
                 let shift = ImmShift::from((Shift::Lsl, imm!(el)));
                 operation::LslImmediate::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(el.rd)
                     .set_rm(el.rm)
                     .set_imm(shift.shift_n)
@@ -109,7 +109,7 @@ impl ToOperation for A5_23 {
             Self::Lsr(el) => {
                 let shift = ImmShift::from((Shift::Lsr, imm!(el)));
                 operation::LsrImmediate::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(el.rd)
                     .set_rm(el.rm)
                     .set_imm(shift.shift_n)
@@ -119,7 +119,7 @@ impl ToOperation for A5_23 {
             Self::Asr(el) => {
                 let shift = ImmShift::from((Shift::Asr, imm!(el)));
                 operation::AsrImmediate::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(el.rd)
                     .set_rm(el.rm)
                     .set_imm(shift.shift_n as u32)
@@ -179,7 +179,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LslImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R3)
             .set_rm(Register::R3)
             .set_imm(0b01010)
@@ -198,7 +198,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LsrImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R3)
             .set_rm(Register::R3)
             .set_imm(0b01010)
@@ -217,7 +217,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AsrImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R3)
             .set_rm(Register::R3)
             .set_imm(0b01010)

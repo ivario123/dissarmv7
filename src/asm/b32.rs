@@ -116,7 +116,7 @@ impl B32 {
         if op2 >> 3 == 0b0111 {
             return Ok(a5_29::A5_29::parse(iter)?.encoding_specific_operations());
         }
-        
+
         if op2 >> 6 == 1 {
             println!(
                 "

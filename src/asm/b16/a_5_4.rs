@@ -82,7 +82,7 @@ impl ToOperation for A5_4 {
                 let reg: Register = combine!(dn:rdn,3,u8).try_into().unwrap();
 
                 operation::AddRegister::builder()
-                    .set_s(Some(false))
+                    .set_s(Some(false.into()))
                     .set_rd(Some(reg))
                     .set_rn(reg)
                     .set_rm(el.rm)
@@ -127,7 +127,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let reg = Register::try_from(0b1001u8).unwrap();
         let target: Operation = operation::AddRegister::builder()
-            .set_s(Some(false))
+            .set_s(Some(false.into()))
             .set_rd(Some(reg))
             .set_rm(Register::R1)
             .set_rn(reg)

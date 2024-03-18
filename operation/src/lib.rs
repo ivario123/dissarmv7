@@ -200,7 +200,6 @@ operation!(
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
     LdcImmediate <coproc: CoProcessor>, <crd:u8>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
-
     LdcLiteral   <coproc: CoProcessor>, <crd:u8>, <imm:u32>, <add:bool>, <index:bool>
 
     LslImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
@@ -213,6 +212,8 @@ operation!(
 
 
     // ==================================== M ====================================
+    
+    Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 

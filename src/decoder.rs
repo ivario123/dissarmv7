@@ -401,7 +401,7 @@ impl Convert for (usize, V7Operation) {
                     pseudo!([
                         let target = Register("PC+") + imm;
                         target = target<31:1> << 1.local_into();
-                        Jump(target,condition);
+                        Jump(target, condition);
                     ])
                 }
                 V7Operation::Bfc(bfc) => {
@@ -505,7 +505,7 @@ impl Convert for (usize, V7Operation) {
                         Register("LR") |= 1.local_into();
                         Register("EPSR") = Register("EPSR") | (1 << 27).local_into();
                         target = target<31:1> << 1.local_into();
-                        Register("PC") = target;
+                        Jump(target);
                     ])
                 }
 
@@ -526,8 +526,8 @@ impl Convert for (usize, V7Operation) {
                     let imm = imm.local_into();
 
                     let cond = match non {
-                        false => Condition::EQ,
-                        true => Condition::NE,
+                        false => Condition::NE,
+                        true => Condition::EQ,
                     };
                     pseudo!([
                         let old_z = Flag("Z");
@@ -1339,14 +1339,12 @@ impl Convert for (usize, V7Operation) {
                         true => shift!(ret.shift rm -> rd set c for rm),
                         false => shift!(ret.shift rm -> rd),
                     };
-
                     pseudo!(ret.extend[
                         if (s) {
                             SetNFlag(rd);
                             SetZFlag(rd);
                         }
                     ]);
-
                     ret
                 }
                 V7Operation::LslRegister(lsl) => {
@@ -1369,10 +1367,9 @@ impl Convert for (usize, V7Operation) {
                     ];
                     let shift_t = Shift::Lsl.local_into();
                     match s {
-                        true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
-                        false => shift_imm!(ret.(shift_t,shift_n) rn -> rd),
+                        true => shift_imm!(ret.(shift_t,rm) rn -> rd set c for rn),
+                        false => shift_imm!(ret.(shift_t,rm) rn -> rd),
                     };
-
                     pseudo!(ret.extend[
                         if (s) {
                             SetNFlag(rd);
@@ -1837,7 +1834,7 @@ impl Convert for (usize, V7Operation) {
                     let mut jump = false;
                     let mut to_pop = Vec::with_capacity(registers.regs.len());
                     let bc = registers.regs.len() as u32;
-                    for reg in registers.regs {
+                    for reg in registers.regs.into_iter() {
                         if reg == Register::PC {
                             jump = true;
                         } else {
@@ -1877,7 +1874,7 @@ impl Convert for (usize, V7Operation) {
                     assert!(!registers.regs.contains(&Register::PC));
                     let n = registers.regs.len() as u32;
                     pseudo!([
-                        let address = Register("SP") - (4*n).local_into();
+                        let address = Register("SP&") - (4*n).local_into();
 
                         for reg in registers.regs {
                             LocalAddress(address,32) = reg.local_into();
@@ -2147,37 +2144,28 @@ impl Convert for (usize, V7Operation) {
                     let carry = Operand::Flag("C".to_owned());
                     let one = 1.local_into();
 
-                    local!(shifted, intermediate, old_carry);
+                    local!(shifted);
                     shift!(ret.shift rm -> shifted);
 
-                    pseudo!(
-                        ret.extend[
-                        // Backup carry bit
-                        old_carry = carry;
-                        // Set carry  bit to 1
-                        carry = one;
-
-                        intermediate = !rn;
-
-                        // add with carry
-                        rd = intermediate adc shifted;
-                        ]
-                        );
-                    ret.extend(match s {
+                    pseudo!(ret.extend[
+                        rd = rn - shifted;
+                    ]);
+                    match s {
                         Some(true) => {
-                            vec![
+                            ret.extend(vec![
                                 Operation::SetZFlag(rd.clone()),
                                 Operation::SetNFlag(rd.clone()),
                                 Operation::SetCFlag {
-                                    operand1: intermediate,
+                                    operand1: rn,
                                     operand2: shifted,
-                                    sub: false,
-                                    carry: true
+                                    sub: true,
+                                    carry:false
                                 }
-                            ]
+                            ]);
                         }
-                        _ => pseudo!([carry = old_carry;]),
-                    });
+                        _ => {},
+
+                    }
 
                     ret
                 }
@@ -2824,7 +2812,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::SubSpMinusImmediate(sub) => {
                     consume!((
                             s.unwrap_or(false),
-                            rd.local_into().unwrap_or(Operand::Register("SP".to_owned())),
+                            rd.local_into().unwrap_or(Operand::Register("SP&".to_owned())),
                             imm.local_into()
                             ) from sub);
                     let rn = Register::SP.local_into();
@@ -2864,7 +2852,6 @@ impl Convert for (usize, V7Operation) {
                             SetVFlag(rn,shifted,sub);
                             SetCFlag(rn,shifted,sub);
                         }
-
                         rd = result;
                     ]);
                     ret

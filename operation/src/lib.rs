@@ -4,6 +4,7 @@ use arch::{
     register::{Register, RegisterList},
     shift::ImmShift,
     SetFlags,
+    coproc::CoProcessor,
     wrapper_types::*,
 };
 use builder_derive::{Builder, Consumer};
@@ -198,6 +199,10 @@ operation!(
 
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
+    LdcImmediate <coproc: CoProcessor>, <crd:u8>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
+    
+    LdcLiteral   <coproc: CoProcessor>, <crd:u8>, <imm:u32>, <add:bool>, <index:bool>
+
     LslImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
 
     LslRegister {s: SetFlags}, <rd: Register>, <rn: Register>, <rm: Register>
@@ -208,6 +213,8 @@ operation!(
 
 
     // ==================================== M ====================================
+    
+    Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
     Mla <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
 
@@ -219,9 +226,11 @@ operation!(
 
     Movt <rd: Register>, <imm:u16>
 
-    Mrs <rd: Register>, <sysm: u8> // Probably not needed
+    Mrrc <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
-    Msr <rn: Register>, <mask:Imm2>, <sysm:u8> // Probably not needed
+    Mrs <rd: Register>, <sysm: u8>
+
+    Msr <rn: Register>, <mask:Imm2>, <sysm:u8>
 
     Mul {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>
 
@@ -377,6 +386,8 @@ operation!(
 
     SubImmediate        {s: SetFlags}, {rd: Register}, <rn: Register>, <imm: u32>
     SubRegister         {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    Stc             <coproc: CoProcessor>, <crd:u7>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
+
     SubSpMinusImmediate  {s: bool}, {rd: Register}, <imm:u32>
     SubSpMinusRegister       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
 
@@ -478,14 +489,10 @@ operation!(
     // These are left for the future as they are not yet supported in SYMEX
 
     Svx <>
-    Stc <>
     Mcr <>
     Mrc <>
-    Mrrc <>
-    Mcrr <>
 
     Cdp <>
-    Ldc<>
 
 
 

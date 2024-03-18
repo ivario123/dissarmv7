@@ -40,7 +40,7 @@ pub enum Condition {
 #[derive(Debug, Clone, PartialEq)]
 /// If then Else block
 /// 
-/// This type defines how to [`Parse`](ITCondition::parse)
+/// This type defines how to [`Parse`](ITCondition::from)
 /// the condition vector from a base [`Condition`] and a mask.
 pub struct ITCondition {
     /// The conditions that need to be satisfied for

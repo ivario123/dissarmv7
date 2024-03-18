@@ -21,6 +21,7 @@ macro_rules! combine {
         }
     };
 }
+
 impl Imm12 {
     /// Expands the value using [`expand_imm_c`](Imm12::expand_imm_c) and
     /// discards the carry flag.

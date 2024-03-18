@@ -386,7 +386,7 @@ operation!(
 
     SubImmediate        {s: SetFlags}, {rd: Register}, <rn: Register>, <imm: u32>
     SubRegister         {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
-    Stc             <coproc: CoProcessor>, <crd:u7>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
+    Stc                 <coproc: CoProcessor>, <crd:u8>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
 
     SubSpMinusImmediate  {s: bool}, {rd: Register}, <imm:u32>
     SubSpMinusRegister       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}

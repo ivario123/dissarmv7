@@ -282,7 +282,7 @@ impl ToOperation for A5_10 {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.expand_imm_c();
                 operation::MovImmediateBuilder::new()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(el.rd)
                     .set_imm(imm)
                     .set_carry(carry)
@@ -338,7 +338,7 @@ impl ToOperation for A5_10 {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.expand_imm();
                 operation::AddImmediateBuilder::new()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_imm(imm)
@@ -380,7 +380,7 @@ impl ToOperation for A5_10 {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.expand_imm();
                 operation::SubImmediateBuilder::new()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_imm(imm)
@@ -400,7 +400,7 @@ impl ToOperation for A5_10 {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let imm: u32 = imm.expand_imm();
                 operation::RsbImmediateBuilder::new()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_imm(imm)
@@ -423,9 +423,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::AndImmediate::builder()
             .set_imm(imm)
@@ -445,9 +443,7 @@ mod test {
         bin.extend([0b00011111u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::TstImmediate::builder()
             .set_imm(imm)
@@ -465,9 +461,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::BicImmediate::builder()
             .set_imm(imm)
@@ -487,9 +481,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::OrrImmediate::builder()
             .set_imm(imm)
@@ -509,13 +501,11 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::MovImmediate::builder()
             .set_imm(imm)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R1)
             .set_carry(carry)
             .complete()
@@ -530,9 +520,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::OrnImmediate::builder()
             .set_imm(imm)
@@ -552,9 +540,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::MvnImmediate::builder()
             .set_imm(imm)
@@ -573,9 +559,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::EorImmediate::builder()
             .set_imm(imm)
@@ -595,9 +579,7 @@ mod test {
         bin.extend([0b00011111u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::TeqImmediate::builder()
             .set_imm(imm)
@@ -615,13 +597,11 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::AddImmediate::builder()
             .set_imm(imm)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rn(Register::R2)
             .set_rd(Some(Register::R1))
             .complete()
@@ -636,9 +616,7 @@ mod test {
         bin.extend([0b00011111u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::CmnImmediate::builder()
             .set_imm(imm)
@@ -655,9 +633,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::AdcImmediate::builder()
             .set_imm(imm)
@@ -676,9 +652,7 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::SbcImmediate::builder()
             .set_imm(imm)
@@ -697,13 +671,11 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::SubImmediate::builder()
             .set_imm(imm)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rn(Register::R2)
             .set_rd(Some(Register::R1))
             .complete()
@@ -718,9 +690,7 @@ mod test {
         bin.extend([0b00011111u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::CmpImmediate::builder()
             .set_imm(imm)
@@ -737,13 +707,11 @@ mod test {
         bin.extend([0b00010001u8, 0b10001000u8].into_iter().rev());
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
-        let (imm, _carry) = Imm12::try_from(0b100110001000u16)
-            .unwrap()
-            .expand_imm_c();
+        let (imm, _carry) = Imm12::try_from(0b100110001000u16).unwrap().expand_imm_c();
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
         let target: Operation = operation::RsbImmediate::builder()
             .set_imm(imm)
-            .set_s(Some(false))
+            .set_s(Some(false.into()))
             .set_rn(Register::R2)
             .set_rd(Some(Register::R1))
             .complete()

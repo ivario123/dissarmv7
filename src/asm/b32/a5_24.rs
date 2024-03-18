@@ -161,28 +161,28 @@ impl ToOperation for A5_24 {
     fn encoding_specific_operations(self) -> operation::Operation {
         match self {
             Self::Lsl(el) => operation::LslRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
             Self::Lsr(el) => operation::LsrRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
             Self::Asr(el) => operation::AsrRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
                 .complete()
                 .into(),
             Self::Ror(el) => operation::RorRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -288,7 +288,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LslRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -307,7 +307,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LsrRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -326,7 +326,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AsrRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rn(Register::R3)
@@ -345,7 +345,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::RorRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R2)
             .set_rm(Register::R3)
             .set_rn(Register::R3)

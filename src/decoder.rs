@@ -9,6 +9,7 @@ use paste::paste;
 use transpiler::pseudo;
 
 use crate::prelude::{Condition as ARMCondition, ImmShift, Register, Shift, Operation as V7Operation};
+use arch::set_flags::LocalUnwrap;
 
 macro_rules! consume {
     (($($id:ident$($(.$e:expr)+)?),*) from $name:ident) => {
@@ -95,10 +96,10 @@ macro_rules! local {
 
 
 pub trait Convert {
-    fn convert(self) -> Vec<Operation>;
+    fn convert(self,in_it_block:bool) -> Vec<Operation>;
 }
 impl Convert for (usize, V7Operation) {
-    fn convert(self) -> Vec<Operation> {
+    fn convert(self,in_it_block:bool) -> Vec<Operation> {
         'outer_block: {
             match self.1 {
                 V7Operation::AdcImmediate(adc) => {
@@ -126,7 +127,15 @@ impl Convert for (usize, V7Operation) {
                     ])
                 }
                 V7Operation::AdcRegister(adc) => {
-                    consume!((s.unwrap_or(false),rd,rn,rm,shift) from adc);
+                    consume!(
+                        (
+                            s.local_unwrap(in_it_block),
+                            rd,
+                            rn,
+                            rm,
+                            shift
+                        ) from adc
+                    );
                     let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
                     let rd = rd.unwrap_or(rn.clone());
                     local!(shifted);
@@ -146,7 +155,7 @@ impl Convert for (usize, V7Operation) {
                 }
                 V7Operation::AddImmediate(add) => {
                     consume!((
-                          s.unwrap_or(false),
+                          s.local_unwrap(in_it_block),
                           rd,
                           rn,
                           imm
@@ -167,7 +176,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::AddRegister(add) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rn,
                             rm,
@@ -302,7 +311,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::AndRegister(and) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rn,
                             rm,
@@ -327,7 +336,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::AsrImmediate(asr) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rm,
                             imm
@@ -355,7 +364,14 @@ impl Convert for (usize, V7Operation) {
                     ret
                 }
                 V7Operation::AsrRegister(asr) => {
-                    consume!((s,rd,rm,rn) from asr);
+                    consume!(
+                        (
+                            s.local_unwrap(in_it_block),
+                            rd,
+                            rm,
+                            rn
+                        ) from asr
+                    );
                     let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
                     let mut ret = vec![];
                     pseudo!(ret.extend[
@@ -363,7 +379,7 @@ impl Convert for (usize, V7Operation) {
                         let result = rn asr rm;
                     ]);
                     
-                    if let Some(true) = s {
+                    if s {
                         pseudo!(ret.extend[
                             SetZFlag(result);
                             SetNFlag(result);
@@ -438,7 +454,7 @@ impl Convert for (usize, V7Operation) {
                 }
                 V7Operation::BicRegister(bic) => {
                     consume!((
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rn,
                             rm,
@@ -657,7 +673,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::EorRegister(eor) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rn,
                             rm,
@@ -1270,7 +1286,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::LslImmediate(lsl) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             rm.local_into(),
                             imm
@@ -1287,7 +1303,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::LslRegister(lsl) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             rn.local_into(),
                             rm.local_into()
@@ -1311,7 +1327,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::LsrImmediate(lsr) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             rm.local_into(),
                             imm
@@ -1328,7 +1344,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::LsrRegister(lsr) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             rn.local_into(),
                             rm.local_into()
@@ -1389,7 +1405,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::MovImmediate(mov) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             imm.local_into(),
                             carry
@@ -1562,7 +1578,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::Mul(mul) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rn,
                             rd.unwrap_or(rn).local_into(),
                             rm.local_into()
@@ -1603,7 +1619,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::MvnRegister(mvn) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd.local_into(),
                             rm.local_into(),
                             shift
@@ -1702,7 +1718,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::OrrRegister(orr) => {
                     consume!(
                         (
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rd,
                             rm.local_into(),
                             rn,
@@ -1949,7 +1965,14 @@ impl Convert for (usize, V7Operation) {
                     ret
                 }
                 V7Operation::RorRegister(ror) => {
-                    consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
+                    consume!(
+                        (
+                            s.local_unwrap(in_it_block),
+                            rd.local_into(),
+                            rm.local_into(),
+                            rn.local_into()
+                        ) from ror
+                    );
                     local!(shift_n);
                     let mask = (u8::MAX as u32).local_into();
 
@@ -1965,7 +1988,7 @@ impl Convert for (usize, V7Operation) {
                             shift: shift_n.clone()
                         }
                     ];
-                    if let Some(true) = s {
+                    if s {
                         ret.extend([
                             Operation::SetZFlag(rd.clone()),
                             Operation::SetNFlag(rd.clone()),
@@ -2010,6 +2033,7 @@ impl Convert for (usize, V7Operation) {
                     consume!((s,rd,rn,imm.local_into()) from rsb);
                     let (rd, rn) = (rd.unwrap_or(rn).local_into(), rn.local_into());
                     let carry = Operand::Flag("c".to_owned());
+                    let s = s.local_unwrap(in_it_block);
                     local!(intermediate, old_carry);
                     let one = 1.local_into();
 
@@ -2028,7 +2052,7 @@ impl Convert for (usize, V7Operation) {
                         ]
                         );
                     ret.extend(match s {
-                        Some(true) => {
+                        true => {
                             vec![
                                 Operation::SetZFlag(rd.clone()),
                                 Operation::SetNFlag(rd.clone()),
@@ -2040,7 +2064,7 @@ impl Convert for (usize, V7Operation) {
                                 }
                             ]
                         }
-                        _ => pseudo!([carry = old_carry;]),
+                        false => pseudo!([carry = old_carry;]),
                     });
                     ret
                 }
@@ -2181,7 +2205,7 @@ impl Convert for (usize, V7Operation) {
                 }
                 V7Operation::SbcRegister(sbc) => {
                     consume!((
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()), 
                             rm.local_into(),
@@ -2686,7 +2710,7 @@ impl Convert for (usize, V7Operation) {
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
                             imm.local_into(),
-                            s.unwrap_or(false)
+                            s.local_unwrap(in_it_block)
                             )from sub);
                     pseudo!([
                             let old_rn = rn;
@@ -2704,7 +2728,7 @@ impl Convert for (usize, V7Operation) {
                 }
                 V7Operation::SubRegister(sub) => {
                     consume!((
-                            s.unwrap_or(false),
+                            s.local_unwrap(in_it_block),
                             rn.local_into(),
                             rd.local_into().unwrap_or(rn.clone()),
                             rm.local_into(),

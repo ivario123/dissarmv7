@@ -159,7 +159,7 @@ impl ToOperation for A5_28 {
                 .complete()
                 .into(),
             Self::Mul(el) => operation::Mul::builder()
-                .set_s(Some(false))
+                .set_s(Some(false.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -311,7 +311,7 @@ mod test {
             .set_rd(Some(Register::R2))
             .set_rm(Register::R3)
             .set_rn(Register::R3)
-            .set_s(Some(false))
+            .set_s(Some(false.into()))
             .complete()
             .into();
         assert_eq!(instr, target)

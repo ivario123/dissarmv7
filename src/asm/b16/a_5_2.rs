@@ -1,6 +1,6 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use arch::Register;
+use arch::{Register, SetFlags};
 use paste::paste;
 
 use super::Mask;
@@ -119,7 +119,7 @@ impl ToOperation for A5_2 {
             Self::Lsl(lsl) => {
                 let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
                 operation::LslImmediateBuilder::new()
-                    .set_s(Some(true))
+                    .set_s(Some(SetFlags::InITBlock(false)))
                     .set_rd(lsl.rd)
                     .set_rm(lsl.rm)
                     .set_imm(shift.shift_n)
@@ -129,7 +129,7 @@ impl ToOperation for A5_2 {
             Self::Lsr(lsr) => {
                 let shift = ImmShift::from((Shift::Lsr, lsr.imm));
                 operation::LsrImmediateBuilder::new()
-                    .set_s(Some(true))
+                    .set_s(Some(SetFlags::InITBlock(false)))
                     .set_rd(lsr.rd)
                     .set_rm(lsr.rm)
                     .set_imm(shift.shift_n)
@@ -139,7 +139,7 @@ impl ToOperation for A5_2 {
             Self::Asr(asr) => {
                 let shift = ImmShift::from((Shift::Asr, asr.imm5));
                 operation::AsrImmediateBuilder::new()
-                    .set_s(Some(true))
+                    .set_s(Some(SetFlags::InITBlock(false)))
                     .set_rd(asr.rd)
                     .set_rm(asr.rm)
                     .set_imm(shift.shift_n.into())
@@ -147,7 +147,7 @@ impl ToOperation for A5_2 {
                     .into()
             }
             Self::Add(add) => operation::AddRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
                 .set_rm(add.rm)
@@ -155,7 +155,7 @@ impl ToOperation for A5_2 {
                 .complete()
                 .into(),
             Self::Sub(sub) => operation::SubRegisterBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_rm(sub.rm)
@@ -163,21 +163,21 @@ impl ToOperation for A5_2 {
                 .complete()
                 .into(),
             Self::AddImmediate3(add) => operation::AddImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(Some(add.rd))
                 .set_rn(add.rn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
             Self::SubImmediate3(sub) => operation::SubImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(Some(sub.rd))
                 .set_rn(sub.rn)
                 .set_imm(sub.imm as u32)
                 .complete()
                 .into(),
             Self::Mov(mov) => operation::MovImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(mov.rd)
                 .set_imm(mov.imm as u32)
                 .set_carry(None)
@@ -189,14 +189,14 @@ impl ToOperation for A5_2 {
                 .complete()
                 .into(),
             Self::AddImmediate8(add) => operation::AddImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(add.rdn)
                 .set_imm(add.imm as u32)
                 .complete()
                 .into(),
             Self::SubImmediate8(sub) => operation::SubImmediateBuilder::new()
-                .set_s(Some(true))
+                .set_s(Some(SetFlags::InITBlock(false)))
                 .set_rd(None)
                 .set_rn(sub.rdn)
                 .set_imm(sub.imm as u32)
@@ -209,6 +209,8 @@ impl ToOperation for A5_2 {
 #[cfg(test)]
 mod test {
 
+    use arch::SetFlags;
+
     use crate::prelude::*;
 
     #[test]
@@ -218,7 +220,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LslImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
             .set_imm(3)
@@ -234,7 +236,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::LsrImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
             .set_imm(3)
@@ -250,7 +252,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AsrImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R1)
             .set_rm(Register::R1)
             .set_imm(3)
@@ -266,7 +268,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AddRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Some(Register::R1))
             .set_rm(Register::R1)
             .set_rn(Register::R1)
@@ -283,7 +285,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::SubRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Some(Register::R1))
             .set_rm(Register::R1)
             .set_rn(Register::R1)
@@ -300,7 +302,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::AddImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(arch::SetFlags::InITBlock(false)))
             .set_rd(Some(Register::R1))
             .set_rn(Register::R1)
             .set_imm(3)
@@ -316,7 +318,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::SubImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Some(Register::R1))
             .set_rn(Register::R1)
             .set_imm(3)
@@ -332,7 +334,7 @@ mod test {
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
 
         let target: Operation = operation::MovImmediate::builder()
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .set_rd(Register::R0)
             .set_imm(0b100)
             .set_carry(None)
@@ -367,7 +369,7 @@ mod test {
             .set_rd(None)
             .set_rn(Register::R0)
             .set_imm(0b100)
-            .set_s(Some(true))
+            .set_s(Some(arch::SetFlags::InITBlock(false)))
             .complete()
             .into();
 
@@ -384,7 +386,7 @@ mod test {
             .set_rd(None)
             .set_rn(Register::R0)
             .set_imm(0b100)
-            .set_s(Some(true))
+            .set_s(Some(SetFlags::InITBlock(false)))
             .complete()
             .into();
 

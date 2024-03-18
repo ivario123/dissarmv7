@@ -1,11 +1,10 @@
 use paste::paste;
 
 use crate::{
-    asm::{LocalTryInto, Mask},
+    asm::{b32::a5_23::A5_23, LocalTryInto, Mask},
     combine,
     instruction,
     prelude::*,
-    asm::b32::a5_23::A5_23,
     ParseError,
     ToOperation,
 };
@@ -266,7 +265,7 @@ impl ToOperation for A5_22 {
                 let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
 
                 operation::AndRegister::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -290,7 +289,7 @@ impl ToOperation for A5_22 {
                 let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
 
                 operation::BicRegister::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -302,7 +301,7 @@ impl ToOperation for A5_22 {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
                 let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
                 operation::OrrRegister::builder()
-                    .set_s(Some(el.s))
+                    .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
                     .set_rn(el.rn)
                     .set_rm(el.rm)
@@ -320,14 +319,14 @@ impl ToOperation for A5_22 {
                 .complete()
                 .into(),
             Self::Mvn(el) => operation::MvnRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
                 .set_rm(el.rm)
                 .set_shift(shift!(el))
                 .complete()
                 .into(),
             Self::Eor(el) => operation::EorRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -355,7 +354,7 @@ impl ToOperation for A5_22 {
                     .into()
             }
             Self::Add(el) => operation::AddRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -369,7 +368,7 @@ impl ToOperation for A5_22 {
                 .complete()
                 .into(),
             Self::Adc(el) => operation::AdcRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -377,7 +376,7 @@ impl ToOperation for A5_22 {
                 .complete()
                 .into(),
             Self::Sbc(el) => operation::SbcRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -385,7 +384,7 @@ impl ToOperation for A5_22 {
                 .complete()
                 .into(),
             Self::Sub(el) => operation::SubRegister::builder()
-                .set_s(Some(el.s))
+                .set_s(Some(el.s.into()))
                 .set_rd(Some(el.rd))
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -429,7 +428,7 @@ mod test {
 
         let target: Operation = operation::AndRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -474,7 +473,7 @@ mod test {
 
         let target: Operation = operation::BicRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -497,7 +496,7 @@ mod test {
 
         let target: Operation = operation::OrrRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -542,7 +541,7 @@ mod test {
         let shift = ImmShift::from((shift, 0b01010));
 
         let target: Operation = operation::MvnRegister::builder()
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Register::R3)
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -565,7 +564,7 @@ mod test {
 
         let target: Operation = operation::EorRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -634,7 +633,7 @@ mod test {
 
         let target: Operation = operation::AddRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -678,7 +677,7 @@ mod test {
 
         let target: Operation = operation::AdcRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -701,7 +700,7 @@ mod test {
 
         let target: Operation = operation::SbcRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))
@@ -724,7 +723,7 @@ mod test {
 
         let target: Operation = operation::SubRegister::builder()
             .set_rn(Register::R3)
-            .set_s(Some(true))
+            .set_s(Some(true.into()))
             .set_rd(Some(Register::R3))
             .set_rm(Register::R3)
             .set_shift(Some(shift))

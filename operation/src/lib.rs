@@ -3,9 +3,11 @@ use arch::{
     condition::{Condition, ITCondition},
     register::{Register, RegisterList},
     shift::ImmShift,
+    SetFlags,
     wrapper_types::*,
 };
 use builder_derive::{Builder, Consumer};
+
 
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! operation{
@@ -69,10 +71,10 @@ macro_rules! operation{
 operation!(
 
     AdcImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
-    AdcRegister {s:bool}, {rd : Register}, <rn : Register>,<rm: Register>, {shift : ImmShift}
+    AdcRegister {s:SetFlags}, {rd : Register}, <rn : Register>,<rm: Register>, {shift : ImmShift}
 
-    AddImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
-    AddRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+    AddImmediate {s: SetFlags}, {rd: Register}, <rn: Register>, <imm:u32>
+    AddRegister {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
     AddSPImmediate {s: bool}, {rd: Register}, <imm:u32>
     AddSPRegister {s: bool}, {rd: Register}, <rm: Register>, {shift:ImmShift}
@@ -80,11 +82,11 @@ operation!(
     Adr <rd: Register>, <add:bool>, <imm:u32>
 
     AndImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry:bool}
-    AndRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    AndRegister {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
 
-    AsrImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm: u32>
-    AsrRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    AsrImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm: u32>
+    AsrRegister {s: SetFlags}, <rd: Register>, <rn: Register>, <rm: Register>
 
 
     // ==================================== B ====================================
@@ -95,7 +97,7 @@ operation!(
     Bfi <rd: Register>, <rn: Register>, <lsb: u32>, <msb: u32>
 
     BicImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry: bool}
-    BicRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+    BicRegister {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
     Bkpt <imm: u32>
 
@@ -132,7 +134,7 @@ operation!(
 
     EorImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>, {carry: bool}
 
-    EorRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    EorRegister {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     // ==================================== I ====================================
 
@@ -196,13 +198,13 @@ operation!(
 
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
-    LslImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:u8>
+    LslImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
 
-    LslRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    LslRegister {s: SetFlags}, <rd: Register>, <rn: Register>, <rm: Register>
 
-    LsrImmediate {s: bool}, <rd: Register>, <rm: Register>, <imm:u8>
+    LsrImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
 
-    LsrRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    LsrRegister {s: SetFlags}, <rd: Register>, <rn: Register>, <rm: Register>
 
 
     // ==================================== M ====================================
@@ -211,7 +213,7 @@ operation!(
 
     Mls <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
 
-    MovImmediate {s:bool}, <rd: Register>, <imm:u32>, {carry:bool}
+    MovImmediate {s:SetFlags}, <rd: Register>, <imm:u32>, {carry:bool}
 
     MovRegister {s:bool}, <rd: Register>, <rm: Register>
 
@@ -221,11 +223,11 @@ operation!(
 
     Msr <rn: Register>, <mask:Imm2>, <sysm:u8> // Probably not needed
 
-    Mul {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>
+    Mul {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>
 
     MvnImmediate {s: bool}, <rd: Register>, {carry:bool}, <imm: u32>
 
-    MvnRegister {s: bool}, <rd: Register>, <rm: Register>, {shift:ImmShift}
+    MvnRegister  {s: SetFlags}, <rd: Register>, <rm: Register>, {shift:ImmShift}
 
 
     // ==================================== N ====================================
@@ -240,7 +242,7 @@ operation!(
 
     OrrImmediate {s: bool}, {rd: Register}, <rn: Register>, {carry:bool}, <imm:u32>
 
-    OrrRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+    OrrRegister  {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
     // ==================================== P ====================================
 
@@ -295,13 +297,13 @@ operation!(
 
     RorImmediate {s:bool}, <rd: Register>, <rm: Register>, <imm: u32>
 
-    RorRegister {s:bool}, <rd: Register>, <rn: Register>, <rm: Register>
+    RorRegister  {s:SetFlags}, <rd: Register>, <rn: Register>, <rm: Register>
 
     Rrx {s:bool}, <rd: Register>, <rm: Register>
 
-    RsbImmediate {s:bool}, {rd: Register}, <rn: Register>, <imm:u32>
+    RsbImmediate {s:SetFlags}, {rd: Register}, <rn: Register>, <imm:u32>
 
-    RsbRegister {s:bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
+    RsbRegister  {s:bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift:ImmShift}
 
     // ==================================== S ====================================
 
@@ -313,7 +315,7 @@ operation!(
 
     SbcImmediate {s: bool}, {rd: Register}, <rn: Register>, <imm:u32>
 
-    SbcRegister {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    SbcRegister  {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
 
     Sbfx <rd: Register>, <rn: Register>, <lsb: u32>, <width: u32>
 
@@ -373,8 +375,8 @@ operation!(
     Strht           <rt: Register>, <rn: Register>, {imm: u32}
     Strt            <rt: Register>, <rn: Register>, {imm: u32}
 
-    SubImmediate        {s: bool}, {rd: Register}, <rn: Register>, <imm: u32>
-    SubRegister         {s: bool}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
+    SubImmediate        {s: SetFlags}, {rd: Register}, <rn: Register>, <imm: u32>
+    SubRegister         {s: SetFlags}, {rd: Register}, <rn: Register>, <rm: Register>, {shift: ImmShift}
     SubSpMinusImmediate  {s: bool}, {rd: Register}, <imm:u32>
     SubSpMinusRegister       {s: bool}, {rd: Register}, <rm: Register>, {shift: ImmShift}
 

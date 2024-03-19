@@ -212,7 +212,7 @@ operation!(
 
 
     // ==================================== M ====================================
-    
+
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>

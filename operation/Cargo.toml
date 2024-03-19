@@ -2,8 +2,15 @@
 name = "operation"
 version = "1.0.0"
 edition = "2021"
+authors = [
+	"Ivar Jönsson <ivajns-9@student.ltu.se>"
+]
+repository = "https://github.com/ivario123/disarmv7"
+license-file = "../LICENSE"
+keywords = ["disassembly", "embedded", "arm", "armv7"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Enumerates the instructions in the Armv7 instruction set."
+readme = "README.md"
 
 [dependencies]
 builder_derive = {git="https://github.com/ivario123/builder_derive"}

@@ -336,6 +336,7 @@ operation!(
     Sel {rd: Register}, <rn: Register>, <rm: Register>
 
     Sev <>
+    Svc <imm:u8>
 
     Shadd16 {rd: Register}, <rn: Register>, <rm: Register>
 
@@ -473,28 +474,4 @@ operation!(
     // ==================================== Y ====================================
 
     Yield <>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // ================================== TODO! ==================================
-    // These are left for the future as they are not yet supported in SYMEX
-
-    Svx <>
-
-
-
-
-
 );

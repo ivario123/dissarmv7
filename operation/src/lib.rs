@@ -1,14 +1,12 @@
-#[rustfmt::skip]
 use arch::{
     condition::{Condition, ITCondition},
+    coproc::CoProcessor,
     register::{Register, RegisterList},
     shift::ImmShift,
-    SetFlags,
-    coproc::CoProcessor,
     wrapper_types::*,
+    SetFlags,
 };
 use builder_derive::{Builder, Consumer};
-
 
 /// dsl for defining statemetent in a similar manner to the documentations
 macro_rules! operation{
@@ -111,6 +109,8 @@ operation!(
 
     Cbz {non:bool}, <rn: Register>, <imm:u32>
 
+    Cdp <coproc: CoProcessor>, <opc1:u8>, <crd:u8>, <crn:u8>, <crm:u8>, <opc2: u8>
+
     Clrex <>
 
     Clz <rd: Register>, <rm: Register>
@@ -200,7 +200,7 @@ operation!(
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
     LdcImmediate <coproc: CoProcessor>, <crd:u8>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
-    
+
     LdcLiteral   <coproc: CoProcessor>, <crd:u8>, <imm:u32>, <add:bool>, <index:bool>
 
     LslImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
@@ -213,8 +213,10 @@ operation!(
 
 
     // ==================================== M ====================================
-    
+
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
+
+    Mcr  <coproc: CoProcessor>, <opc1: u8>, {opc2: u8}, <rt:Register>, <crm: u8>, <crn: u8>
 
     Mla <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>
 
@@ -227,6 +229,7 @@ operation!(
     Movt <rd: Register>, <imm:u16>
 
     Mrrc <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
+    Mrc  <coproc: CoProcessor>, <opc1: u8>, {opc2: u8}, <rt:Register>, <crm: u8>, <crn: u8>
 
     Mrs <rd: Register>, <sysm: u8>
 
@@ -489,10 +492,7 @@ operation!(
     // These are left for the future as they are not yet supported in SYMEX
 
     Svx <>
-    Mcr <>
-    Mrc <>
 
-    Cdp <>
 
 
 

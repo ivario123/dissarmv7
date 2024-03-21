@@ -244,7 +244,6 @@ impl ToOperation for A5_3 {
 #[cfg(test)]
 mod test {
 
-    use arch::set_flags::SetFlags;
 
     use crate::prelude::*;
 

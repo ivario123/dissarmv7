@@ -43,7 +43,7 @@
 //! assert_eq!(instr, target)
 //! ```
 //!
-//! While the above usage might be the most common usage in libraries one cane
+//! While the above usage might be the most common usage in libraries one can
 //! also use the library to decode multiple instructions in one pass.
 //!
 //! ```
@@ -98,6 +98,7 @@
 //!
 //! assert_eq!(instr, target)
 //! ```
+
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
@@ -111,7 +112,6 @@ mod asm;
 mod helpers;
 
 use std::fmt::Debug;
-
 use arch::ArchError;
 use asm::b16::B16;
 use operation::Operation;

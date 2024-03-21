@@ -1,12 +1,11 @@
 //! Parses instructions based on the table A5.2.1
-#![allow(dead_code)]
-use arch::{Register, SetFlags};
+use arch::Register;
 use paste::paste;
 
 use super::Mask;
 use crate::{
     instruction,
-    prelude::{ImmShift, Shift},
+    prelude::{ImmShift, SetFlags, Shift},
     Parse,
     ParseError,
     ToOperation,
@@ -208,8 +207,6 @@ impl ToOperation for A5_2 {
 
 #[cfg(test)]
 mod test {
-
-    use arch::SetFlags;
 
     use crate::prelude::*;
 

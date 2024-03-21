@@ -1,8 +1,103 @@
-//! Defines an instruction decoder for the Armv7 instruction set.
+//! Defines an instruction decoder for the Armv7-m instruction set.
 //!
 //! The main export of this crate is the [`ASM`] object, which can be
 //! constructed by [`parsing`](ASM::parse) from a byte
 //! [`Stream`].
+//!
+//!
+//! ## Usage
+//!
+//! This crate assumes that you have access to an iterable set of bytes that
+//! represents an ArmV7-m program
+//!
+//! ```
+//! use disarmv7::prelude::*;
+//! use std::{
+//!     iter::IntoIterator,
+//!     fmt::Debug
+//! };
+//!
+//!
+//! // Decodes a single operation from the Vector of bytes.
+//! fn decode(bin:Vec<u8>) -> Operation {
+//!     let mut stream = PeekableBuffer::from(bin.into_iter());
+//!     let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+//!     instr
+//! }
+//!
+//! let mut bin = vec![];
+//! bin.extend([0b11110100u8, 0b11001100u8].into_iter().rev());
+//! bin.extend([0b10101000u8, 0b00000011u8].into_iter().rev());
+//!
+//! let instr = decode(bin);
+//!
+//! let imm = Imm21::try_from(0b111001100000000000110u32).unwrap().sign_extend();
+//!
+//! let cond: Condition = Condition::try_from(0b11u8).expect("Test is malformed");
+//!
+//! let target: Operation = operation::B::builder()
+//!     .set_imm(imm)
+//!     .set_condition(cond)
+//!     .complete()
+//!     .into();
+//! assert_eq!(instr, target)
+//! ```
+//!
+//! While the above usage might be the most common usage in libraries one cane
+//! also use the library to decode multiple instructions in one pass.
+//!
+//! ```
+//! use disarmv7::prelude::*;
+//! use arch::set_flags::SetFlags;
+//! use std::{
+//!     iter::IntoIterator,
+//!     fmt::Debug
+//! };
+//!
+//!
+//! // Decodes a set of operations from the Vector of bytes.
+//! fn decode(bin:Vec<u8>) -> ASM {
+//!     let mut stream = PeekableBuffer::from(bin.into_iter());
+//!     let instr = ASM::parse(&mut stream).unwrap();
+//!     instr
+//! }
+//!
+//! let mut bin = vec![];
+//! bin.extend([0b11110100u8, 0b11001100u8].into_iter().rev());
+//! bin.extend([0b10101000u8, 0b00000011u8].into_iter().rev());
+//!
+//! bin.extend([0b01000000u8, 0b10000011u8].into_iter().rev());
+//!
+//! let instr = decode(bin);
+//!
+//! let imm = Imm21::try_from(0b111001100000000000110u32).unwrap().sign_extend();
+//!
+//! let cond: Condition = Condition::try_from(0b11u8).expect("Test is malformed");
+//!
+//! let target: Vec<(usize,Operation)> = vec![
+//!     (
+//!         32,
+//!         operation::B::builder()
+//!             .set_imm(imm)
+//!             .set_condition(cond)
+//!             .complete()
+//!             .into()
+//!     ),
+//!     (
+//!         16,
+//!         operation::LslRegister::builder()
+//!             .set_s(Some(SetFlags::InITBlock(false)))
+//!             .set_rd(Register::R3)
+//!             .set_rm(Register::R0)
+//!             .set_rn(Register::R3)
+//!             .complete()
+//!             .into()
+//!     )
+//! ];
+//! let instr: Vec<(usize,Operation)> = instr.into();
+//!
+//! assert_eq!(instr, target)
+//! ```
 #![deny(clippy::all)]
 #![deny(warnings)]
 #![deny(missing_docs)]
@@ -12,8 +107,7 @@ pub mod buffer;
 #[rustfmt::skip]
 pub mod decoder;
 
-pub(crate) mod asm;
-
+mod asm;
 mod helpers;
 
 use std::fmt::Debug;
@@ -197,6 +291,6 @@ pub mod prelude {
     pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
     pub use operation::Operation;
 
-    pub use super::{Parse, Stream, ASM};
+    pub use super::{Parse, Peek, Stream, ASM};
     pub use crate::buffer::PeekableBuffer;
 }

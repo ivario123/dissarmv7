@@ -1,4 +1,5 @@
 //! Defines the [`Register`]s that are available in the system.
+
 use crate::ArchError;
 
 macro_rules! reg {
@@ -49,7 +50,7 @@ reg!(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC);
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisterList {
     /// All of the registers in the register list.
-    pub regs: Vec<Register>,
+    pub registers: Vec<Register>,
 }
 
 impl TryFrom<u16> for Register {
@@ -65,13 +66,13 @@ impl IntoIterator for RegisterList {
     type Item = Register;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.regs.into_iter()
+        self.registers.into_iter()
     }
 }
 
 impl From<Register> for RegisterList {
     fn from(value: Register) -> Self {
-        Self { regs: vec![value] }
+        Self { registers: vec![value] }
     }
 }
 
@@ -79,12 +80,12 @@ impl TryFrom<u16> for RegisterList {
     type Error = ArchError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        let mut regs = vec![];
+        let mut registers = vec![];
         for i in 0..16_u8 {
             if (value >> i) & 0b1 == 0b1 {
-                regs.push(i.try_into()?)
+                registers.push(i.try_into()?)
             }
         }
-        Ok(Self { regs })
+        Ok(Self { registers })
     }
 }

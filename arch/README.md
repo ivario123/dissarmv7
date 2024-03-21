@@ -2,7 +2,7 @@
   Helper types for Disarmv7
 </h1>
 
-This crate is a support crate for the [`Disarmv7`](../) disassembler. It provides a few types that describe the underlying hardware in a more concise manner
+This crate is a support crate for the [`Disarmv7`](../) disassembler. It provides a few types that describe the underlying hardware in a more readable manner
 than a simple number would do.
 
 ## License

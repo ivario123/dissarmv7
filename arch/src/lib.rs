@@ -42,6 +42,7 @@ pub(crate) trait Mask {
     /// Masks out bits start -> end from the number
     fn mask<const START: usize, const END: usize>(&self) -> Self;
 }
+
 impl Mask for u16 {
     fn mask<const START: usize, const END: usize>(&self) -> u16 {
         let intermediate = self >> START;

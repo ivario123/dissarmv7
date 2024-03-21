@@ -1,4 +1,5 @@
-//! Defines the [`Condition`] codes that are defined in the system.
+//! Defines the [`Condition`] codes that are defined in the Armv7-m instruction set..
+
 use crate::ArchError;
 
 #[derive(Debug, Clone, PartialEq)]

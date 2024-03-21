@@ -1,4 +1,4 @@
-//! Creates a few helper types to make translations clearer
+//! Creates a few helper types to make translations clearer.
 
 use crate::{ArchError, Mask};
 
@@ -29,7 +29,7 @@ impl Imm12 {
         self.expand_imm_c().0
     }
 
-    /// Expands the immediate value in the manner described in the 
+    /// Expands the immediate value in the manner described in the
     /// [`documentation`](
     ///     https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjc6YCk0fiEAxUSLhAIHU-1BY8QFnoECBQQAQ&url=https%3A%2F%2Fdocumentation-service.arm.com%2Fstatic%2F5f8fef3af86e16515cdbf816%3Ftoken%3D&usg=AOvVaw1Pwok2Ulie5wtDRP5IwyNw&opi=89978449
     /// )
@@ -49,8 +49,8 @@ impl Imm12 {
                 None,
             );
         }
-        let unrotated = (1 << 7) | repr.mask::<0, 6>() as u32;
-        let ret = unrotated.rotate_right(repr.mask::<7, 11>() as u32);
+        let to_rotate = (1 << 7) | repr.mask::<0, 6>() as u32;
+        let ret = to_rotate.rotate_right(repr.mask::<7, 11>() as u32);
         let c = ret.mask::<31, 31>() == 1;
         (ret, Some(c))
     }
@@ -92,12 +92,13 @@ pub fn sign_extend_u32<const BIT: usize>(el: &u32) -> u32 {
 
 /// Allows the implementor to be extended with the value at index `BIT`.
 pub trait SignExtendGeneric<T: Sized> {
-    /// Extends the resto fo the value with the bit at index BIT.
+    /// Extends the rest of the value with the bit at index BIT.
     /// indexes start at 0
     fn sign_extend<const BIT: usize>(&mut self) -> T;
 }
 
-/// Allows the implementor to be extended with the value at index defined by SignBit.
+/// Allows the implementor to be extended with the value at index defined by
+/// SignBit.
 pub trait SignExtend<T: Sized>: sealed::SignBit {
     /// The number of bits in the target
     const TARGET_SIZE: usize = std::mem::size_of::<T>() * 8;
@@ -129,7 +130,7 @@ macro_rules! imm {
         $(
             #[derive(Debug,Clone,Copy,PartialEq)]
             /// A size limited immediate value.
-            /// 
+            ///
             /// These can be sign or zero
             /// extended in to longer representations.
             pub struct $id {
@@ -156,7 +157,7 @@ macro_rules! into {
         )*
     };
 }
-macro_rules! signextend {
+macro_rules! sign_extend {
     (
         $(
             ($source:ty, $bit:literal) => {
@@ -204,7 +205,7 @@ into!(
     Imm25 => {u32}
 );
 
-signextend!(
+sign_extend!(
     (Imm2,1) => {
         u32 => i32, u16 => i16, u8 => i8,
         u32 => u32, u16 => u16, u8 => u8

@@ -1,4 +1,4 @@
-//! Defines the standard [`co processor`](CoProcessor) ids
+//! Defines the standard [`co processor`](CoProcessor) ids.
 
 use crate::ArchError;
 

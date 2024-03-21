@@ -8,7 +8,7 @@ use arch::{
 };
 use builder_derive::{Builder, Consumer};
 
-/// dsl for defining statemetent in a similar manner to the documentations
+/// dsl for defining operations in a similar manner to the documentation.
 macro_rules! operation{
     (
         $(
@@ -54,7 +54,7 @@ macro_rules! operation{
                 }
             }
         )*
-        /// All of the instructions availiable in the armv7 instruction set.
+        /// All of the instructions available in the armv7 instruction set.
         #[derive(Debug,Clone,PartialEq)]
         pub enum Operation {
             $(

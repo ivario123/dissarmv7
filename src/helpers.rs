@@ -21,7 +21,7 @@ impl From<ArchError> for ParseError {
 /// ```text
 /// instruction!{
 ///     size 32; SomeTableIdent contains
-///         SomeInstructinIdent : {
+///         SomeInstructionIdent : {
 ///              some_field_name as intermediateType (u8) : SomeFinalType : {start_bit} -> {end_bit} optional_conversion_method (try_into),
 ///         },
 ///         PossiblyMoreInstructions : .....
@@ -30,7 +30,7 @@ impl From<ArchError> for ParseError {
 /// };
 /// ```
 /// This macro invocation provides an enum SomeTableIdent containing the
-/// variants (SomeInstructinIdent,PossiblyMoreInstructions) which in turn are
+/// variants (SomeInstructionIdent,PossiblyMoreInstructions) which in turn are
 /// structs containing the fields defined in the { } block. All of the fields in
 /// SomeTableIdent implement [`Parse`](crate::Parse).
 macro_rules! instruction {
@@ -169,6 +169,7 @@ macro_rules! instruction {
         )*
     }
 }
+
 #[macro_export]
 /// Combines a list of integer type values in to another integer.
 ///

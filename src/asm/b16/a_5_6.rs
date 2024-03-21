@@ -200,7 +200,7 @@ impl ToOperation for A5_6 {
             Self::Push(el) => {
                 let mut el = el;
                 if el.m == 1 {
-                    el.register_list.regs.push(Register::LR);
+                    el.register_list.registers.push(Register::LR);
                 }
                 operation::Push::builder()
                     .set_registers(el.register_list)

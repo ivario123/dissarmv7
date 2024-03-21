@@ -1,4 +1,4 @@
-//! Defines all of the 16 bit instructions
+//! Defines all of the 16 bit instructions.
 
 pub mod a_5_2;
 pub mod a_5_3;
@@ -20,7 +20,7 @@ use crate::{
 /// A 16-bit wide instruction
 pub enum B16 {}
 impl B16 {
-    fn parse_interal<T: crate::Stream>(
+    fn parse_internal<T: crate::Stream>(
         iter: &mut T,
     ) -> Result<operation::Operation, crate::ParseError> {
         let word: Option<u16> = iter.peek::<1>();
@@ -55,7 +55,6 @@ impl B16 {
         };
 
         if opcode >> 3 == 0b011 || opcode >> 3 == 0b100 {
-            // TODO! table A5_5 seems to produce erroneus values
             return Ok(A5_5::parse(iter)?.encoding_specific_operations());
         }
 
@@ -72,7 +71,7 @@ impl Parse for B16 {
     where
         Self: Sized,
     {
-        let ret = Self::parse_interal(iter)?;
+        let ret = Self::parse_internal(iter)?;
         let _: u16 = match iter.consume::<1>() {
             Some(val) => val[0],
             None => return Err(ParseError::IncompleteProgram),

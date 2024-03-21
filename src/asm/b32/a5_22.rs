@@ -89,8 +89,7 @@ instruction!(
         rd   as u8  : Register    : 8 -> 11 try_into,
         imm3 as u8  : u8          : 12 -> 14,
         rn   as u8  : Register    : 16 -> 19 try_into,
-        _s    as u8  : bool        : 20 -> 20 local_try_into // TODO! Ensure that this `s` is
-                                                             // irrelevant
+        _s    as u8  : bool        : 20 -> 20 local_try_into
     },
     Add : {
         rm  as u8   : Register    : 0 -> 3 try_into,

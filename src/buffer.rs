@@ -58,6 +58,7 @@ pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {
 }
 impl<T: Sized + Iterator<Item = u8>> PeekableBuffer<u8, T> {
     // Peeks a u16 in to the peeked elements buffer
+    #[inline(always)]
     fn peek_count(&mut self) -> bool {
         let mut ret = [0_u8; 2];
         let mut counter = 0;
@@ -112,7 +113,7 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u16> for PeekableBuffer<u8, T> {
 impl<T: Sized + Iterator<Item = u8>> Peek<u8> for PeekableBuffer<u8, T> {
     fn peek<const N: usize>(&mut self) -> Option<u8> {
         let mut peeked = self.peeked_elements.len();
-        // Need to have peeked 2 u8s per u16
+        // Need to have peeked 2 u8s per u8 to make the peek invariant
         while peeked < N {
             if !self.peek_count() {
                 // Insufficient elements

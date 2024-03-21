@@ -21,7 +21,3 @@ builder_derive = {git="https://github.com/ivario123/builder_derive"}
 arch = {path = "./arch" }
 operation = {path = "./operation"}
 
-
-# These should be feature flagged
-general_assembly = {path= "../general_assembly"}
-transpiler = {path = "../transpiler"}

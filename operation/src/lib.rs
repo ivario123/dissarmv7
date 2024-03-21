@@ -215,8 +215,6 @@ operation!(
 
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
-    Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
-
     Mcr  <coproc: CoProcessor>, <opc1: u8>, {opc2: u8}, <rt:Register>, <crm: u8>, <crn: u8>
 
     Mla <rd: Register>, <rn: Register>, <rm: Register>, <ra: Register>

@@ -4,7 +4,8 @@
 
 Disarmv7 is a disassembler for the ArmV7-M instruction set. It provides a fast enough disassembler that lifts [most](#footnotes)$^1$ of the ArmV7-m instructions to a rust `enum` which is ideal if you want to do semantic analysis, [symbolic execution](https://github.com/ivario123/symex) or similar on
 the assembly/machine code level. As of now, it does not provide a textual representation of the assembly instructions.
-This project is mainly written as a support project for the [Symex](https://github.com/ivario123/symex) project which is a symbolic execution engine.
+This project is mainly written as a support project for the [Symex](https://github.com/ivario123/symex) project which is a symbolic execution engine that provides
+safe to use execution time estimates for each possible path through the program. But can be used as a standalone project for parsing ArmV7-M binaries.
 
 ## Usage
 

@@ -6,6 +6,39 @@
 //! It also reorders the bytes to conform to the byte order of the
 //! Armv7 encoding, this allows for a 1:1 parsing in the implementors
 //! of [`Parse`](crate::Parse).
+//!
+//!
+//! ## Usage
+//!
+//! ```
+//! use disarmv7::prelude::*;
+//! // The iterator reverses the order of the halfwords
+//! let input_data = [1,0,3,2,5,4,7,6];
+//!
+//! // Needs to be mutable as the value is consumed from the iterator
+//! // and moved in to a intermediate buffer.
+//! let mut buffer: PeekableBuffer<u8,_> = input_data.into_iter().into();
+//!
+//! let value: u16 = buffer.peek::<1>().unwrap();
+//! println!("Value : {value}");
+//! assert!(value == 1);
+//!
+//! // The byte order is corrected when peeking bytes
+//! let value: u8 = buffer.peek::<1>().unwrap();
+//! println!("Value : {value}");
+//! assert!(value == 0);
+//!
+//! // The byte order is corrected when peeking bytes
+//! let value: u8 = buffer.peek::<2>().unwrap();
+//! println!("Value : {value}");
+//! assert!(value == 1);
+//!
+//! let value: u32 = buffer.peek::<1>().unwrap();
+//! let target:u32 = ((0<<8|1) << 16) | (2<<8|3);
+//! println!("Value : {value}");
+//! println!("Target : {target}");
+//! assert!(value == target);
+//! ```
 
 use std::{fmt::Debug, usize};
 
@@ -20,16 +53,17 @@ use crate::{Consume, Peek, Stream};
 /// elements from it and the buffer does not have `N` elements, no elements are
 /// consumed and an error is returned.
 pub struct PeekableBuffer<I: Sized, T: Iterator<Item = I>> {
-    itter: T,
+    iter: T,
     peeked_elements: Vec<u8>,
 }
 impl<T: Sized + Iterator<Item = u8>> PeekableBuffer<u8, T> {
     // Peeks a u16 in to the peeked elements buffer
+    #[inline(always)]
     fn peek_count(&mut self) -> bool {
         let mut ret = [0_u8; 2];
         let mut counter = 0;
         ret.iter_mut().for_each(|t| {
-            if let Some(el) = self.itter.next() {
+            if let Some(el) = self.iter.next() {
                 *t = el;
                 counter += 1;
             }
@@ -50,7 +84,7 @@ where
         let second: u16 = self.peek::<2>()?;
         let ret = ((first as u32) << 16) | (second as u32);
 
-        // Get the new byte and return it as a u16
+        // Get the new byte and return it as a u32
         Some(ret)
     }
 }
@@ -79,7 +113,7 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u16> for PeekableBuffer<u8, T> {
 impl<T: Sized + Iterator<Item = u8>> Peek<u8> for PeekableBuffer<u8, T> {
     fn peek<const N: usize>(&mut self) -> Option<u8> {
         let mut peeked = self.peeked_elements.len();
-        // Need to have peeked 2 u8s per u16
+        // Need to have peeked 2 u8s per u8 to make the peek invariant
         while peeked < N {
             if !self.peek_count() {
                 // Insufficient elements
@@ -87,7 +121,8 @@ impl<T: Sized + Iterator<Item = u8>> Peek<u8> for PeekableBuffer<u8, T> {
             }
             peeked = self.peeked_elements.len();
         }
-        // Get the new byte and return it as a u16
+
+        //
         Some(self.peeked_elements[N - 1])
     }
 }
@@ -148,9 +183,9 @@ impl<T: Iterator<Item = u8> + Debug> Consume<u8> for PeekableBuffer<u8, T> {
 impl<T: Iterator<Item = u8> + Debug> Stream for PeekableBuffer<u8, T> {}
 
 impl<I: Sized, T: Iterator<Item = I>> From<T> for PeekableBuffer<I, T> {
-    fn from(itter: T) -> Self {
+    fn from(iter: T) -> Self {
         Self {
-            itter,
+            iter,
             peeked_elements: Vec::new(),
         }
     }

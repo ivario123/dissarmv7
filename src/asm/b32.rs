@@ -36,7 +36,7 @@ impl Parse for B32 {
     where
         Self: Sized,
     {
-        let ret = match Self::parse_interal(iter) {
+        let ret = match Self::parse_internal(iter) {
             Ok(e) => e,
             Err(e) => {
                 return Err(e);
@@ -53,7 +53,7 @@ impl Parse for B32 {
 
 /// A 32-bit wide instruction
 impl B32 {
-    fn parse_interal<T: crate::Stream>(
+    fn parse_internal<T: crate::Stream>(
         iter: &mut T,
     ) -> Result<operation::Operation, crate::ParseError> {
         let word: u32 = match iter.peek::<1>() {

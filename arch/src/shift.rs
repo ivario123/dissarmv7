@@ -1,19 +1,19 @@
-//! Enumerates and parses shift operations
+//! Enumerates and parses shift operations.
 
 use crate::ArchError;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Enumerates the shift types that are defined in the system.
 pub enum Shift {
-    /// Logical left shift
+    /// Logical left shift.
     Lsl,
-    /// Logical right sift
+    /// Logical right sift.
     Lsr,
-    /// Arithmetic right shift    
+    /// Arithmetic right shift.
     Asr,
-    /// Rotate right with extend
+    /// Rotate right with extend.
     Rrx,
-    /// Rotate right
+    /// Rotate right.
     Ror,
 }
 

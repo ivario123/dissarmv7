@@ -721,13 +721,13 @@ impl Convert for (usize, V7Operation) {
                         ) from ldm
                     );
 
-                    let w = w && !registers.regs.contains(&rn);
+                    let w = w && !registers.registers.contains(&rn);
                     let rn = rn.local_into();
 
-                    let bc = registers.regs.len() as u32;
+                    let bc = registers.registers.len() as u32;
                     let mut contained = false;
                     let mut to_read: Vec<Operand> = vec![];
-                    for reg in registers.regs.into_iter() {
+                    for reg in registers.registers.into_iter() {
                         if reg == Register::PC {
                             contained = true;
                         } else {
@@ -761,13 +761,13 @@ impl Convert for (usize, V7Operation) {
                         ) from ldmdb
                     );
 
-                    let w = w && !registers.regs.contains(&rn);
+                    let w = w && !registers.registers.contains(&rn);
                     let rn = rn.local_into();
 
-                    let bc = registers.regs.len() as u32;
+                    let bc = registers.registers.len() as u32;
                     let mut contained = false;
                     let mut to_read: Vec<Operand> = vec![];
-                    for reg in registers.regs.into_iter() {
+                    for reg in registers.registers.into_iter() {
                         if reg == Register::PC {
                             contained = true;
                         } else {
@@ -1835,9 +1835,9 @@ impl Convert for (usize, V7Operation) {
                     consume!((registers) from pop);
 
                     let mut jump = false;
-                    let mut to_pop = Vec::with_capacity(registers.regs.len());
-                    let bc = registers.regs.len() as u32;
-                    for reg in registers.regs {
+                    let mut to_pop = Vec::with_capacity(registers.registers.len());
+                    let bc = registers.registers.len() as u32;
+                    for reg in registers.registers {
                         if reg == Register::PC {
                             jump = true;
                         } else {
@@ -1873,37 +1873,19 @@ impl Convert for (usize, V7Operation) {
                     // let address_setter = Operand::Local("address".to_owned());
                     // let address = Operand::AddressInLocal("address".to_owned(), 32);
                     // let sp = Register::SP.local_into();
-                    assert!(!registers.regs.contains(&Register::SP));
-                    assert!(!registers.regs.contains(&Register::PC));
-                    let n = registers.regs.len() as u32;
+                    assert!(!registers.registers.contains(&Register::SP));
+                    assert!(!registers.registers.contains(&Register::PC));
+                    let n = registers.registers.len() as u32;
                     pseudo!([
                         let address = Register("SP") - (4*n).local_into();
 
-                        for reg in registers.regs {
+                        for reg in registers.registers {
                             LocalAddress(address,32) = reg.local_into();
                             address = address + 4.local_into();
                         }
 
                         Register("SP") = Register("SP&") - (4*n).local_into();
                     ])
-                    // let mut ret = vec![];
-                    // pseudo!(
-                    //     ret.extend[
-                    //     address_setter = sp - (4*registers.regs.len() as u32).local_into();
-                    //     sp = sp - (4*registers.regs.len() as u32).local_into();
-                    // ]
-                    // );
-                    // let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<Operand>>();
-                    // for reg in regs {
-                    //     pseudo!(
-                    //         ret.extend[
-                    //         // Read the current address in to the specified reg
-                    //         address = reg;
-                    //         address_setter = address_setter + 4.local_into();
-                    //         ]
-                    //     );
-                    // }
-                    // ret
                 }
                 V7Operation::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
                 V7Operation::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
@@ -2470,12 +2452,12 @@ impl Convert for (usize, V7Operation) {
                             w.unwrap_or(false)
                             ) from stm
                             );
-                    let bc = registers.regs.len() as u32;
+                    let bc = registers.registers.len() as u32;
 
                     pseudo!([
                             let address = rn;
 
-                            for reg in registers.regs {
+                            for reg in registers.registers {
                                 LocalAddress(address,32) = reg.local_into();
                                 address += 4.local_into();
                             }
@@ -2491,10 +2473,10 @@ impl Convert for (usize, V7Operation) {
                             registers
                             ) from stmdb);
                     let mut ret = vec![];
-                    let n = registers.regs.len() as u32;
+                    let n = registers.registers.len() as u32;
                     pseudo!(ret.extend[
                             let address = rn - (4*n).local_into();
-                            for reg in registers.regs{
+                            for reg in registers.registers{
                                 LocalAddress(address,32) = reg.local_into();
                                 address += 4.local_into();
                             }
@@ -3427,7 +3409,7 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::Wfe(_) => todo!("This requires extensive system modelling"),
                 V7Operation::Wfi(_) => todo!("This requires extensive system modelling"),
                 V7Operation::Yield(_) => todo!("This requires extensive system modelling"),
-                V7Operation::Svx(_) => todo!(),
+                V7Operation::Svc(_) => todo!(),
                 V7Operation::Stc(_) => todo!(),
                 V7Operation::Mcr(_) => todo!(),
                 V7Operation::Mrc(_) => todo!(),

@@ -8,7 +8,7 @@ use arch::{
 };
 use builder_derive::{Builder, Consumer};
 
-/// dsl for defining statemetent in a similar manner to the documentations
+/// dsl for defining operations in a similar manner to the documentation.
 macro_rules! operation{
     (
         $(
@@ -54,7 +54,7 @@ macro_rules! operation{
                 }
             }
         )*
-        /// All of the instructions availiable in the armv7 instruction set.
+        /// All of the instructions available in the armv7 instruction set.
         #[derive(Debug,Clone,PartialEq)]
         pub enum Operation {
             $(
@@ -200,7 +200,6 @@ operation!(
     Ldrt <rt: Register>, <rn: Register>, {imm: u32}
 
     LdcImmediate <coproc: CoProcessor>, <crd:u8>, <rn: Register>, {imm:u32}, <add:bool>, <w: bool>, <index:bool>
-
     LdcLiteral   <coproc: CoProcessor>, <crd:u8>, <imm:u32>, <add:bool>, <index:bool>
 
     LslImmediate {s: SetFlags}, <rd: Register>, <rm: Register>, <imm:u8>
@@ -213,6 +212,8 @@ operation!(
 
 
     // ==================================== M ====================================
+
+    Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 
     Mcrr <coproc: CoProcessor>, <opc1: u8>, <rt:Register>, <rt2: Register>, <crm: u8>
 

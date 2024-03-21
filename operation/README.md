@@ -2,9 +2,9 @@
   Assembly language for Disarmv7
 </h1>
 
-This crate defines the high level representation of the parsed instructions from [`disarmv7`](../).
-Moreover it exports Builders and what we are calling a consumer which ensures that all fields of a struct are extracted,
-this is probably not generally useable but in this case it ensures that the translators are explicit about what fields are not used.
+This crate defines the high-level representation of the parsed instructions from [`disarmv7`](../).
+Moreover, it exports Builders and what we are calling a consumer which ensures that all fields of a struct are extracted,
+this is probably not generally useable but in this case, it ensures that the translators are explicit about what fields are not used.
 
 ## Syntax
 
@@ -43,12 +43,13 @@ pub struct AdcImmediateConsumer<const sSET: bool, const rdSET: bool, const rnSET
 
 Where the Builder and Consumers allow the fields to be set/consumed once and only once using the const flags.
 The fields initiated with `{<id>: <ty>}` are optional and the fields initiated with `<<id>: <ty>>`
-are mandatory fields.
+are mandatory.
 
 ## Future improvements
 
+These are not planned, but any contributions are welcome.
+
 - [ ] Add in floating point instructions.
-- [ ] Add in all co processor instructions.
 - [ ] Add documentation for the instructions.
 
 ## License

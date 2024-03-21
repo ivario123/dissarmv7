@@ -1,4 +1,4 @@
-//! Defines the statements availiable in armv7
+//! Defines the statements available in armv7.
 
 use crate::ParseError;
 

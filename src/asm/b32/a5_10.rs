@@ -132,8 +132,6 @@ instruction!(
 
 );
 
-// TODO! Implement table A5_11
-
 macro_rules! fields {
     (from $iter:ident width $width:ty; $(
         $id:ident: $type:ty: $start:literal -> $end:literal $($map:ident)?

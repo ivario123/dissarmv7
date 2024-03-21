@@ -79,7 +79,7 @@ impl ToOperation for Stm {
 impl ToOperation for Ldm {
     fn encoding_specific_operations(self) -> operation::Operation {
         operation::Ldm::builder()
-            .set_w(Some(!self.register_list.regs.contains(&self.rn)))
+            .set_w(Some(!self.register_list.registers.contains(&self.rn)))
             .set_rn(self.rn)
             .set_registers(self.register_list)
             .complete()

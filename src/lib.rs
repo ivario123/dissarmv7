@@ -104,14 +104,12 @@
 #![deny(missing_docs)]
 #![deny(rustdoc::all)]
 
-pub mod buffer;
-#[rustfmt::skip]
-pub mod decoder;
-
 mod asm;
+pub mod buffer;
 mod helpers;
 
 use std::fmt::Debug;
+
 use arch::ArchError;
 use asm::b16::B16;
 use operation::Operation;

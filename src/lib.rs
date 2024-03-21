@@ -286,7 +286,7 @@ impl From<ASM> for Vec<(usize, Operation)> {
 
 /// Re-exports the needed types to use this crate.
 pub mod prelude {
-    pub use arch::{wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
+    pub use arch::{self, wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
     pub use operation::Operation;
 
     pub use super::{Parse, Peek, Stream, ASM};

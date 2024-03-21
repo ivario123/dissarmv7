@@ -19,7 +19,12 @@ pub mod a5_28;
 pub mod a5_29;
 pub mod a5_30;
 
-use crate::{asm::Mask, Parse, ParseError, ToOperation};
+use crate::{
+    asm::{b32::a5_30::A5_30, Mask},
+    Parse,
+    ParseError,
+    ToOperation,
+};
 
 /// A 32-bit wide instruction
 pub enum B32 {}
@@ -118,17 +123,8 @@ impl B32 {
         }
 
         if op2 >> 6 == 1 {
-            println!(
-                "
-instr: 0b{:32b}
-op1 : 0b{:02b}
-op2 : 0b{:07b}
-op  : 0b{:01b}
-                     ",
-                word, op1, op2, op
-            );
             // Co processor things
-            return Err(ParseError::IncompleteParser);
+            return Ok(A5_30::parse(iter)?.encoding_specific_operations());
         }
 
         Err(ParseError::Invalid32Bit(""))

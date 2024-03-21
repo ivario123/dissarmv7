@@ -26,10 +26,10 @@ pub use set_flags::SetFlags;
 #[derive(Debug, Clone)]
 /// Enumerates all of the possible errors in this crate.
 pub enum ArchError {
-    /// Thrown when trying to parse a [`Condition`](condition::Condition) from
+    /// Thrown when trying to parse a [`Condition`] from
     /// an invalid encoding.
     InvalidCondition,
-    /// Thrown when trying to parse a [`Register`](register::Register) from an
+    /// Thrown when trying to parse a [`Register`] from an
     /// invalid encoding.
     InvalidRegister(u8),
     /// Thrown when trying to parse a specific field type from an invalid

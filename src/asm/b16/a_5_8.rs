@@ -11,7 +11,7 @@ instruction!(
         cond as u8 : Condition : 8->11 try_into
     },
     Svc : {
-        _imm8 as u8 :u8 : 0->7
+        imm8 as u8 :u8 : 0->7
     }
 );
 
@@ -50,7 +50,7 @@ impl ToOperation for A5_8 {
                     .complete()
                     .into()
             }
-            Self::Svc(_el) => todo!("This is missing from the operation enum"),
+            Self::Svc(el) => operation::Svc::builder().set_imm(el.imm8).complete().into(),
         }
     }
 }

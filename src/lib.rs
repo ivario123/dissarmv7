@@ -126,7 +126,7 @@ pub struct ASM {
     statements: Vec<(usize, operation::Operation)>,
 }
 
-/// Denotes that the element can be peeked `N` elements in to the future.
+/// Denotes that the element can be peeked `N` elements into the future.
 pub trait Peek<T: Sized>: Sized {
     /// Peeks `N` steps forward.
     ///
@@ -286,7 +286,7 @@ impl From<ASM> for Vec<(usize, Operation)> {
 
 /// Re-exports the needed types to use this crate.
 pub mod prelude {
-    pub use arch::{self, wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift};
+    pub use arch::{self, wrapper_types::*, Condition, ImmShift, Register, RegisterList, Shift,set_flags::SetFlags};
     pub use operation::Operation;
 
     pub use super::{Parse, Peek, Stream, ASM};

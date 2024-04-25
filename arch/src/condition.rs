@@ -1,4 +1,5 @@
-//! Defines the [`Condition`] codes that are defined in the Armv7-m instruction set..
+//! Defines the [`Condition`] codes that are defined in the Armv7-m instruction
+//! set..
 
 use crate::ArchError;
 
@@ -37,16 +38,15 @@ pub enum Condition {
     None,
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 /// If then Else block
-/// 
+///
 /// This type defines how to [`Parse`](ITCondition::from)
 /// the condition vector from a base [`Condition`] and a mask.
 pub struct ITCondition {
     /// The conditions that need to be satisfied for
     /// the next few instructions to be executed.
-    /// 
+    ///
     /// i.e. to execute instruction `i` the condition
     /// `conditions[i]` must evaluate to true.
     pub conditions: Vec<Condition>,
@@ -74,21 +74,47 @@ impl Condition {
     }
 }
 
-
 impl From<(Condition, u8)> for ITCondition {
     fn from(value: (Condition, u8)) -> Self {
-        let mut conditions = Vec::with_capacity(4);
-        let mut mask = value.1;
+        let mask = value.1;
         let cond = value.0;
-        for _i in 0..3 {
-            if mask & 0b1 == 1 {
-                conditions.push(cond.clone());
-            } else {
-                conditions.push(cond.invert());
-            }
-            mask >>= 1;
+
+        let condition_code: u8 = cond.clone().into();
+        let condition = condition_code & 0b1;
+        if mask == 0b1000 {
+            return Self { conditions: vec![cond] };
         }
-        Self { conditions }
+        let x = {
+            if (mask & 0b1000) >> 3 == condition {
+                cond.clone()
+            } else {
+                cond.invert()
+            }
+        };
+        if mask & 0b111 == 0b100 {
+            return Self { conditions: vec![cond, x] };
+        }
+
+        let y = {
+            if (mask & 0b100) >> 2 == condition {
+                cond.clone()
+            } else {
+                cond.invert()
+            }
+        };
+
+        if mask & 0b11 == 0b10 {
+            return Self { conditions: vec![cond, x, y] };
+        }
+
+        let z = {
+            if (mask & 0b10) >> 1 == condition {
+                cond.clone()
+            } else {
+                cond.invert()
+            }
+        };
+        Self { conditions: vec![cond, x, y, z] }
     }
 }
 
@@ -123,6 +149,27 @@ impl TryFrom<u8> for Condition {
     }
 }
 
+impl From<Condition> for u8 {
+    fn from(value: Condition) -> Self {
+        match value {
+            Condition::Eq => 0,
+            Condition::Ne => 0b1,
+            Condition::Cs => 0b10,
+            Condition::Cc => 0b11,
+            Condition::Mi => 0b100,
+            Condition::Pl => 0b101,
+            Condition::Vs => 0b110,
+            Condition::Vc => 0b111,
+            Condition::Hi => 0b1000,
+            Condition::Ls => 0b1001,
+            Condition::Ge => 0b1010,
+            Condition::Lt => 0b1011,
+            Condition::Gt => 0b1100,
+            Condition::Le => 0b1101,
+            Condition::None => 0b1110,
+        }
+    }
+}
 impl TryFrom<u16> for Condition {
     type Error = ArchError;
 

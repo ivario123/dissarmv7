@@ -244,7 +244,6 @@ impl ToOperation for A5_3 {
 #[cfg(test)]
 mod test {
 
-
     use crate::prelude::*;
 
     #[test]

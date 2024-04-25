@@ -4,22 +4,9 @@
 
 Disarmv7 is a disassembler for the ArmV7-M instruction set. It provides a fast enough disassembler that lifts [most](#footnotes)$^1$ of the ArmV7-m instructions to a rust `enum` which is ideal if you want to do semantic analysis, [symbolic execution](https://github.com/ivario123/symex) or similar on
 the assembly/machine code level. As of now, it does not provide a textual representation of the assembly instructions.
-This project is mainly written as a support project for the [Symex](https://github.com/ivario123/symex) project which is a symbolic execution engine that provides
-safe to use execution time estimates for each possible path through the program. But can be used as a standalone project for parsing ArmV7-M binaries.
+This project is mainly written as a support project for the [Symex](https://github.com/ivario123/symex) project which is a symbolic execution engine that provides safe-to-use execution time estimates for each possible path through the program. But can be used as a standalone project for parsing ArmV7-M binaries.
 
 ## Usage
-
-### Prerequisites
-
-- As this program is written in Rust, you do need to install Rust and cargo a fast way of doing this is by using [rustup](https://rustup.rs/).
-- A suitable binary from which the code sections have been extracted [in some manner](#footnotes)$^2$.
-
-Finally, add the dependency to your `Cargo.toml`
-
-```toml
-[dependencies]
-disarmv7 = {git = "https://github.com/ivario123/disarmv7"}
-```
 
 ### Using the library
 
@@ -29,7 +16,7 @@ Assuming that you have placed the instructions in a slice of `u8`s (buff) you ca
 use disarmv7::prelude::*;
 
 let mut buff: disarmv7::buffer::PeekableBuffer<u8, _> = buff.iter().cloned().into();
-let asm = Asm::parse(&mut buff).map_err(|e| ArchError::ParsingError(e.into()))?;
+let asm = Asm::parse(&mut buff);
 println!("Assembly : {asm:?}");
 ```
 

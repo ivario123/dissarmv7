@@ -51,7 +51,7 @@ instruction!(
         rt      as u8       :   Register    : 12 -> 15 try_into,
         rn      as u8       :   Register    : 16 -> 19 try_into
     },
-    // To dissern between these two bit 7 in the first 16 bit number is 1 for T2 and 0 for T3
+    // To discern between these two bit 7 in the first 16 bit number is 1 for T2 and 0 for T3
     StrIT3    : {
         imm12   as u16      :   u16         : 0 -> 11,
         rt      as u8       :   Register    : 12 -> 15 try_into,

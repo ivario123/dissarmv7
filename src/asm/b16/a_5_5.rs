@@ -177,7 +177,7 @@ impl ToOperation for A5_5 {
                 .complete()
                 .into(),
             Self::Ldr(el) => operation::LdrRegister::builder()
-                .set_w(Some(true))
+                .set_w(Some(false))
                 .set_rt(el.rt)
                 .set_rn(el.rn)
                 .set_rm(el.rm)
@@ -368,7 +368,7 @@ mod test {
             .set_rn(Register::R4)
             .set_rm(Register::R2)
             .set_shift(None)
-            .set_w(Some(true))
+            .set_w(Some(false))
             .complete()
             .into();
         assert_eq!(instr, target)

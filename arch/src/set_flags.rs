@@ -1,5 +1,5 @@
 //! Defines setflags options.
-//! 
+//!
 //! Since some operations in the Armv7-m and v6-m ISAs flag setting
 //! behavior is dependent on wether or not the cpu is currently executing
 //! in a conditional block we need to reflect this behavior in the disassembler.
@@ -50,5 +50,35 @@ impl LocalUnwrap for Option<SetFlags> {
             Some(SetFlags::InITBlock(b)) => (!in_it_block) ^ b,
             None => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::LocalUnwrap;
+    use crate::SetFlags;
+
+    #[test]
+    fn test_unwrap() {
+        let set_flags = Some(SetFlags::Literal(false));
+        assert!(!set_flags.local_unwrap(false));
+        let set_flags = Some(SetFlags::Literal(false));
+        assert!(!set_flags.local_unwrap(true));
+        let set_flags = Some(SetFlags::Literal(true));
+        assert!(set_flags.local_unwrap(true));
+        let set_flags = None;
+        assert!(!set_flags.local_unwrap(false));
+
+        let set_flags = None;
+        assert!(!set_flags.local_unwrap(false));
+
+        let set_flags = Some(SetFlags::InITBlock(false));
+        assert!(set_flags.local_unwrap(false));
+        let set_flags = Some(SetFlags::InITBlock(true));
+        assert!(!set_flags.local_unwrap(false));
+        let set_flags = Some(SetFlags::InITBlock(false));
+        assert!(!set_flags.local_unwrap(true));
+        let set_flags = Some(SetFlags::InITBlock(true));
+        assert!(set_flags.local_unwrap(true));
     }
 }

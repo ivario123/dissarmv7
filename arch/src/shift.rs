@@ -19,10 +19,9 @@ pub enum Shift {
 
 #[derive(Debug, Clone, PartialEq)]
 /// Denotes a shift defined in the encoding.
-/// 
+///
 /// These shifts are typically applied to a [`Register`](crate::register).
 pub struct ImmShift {
-
     /// How far should the value be shifted.
     pub shift_n: u8,
 

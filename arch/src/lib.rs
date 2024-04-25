@@ -12,16 +12,16 @@
 pub mod condition;
 pub mod coproc;
 pub mod register;
+pub mod set_flags;
 pub mod shift;
 pub mod wrapper_types;
-pub mod set_flags;
 
 pub use condition::{Condition, ITCondition};
 pub use coproc::CoProcessor;
 pub use register::{Register, RegisterList};
+pub use set_flags::SetFlags;
 pub use shift::{ImmShift, Shift};
 pub use wrapper_types::*;
-pub use set_flags::SetFlags;
 
 #[derive(Debug, Clone)]
 /// Enumerates all of the possible errors in this crate.

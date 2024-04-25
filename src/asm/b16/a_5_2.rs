@@ -325,7 +325,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_mov_immeditate() {
+    fn test_parse_mov_immediate() {
         let bin = [0b00100000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
@@ -342,7 +342,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_cmp_immeditate() {
+    fn test_parse_cmp_immediate() {
         let bin = [0b00101000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
@@ -357,7 +357,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_add_immeditate() {
+    fn test_parse_add_immediate() {
         let bin = [0b00110000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
@@ -374,7 +374,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_sub_immeditate() {
+    fn test_parse_sub_immediate() {
         let bin = [0b00111000u8, 0b00000100u8];
         let mut stream = PeekableBuffer::from(bin.into_iter().rev());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;

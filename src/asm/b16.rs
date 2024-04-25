@@ -79,24 +79,3 @@ impl Parse for B16 {
         Ok((16, ret))
     }
 }
-
-#[cfg(test)]
-/// Defines some test cases encountered during usage.
-mod test {
-    // use operation::Operation;
-
-    // use crate::{buffer::PeekableBuffer, Parse};
-
-    // #[test]
-    // fn test_symex_01() {
-    //     let bin =  vec![6, 168, 1, 144];
-    //
-    //     let mut stream = PeekableBuffer::from(bin.into_iter());
-    //     let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-    //
-    //     println!("instruction : {instr:?}");
-    //     panic!()
-    //
-    //
-    // }
-}

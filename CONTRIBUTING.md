@@ -16,7 +16,6 @@ Where the `operation` crate defines the assembly language that the binary code i
 The `arch` crate defines the data types specific to the ArmV7 ISA.
 The main crate `disarmv7` defines parsing rules and some helpers that simplify the parsing rules.
 
-
 ## Main crate
 
 The main crate is divided in to a main files
@@ -34,7 +33,7 @@ The main crate is divided in to a main files
 
 The [`parser`](./src/asm/) defines the parsing rules for the [`Operation`](./operation) crate, these parsing rules are split in to which table they belong
 to in the [`documentation`](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjc6YCk0fiEAxUSLhAIHU-1BY8QFnoECBQQAQ&url=https%3A%2F%2Fdocumentation-service.arm.com%2Fstatic%2F5f8fef3af86e16515cdbf816%3Ftoken%3D&usg=AOvVaw1Pwok2Ulie5wtDRP5IwyNw&opi=89978449). Moreover these parsing rules are split in to wether the instruction is a 16 bit instruction 32 bit instruction.
- 
+
 ## Testing
 
 Each positive case in the [`parser`](./src/lib.rs) needs to be tested, as there are too many negative cases they cannot, in a useful manner, be tested

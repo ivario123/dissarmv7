@@ -65,11 +65,9 @@ impl B32 {
         let op = word.mask::<15, 15>();
 
         if op1 > 3 {
-            println!("{op1} > 3");
             return Err(ParseError::InternalError("Masking is broken op1 > 3"));
         }
         if op > 1 {
-            println!("{op} > 3");
             return Err(ParseError::InternalError("Masking is broken op > 1"));
         }
 

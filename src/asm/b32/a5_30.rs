@@ -211,7 +211,7 @@ impl Parse for A5_30 {
     }
 }
 impl ToOperation for A5_30 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         println!("A5_30 : {self:?}");
         match self {
             Self::StcT1(stc) => Stc::builder()
@@ -376,7 +376,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Stc::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -402,7 +402,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Stc::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -428,7 +428,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::LdcImmediate::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -454,7 +454,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::LdcImmediate::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -480,7 +480,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::LdcLiteral::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -504,7 +504,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::LdcLiteral::builder()
             .set_coproc(coproc)
             .set_crd(1)
@@ -528,7 +528,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mcrr::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -552,7 +552,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mcrr::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -576,7 +576,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mrrc::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -600,7 +600,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mrrc::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -620,7 +620,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Cdp::builder()
             .set_coproc(coproc)
             .set_opc1(0b0101)
@@ -641,7 +641,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Cdp::builder()
             .set_coproc(coproc)
             .set_opc1(0b0101)
@@ -662,7 +662,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mcr::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -683,7 +683,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mcr::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -704,7 +704,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mrc::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)
@@ -725,7 +725,7 @@ mod test {
 
         let mut stream = PeekableBuffer::from(bin.into_iter());
         let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        let coproc = arch::CoProcessor::P2;
+        let coproc = crate::arch::CoProcessor::P2;
         let target: Operation = operation::Mrc::builder()
             .set_coproc(coproc)
             .set_rt(Register::R1)

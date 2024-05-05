@@ -102,7 +102,7 @@ impl Parse for A5_13 {
 }
 
 impl ToOperation for A5_13 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::BT3(el) => {
                 let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);

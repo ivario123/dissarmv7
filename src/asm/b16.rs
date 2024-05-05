@@ -22,7 +22,7 @@ pub enum B16 {}
 impl B16 {
     fn parse_internal<T: crate::Stream>(
         iter: &mut T,
-    ) -> Result<operation::Operation, crate::ParseError> {
+    ) -> Result<crate::operation::Operation, crate::ParseError> {
         let word: Option<u16> = iter.peek::<1>();
         let opcode: u16 = (match word {
             Some(val) => val,
@@ -65,7 +65,7 @@ impl B16 {
     }
 }
 impl Parse for B16 {
-    type Target = (usize, operation::Operation);
+    type Target = (usize, crate::operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where

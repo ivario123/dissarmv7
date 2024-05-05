@@ -1,8 +1,7 @@
-use arch::Register;
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, Stream, ToOperation};
+use crate::{arch::Register, instruction, operation, Parse, ParseError, Stream, ToOperation};
 
 instruction!(
     size u16;  A5_5 contains
@@ -153,7 +152,7 @@ impl Parse for A5_5 {
 }
 
 impl ToOperation for A5_5 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Str(el) => operation::StrRegister::builder()
                 .set_rt(el.rt)

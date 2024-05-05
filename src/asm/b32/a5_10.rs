@@ -226,7 +226,7 @@ macro_rules! combine_wrapper {
 }
 
 impl ToOperation for A5_10 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         use A5_10::*;
         match self {
             And(el) => {

@@ -1,7 +1,7 @@
-use arch::wrapper_types::*;
 use paste::paste;
 
 use crate::{
+    arch::wrapper_types::*,
     asm::{LocalTryInto, Mask},
     instruction,
     prelude::*,
@@ -204,7 +204,7 @@ impl Parse for A5_20 {
 }
 
 impl ToOperation for A5_20 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::LdrbLiteral(el) => operation::LdrbLiteral::builder()
                 .set_add(Some(el.u))

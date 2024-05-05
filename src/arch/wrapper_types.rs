@@ -1,6 +1,6 @@
 //! Creates a few helper types to make translations clearer.
 
-use crate::{ArchError, Mask};
+use crate::{arch::Mask, ArchError};
 
 macro_rules! combine {
     ($first_id:ident:$($id:expr,$size:literal):*,$ret_ty:ty) => {
@@ -116,11 +116,14 @@ macro_rules! impl_try {
                 if std::mem::size_of::<$source>() * 8 < (<Self as sealed::SignBit>::BIT + 1) {
                     return Err(ArchError::InvalidField("Immediate".to_string()));
                 }
-                let max: $source = (((1 as u32) << (<Self as sealed::SignBit>::BIT + 1)) - 1) as $source;
+                let max: $source =
+                    (((1 as u32) << (<Self as sealed::SignBit>::BIT + 1)) - 1) as $source;
                 if value > max {
                     return Err(ArchError::InvalidField("Immediate".to_string()));
                 }
-                Ok(Self { val: value as $type })
+                Ok(Self {
+                    val: value as $type,
+                })
             }
         }
     };
@@ -190,7 +193,18 @@ macro_rules! sign_extend {
     };
 }
 
-imm!(Imm2(u8), Imm3(u8), Imm4(u8), Imm5(u8), Imm8(u8), Imm9(u16), Imm12(u16), Imm21(u32), Imm22(u32), Imm25(u32));
+imm!(
+    Imm2(u8),
+    Imm3(u8),
+    Imm4(u8),
+    Imm5(u8),
+    Imm8(u8),
+    Imm9(u16),
+    Imm12(u16),
+    Imm21(u32),
+    Imm22(u32),
+    Imm25(u32)
+);
 
 into!(
     Imm2 => {u8,u16,u32}
@@ -249,7 +263,7 @@ sign_extend!(
 );
 #[cfg(test)]
 mod test {
-    use crate::{Imm2, SignExtend};
+    use crate::arch::{Imm2, SignExtend};
 
     #[test]
     fn sign_extend_test() {

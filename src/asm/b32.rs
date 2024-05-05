@@ -30,7 +30,7 @@ use crate::{
 pub enum B32 {}
 
 impl Parse for B32 {
-    type Target = (usize, operation::Operation);
+    type Target = (usize, crate::operation::Operation);
 
     fn parse<T: crate::Stream>(iter: &mut T) -> Result<Self::Target, ParseError>
     where
@@ -55,7 +55,7 @@ impl Parse for B32 {
 impl B32 {
     fn parse_internal<T: crate::Stream>(
         iter: &mut T,
-    ) -> Result<operation::Operation, crate::ParseError> {
+    ) -> Result<crate::operation::Operation, crate::ParseError> {
         let word: u32 = match iter.peek::<1>() {
             Some(value) => value,
             None => return Err(ParseError::IncompleteProgram),

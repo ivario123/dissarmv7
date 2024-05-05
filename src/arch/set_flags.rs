@@ -56,7 +56,7 @@ impl LocalUnwrap for Option<SetFlags> {
 #[cfg(test)]
 mod test {
     use super::LocalUnwrap;
-    use crate::SetFlags;
+    use crate::arch::SetFlags;
 
     #[test]
     fn test_unwrap() {

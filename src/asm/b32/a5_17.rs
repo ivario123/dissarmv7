@@ -107,7 +107,7 @@ impl Parse for A5_17 {
     }
 }
 impl ToOperation for A5_17 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Strex(el) => {
                 let imm = (el.imm as u32) << 2;

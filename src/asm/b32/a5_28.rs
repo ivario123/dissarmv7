@@ -149,7 +149,7 @@ impl Parse for A5_28 {
     }
 }
 impl ToOperation for A5_28 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Mla(el) => operation::Mla::builder()
                 .set_rd(el.rd)

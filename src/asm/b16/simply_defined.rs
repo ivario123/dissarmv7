@@ -1,8 +1,14 @@
-use arch::{Condition, Imm12, Register, RegisterList, SignExtend};
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, ToOperation};
+use crate::{
+    arch::{Condition, Imm12, Register, RegisterList, SignExtend},
+    instruction,
+    operation,
+    Parse,
+    ParseError,
+    ToOperation,
+};
 
 instruction!(
     size u16;
@@ -33,7 +39,7 @@ instruction!(
 );
 
 impl ToOperation for Ldr {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         operation::LdrLiteral::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
@@ -44,7 +50,7 @@ impl ToOperation for Ldr {
 }
 
 impl ToOperation for Adr {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         operation::Adr::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
@@ -55,7 +61,7 @@ impl ToOperation for Adr {
 }
 
 impl ToOperation for Add {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         operation::AddSPImmediate::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_rd(Some(self.rd))
@@ -66,7 +72,7 @@ impl ToOperation for Add {
 }
 
 impl ToOperation for Stm {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(self.rn)
@@ -77,7 +83,7 @@ impl ToOperation for Stm {
 }
 
 impl ToOperation for Ldm {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         operation::Ldm::builder()
             .set_w(Some(!self.register_list.registers.contains(&self.rn)))
             .set_rn(self.rn)
@@ -88,7 +94,7 @@ impl ToOperation for Ldm {
 }
 
 impl ToOperation for B {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         let mut imm: Imm12 = ((self.imm11) << 1).try_into().unwrap();
 
         operation::B::builder()

@@ -72,7 +72,9 @@ impl IntoIterator for RegisterList {
 
 impl From<Register> for RegisterList {
     fn from(value: Register) -> Self {
-        Self { registers: vec![value] }
+        Self {
+            registers: vec![value],
+        }
     }
 }
 

@@ -98,7 +98,7 @@ impl Parse for A5_27 {
 }
 
 impl ToOperation for A5_27 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         use A5_27::*;
 
         match self {

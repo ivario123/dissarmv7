@@ -3,9 +3,7 @@
 //! Main macros is the [`instruction`] macro.
 //! This provides the ability to create a new instruction
 //! in a short and readable way.
-use arch::ArchError;
-
-use crate::ParseError;
+use crate::{arch::ArchError, ParseError};
 
 impl From<ArchError> for ParseError {
     fn from(value: ArchError) -> Self {

@@ -1,4 +1,9 @@
-use arch::{
+//! Creates the [`Operation`] enum.
+#![allow(missing_docs)]
+
+use builder_derive::{Builder, Consumer};
+
+use crate::arch::{
     condition::{Condition, ITCondition},
     coproc::CoProcessor,
     register::{Register, RegisterList},
@@ -6,7 +11,6 @@ use arch::{
     wrapper_types::*,
     SetFlags,
 };
-use builder_derive::{Builder, Consumer};
 
 /// dsl for defining operations in a similar manner to the documentation.
 macro_rules! operation{

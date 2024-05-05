@@ -1,8 +1,16 @@
-use arch::Register;
 use paste::paste;
 
 use super::Mask;
-use crate::{combine, instruction, Parse, ParseError, Stream, ToOperation};
+use crate::{
+    arch::Register,
+    combine,
+    instruction,
+    operation,
+    Parse,
+    ParseError,
+    Stream,
+    ToOperation,
+};
 instruction!(
     size u16;  A5_4 contains
     Add : {
@@ -75,7 +83,7 @@ impl Parse for A5_4 {
 }
 
 impl ToOperation for A5_4 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Add(el) => {
                 let (dn, rdn) = (el.dn, el.rdn);

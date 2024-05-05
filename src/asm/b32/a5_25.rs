@@ -144,7 +144,7 @@ macro_rules! translate {
     };
 }
 impl ToOperation for A5_25 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         translate!(
             self, Sadd16, Sasx, Ssax, Ssub16, Sadd8, Ssub8, Qadd16, Qasx, Qsax, Qsub16, Qadd8,
             Qsub8, Shadd16, Shasx, Shsax, Shsub16, Shadd8, Shsub8

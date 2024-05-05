@@ -1,8 +1,15 @@
-use arch::{Register, RegisterList};
 use paste::paste;
 
 use super::{a_5_7::A5_7, Mask};
-use crate::{combine, instruction, Parse, ParseError, ToOperation};
+use crate::{
+    arch::{Register, RegisterList},
+    combine,
+    instruction,
+    operation,
+    Parse,
+    ParseError,
+    ToOperation,
+};
 
 instruction!(
     size u16;  A5_6 contains
@@ -146,7 +153,7 @@ impl Parse for A5_6 {
 }
 
 impl ToOperation for A5_6 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Cps(el) => operation::Cps::builder()
                 .set_enable(el.im == 0)

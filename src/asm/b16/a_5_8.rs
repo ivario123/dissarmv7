@@ -1,8 +1,15 @@
-use arch::{wrapper_types::Imm8, Condition, Imm9, SignExtend};
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, Stream, ToOperation};
+use crate::{
+    arch::{wrapper_types::Imm8, Condition, Imm9, SignExtend},
+    instruction,
+    operation,
+    Parse,
+    ParseError,
+    Stream,
+    ToOperation,
+};
 
 instruction!(
     size u16;  A5_8 contains
@@ -36,7 +43,7 @@ impl Parse for A5_8 {
     }
 }
 impl ToOperation for A5_8 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::B(el) => {
                 let intermediate: u16 = el.imm8.into();

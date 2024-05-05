@@ -1,8 +1,8 @@
-use arch::wrapper_types::*;
 use paste::paste;
 
 use super::{a5_25::A5_25, a5_26::A5_26, a5_27::A5_27};
 use crate::{
+    arch::wrapper_types::*,
     asm::{LocalTryInto, Mask},
     instruction,
     prelude::*,
@@ -158,7 +158,7 @@ impl Parse for A5_24 {
 }
 
 impl ToOperation for A5_24 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Lsl(el) => operation::LslRegister::builder()
                 .set_s(Some(el.s.into()))

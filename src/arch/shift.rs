@@ -20,7 +20,7 @@ pub enum Shift {
 #[derive(Debug, Clone, PartialEq)]
 /// Denotes a shift defined in the encoding.
 ///
-/// These shifts are typically applied to a [`Register`](crate::register).
+/// These shifts are typically applied to a [`Register`](crate::arch::register).
 pub struct ImmShift {
     /// How far should the value be shifted.
     pub shift_n: u8,
@@ -38,7 +38,9 @@ impl TryFrom<u8> for Shift {
             1 => Ok(Self::Asr),
             2 => Ok(Self::Asr),
             3 => Ok(Self::Ror),
-            _ => Err(ArchError::InvalidField(format!("Shift, {value} valid options are 0 -> 3"))),
+            _ => Err(ArchError::InvalidField(format!(
+                "Shift, {value} valid options are 0 -> 3"
+            ))),
         }
     }
 }
@@ -46,9 +48,18 @@ impl TryFrom<u8> for Shift {
 impl From<(Shift, u8)> for ImmShift {
     fn from(value: (Shift, u8)) -> Self {
         match value {
-            (Shift::Lsr, 0) => Self { shift_t: Shift::Lsr, shift_n: 32 },
-            (Shift::Asr, 0) => Self { shift_t: Shift::Lsr, shift_n: 32 },
-            (Shift::Ror, 0) => Self { shift_t: Shift::Rrx, shift_n: 1 },
+            (Shift::Lsr, 0) => Self {
+                shift_t: Shift::Lsr,
+                shift_n: 32,
+            },
+            (Shift::Asr, 0) => Self {
+                shift_t: Shift::Lsr,
+                shift_n: 32,
+            },
+            (Shift::Ror, 0) => Self {
+                shift_t: Shift::Rrx,
+                shift_n: 1,
+            },
             // Catches  any
             (shift_t, shift_n) => Self { shift_t, shift_n },
         }

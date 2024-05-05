@@ -37,7 +37,7 @@ impl Parse for A5_15 {
 }
 
 impl ToOperation for A5_15 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Clrex => operation::ClrexBuilder::new().complete().into(),
             Self::Dsb(opt) => operation::DsbBuilder::new()

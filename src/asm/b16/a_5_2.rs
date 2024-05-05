@@ -1,10 +1,12 @@
 //! Parses instructions based on the table A5.2.1
-use arch::Register;
 use paste::paste;
 
 use super::Mask;
 use crate::{
+    arch,
+    arch::Register,
     instruction,
+    operation,
     prelude::{ImmShift, SetFlags, Shift},
     Parse,
     ParseError,
@@ -113,10 +115,10 @@ impl Parse for A5_2 {
 }
 
 impl ToOperation for A5_2 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Lsl(lsl) => {
-                let shift = arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
+                let shift = crate::arch::shift::ImmShift::from((Shift::Lsl, lsl.imm));
                 operation::LslImmediateBuilder::new()
                     .set_s(Some(SetFlags::InITBlock(false)))
                     .set_rd(lsl.rd)

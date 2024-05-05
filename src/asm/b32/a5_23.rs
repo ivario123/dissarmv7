@@ -88,7 +88,7 @@ macro_rules! imm {
 }
 
 impl ToOperation for A5_23 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Mov(el) => operation::MovRegister::builder()
                 .set_s(Some(el.s))

@@ -1,8 +1,7 @@
-use arch::Register;
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, ToOperation};
+use crate::{arch, arch::Register, instruction, operation, Parse, ParseError, ToOperation};
 macro_rules! instruction_5_3 {
     ($(
         $opcode:literal@$id:ident : {
@@ -120,7 +119,7 @@ instruction_5_3!(
 );
 
 impl ToOperation for A5_3 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::And(and) => operation::AndRegisterBuilder::new()
                 .set_s(Some(arch::SetFlags::InITBlock(false)))

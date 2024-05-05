@@ -115,7 +115,7 @@ impl Parse for A5_29 {
     }
 }
 impl ToOperation for A5_29 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Smull(el) => operation::Smull::builder()
                 .set_rdlo(el.rdlo)

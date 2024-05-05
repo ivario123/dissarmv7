@@ -257,7 +257,7 @@ macro_rules! shift {
     };
 }
 impl ToOperation for A5_22 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::And(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);

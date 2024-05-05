@@ -104,9 +104,11 @@
 #![deny(missing_docs)]
 #![deny(rustdoc::all)]
 
+pub mod arch;
 mod asm;
 pub mod buffer;
 mod helpers;
+pub mod operation;
 
 use std::fmt::Debug;
 
@@ -178,7 +180,7 @@ pub trait Parse {
 
 pub(crate) trait ToOperation {
     /// Translates the encoded value in to a [`Operation`] instruction
-    fn encoding_specific_operations(self) -> operation::Operation;
+    fn encoding_specific_operations(self) -> crate::operation::Operation;
 }
 
 #[derive(Debug)]
@@ -286,18 +288,19 @@ impl From<ASM> for Vec<(usize, Operation)> {
 
 /// Re-exports the needed types to use this crate.
 pub mod prelude {
-    pub use arch::{
-        self,
-        set_flags::SetFlags,
-        wrapper_types::*,
-        Condition,
-        ImmShift,
-        Register,
-        RegisterList,
-        Shift,
-    };
-    pub use operation::{self, Operation};
-
     pub use super::{Parse, Peek, Stream, ASM};
-    pub use crate::buffer::PeekableBuffer;
+    pub use crate::{
+        arch::{
+            self,
+            set_flags::SetFlags,
+            wrapper_types::*,
+            Condition,
+            ImmShift,
+            Register,
+            RegisterList,
+            Shift,
+        },
+        buffer::PeekableBuffer,
+        operation::{self, Operation},
+    };
 }

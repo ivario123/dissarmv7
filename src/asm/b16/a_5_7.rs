@@ -1,10 +1,9 @@
 //! Parses instructions based on the table A5.2.1
 #![allow(dead_code)]
-use arch::Condition;
 use paste::paste;
 
 use super::Mask;
-use crate::{instruction, Parse, ParseError, ToOperation};
+use crate::{arch::Condition, instruction, operation, Parse, ParseError, ToOperation};
 
 instruction!(
     size u16; A5_7 contains
@@ -45,7 +44,7 @@ impl Parse for A5_7 {
 }
 
 impl ToOperation for A5_7 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::It(it) => operation::It::builder()
                 .set_conds((it.firstcond, it.mask).into())

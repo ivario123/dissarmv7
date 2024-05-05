@@ -82,7 +82,9 @@ impl From<(Condition, u8)> for ITCondition {
         let condition_code: u8 = cond.clone().into();
         let condition = condition_code & 0b1;
         if mask == 0b1000 {
-            return Self { conditions: vec![cond] };
+            return Self {
+                conditions: vec![cond],
+            };
         }
         let x = {
             if (mask & 0b1000) >> 3 == condition {
@@ -92,7 +94,9 @@ impl From<(Condition, u8)> for ITCondition {
             }
         };
         if mask & 0b111 == 0b100 {
-            return Self { conditions: vec![cond, x] };
+            return Self {
+                conditions: vec![cond, x],
+            };
         }
 
         let y = {
@@ -104,7 +108,9 @@ impl From<(Condition, u8)> for ITCondition {
         };
 
         if mask & 0b11 == 0b10 {
-            return Self { conditions: vec![cond, x, y] };
+            return Self {
+                conditions: vec![cond, x, y],
+            };
         }
 
         let z = {
@@ -114,7 +120,9 @@ impl From<(Condition, u8)> for ITCondition {
                 cond.invert()
             }
         };
-        Self { conditions: vec![cond, x, y, z] }
+        Self {
+            conditions: vec![cond, x, y, z],
+        }
     }
 }
 

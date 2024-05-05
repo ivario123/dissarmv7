@@ -165,7 +165,7 @@ macro_rules! combine_wrapper {
     };
 }
 impl ToOperation for A5_12 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});

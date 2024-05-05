@@ -87,7 +87,7 @@ impl Parse for A5_16 {
 }
 
 impl ToOperation for A5_16 {
-    fn encoding_specific_operations(self) -> operation::Operation {
+    fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::Stm(el) => {
                 let (m, registers) = (el.m, el.register_list);

@@ -15,5 +15,5 @@ readme = "README.md"
 [dependencies]
 paste = "1.0.14"
 builder_derive = "0.0.1"
-arch = { path = "./arch" }
-operation = { path = "./operation" }
+arch = { path = "./arch", version = "0.0.1"}
+operation = { path = "./operation", version = "0.0.1"}

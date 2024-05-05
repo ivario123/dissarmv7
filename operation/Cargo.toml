@@ -1,6 +1,6 @@
 [package]
 name = "operation"
-version = "1.0.0"
+version = "0.0.1"
 edition = "2021"
 authors = ["Ivar Jönsson <ivajns-9@student.ltu.se>"]
 repository = "https://github.com/ivario123/disarmv7"

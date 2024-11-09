@@ -247,21 +247,18 @@ impl Parse for A5_22 {
     }
 }
 macro_rules! shift {
-    ($el:ident) => {
-        {
-            let (ty, imm3, imm2) = ($el.ty, $el.imm3, $el.imm2);
-            let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
-            shift
-        }
-
-    };
+    ($el:ident) => {{
+        let (ty, imm3, imm2) = ($el.ty, $el.imm3, $el.imm2);
+        let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
+        shift
+    }};
 }
 impl ToOperation for A5_22 {
     fn encoding_specific_operations(self) -> crate::operation::Operation {
         match self {
             Self::And(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+                let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
 
                 operation::AndRegister::builder()
                     .set_s(Some(el.s.into()))
@@ -274,7 +271,7 @@ impl ToOperation for A5_22 {
             }
             Self::Tst(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+                let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
 
                 operation::TstRegister::builder()
                     .set_rn(el.rn)
@@ -285,7 +282,7 @@ impl ToOperation for A5_22 {
             }
             Self::Bic(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+                let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
 
                 operation::BicRegister::builder()
                     .set_s(Some(el.s.into()))
@@ -298,7 +295,7 @@ impl ToOperation for A5_22 {
             }
             Self::Orr(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
-                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+                let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
                 operation::OrrRegister::builder()
                     .set_s(Some(el.s.into()))
                     .set_rd(Some(el.rd))
@@ -341,7 +338,7 @@ impl ToOperation for A5_22 {
             Self::Pkh(el) => {
                 let (tb, _t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
                 let ty = Shift::try_from((tb as u8) << 1).unwrap();
-                let shift = Some(ImmShift::from((ty, combine!(imm3:imm2,2,u8))));
+                let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
 
                 operation::Pkh::builder()
                     .set_tb(tb)

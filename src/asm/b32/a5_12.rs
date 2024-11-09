@@ -217,7 +217,7 @@ impl ToOperation for A5_12 {
             }
             Self::Ssat(el) => {
                 let (imm3, imm2, sh) = (el.imm3, el.imm2, el.sh << 1);
-                let shift_n: u8 = combine!(imm3:imm2,2,u8);
+                let shift_n: u8 = combine!(imm3: imm2, 2, u8);
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
@@ -231,7 +231,7 @@ impl ToOperation for A5_12 {
             }
             Self::Bfi(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
-                let lsb = combine!(imm3:imm2,2,u32);
+                let lsb = combine!(imm3: imm2, 2, u32);
                 operation::BfiBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
@@ -242,7 +242,7 @@ impl ToOperation for A5_12 {
             }
             Self::Bfc(el) => {
                 let (msb, imm3, imm2) = (el.msb, el.imm3, el.imm2);
-                let lsb = combine!(imm3:imm2,2,u32);
+                let lsb = combine!(imm3: imm2, 2, u32);
                 operation::BfcBuilder::new()
                     .set_rd(el.rd)
                     .set_lsb(lsb)
@@ -252,7 +252,7 @@ impl ToOperation for A5_12 {
             }
             Self::Usat(el) => {
                 let (imm3, imm2, sh) = (el.imm3, el.imm2, el.sh << 1);
-                let shift_n: u8 = combine!(imm3:imm2,2,u8);
+                let shift_n: u8 = combine!(imm3: imm2, 2, u8);
                 // TODO! Remove this unwrap
                 let shift: Shift = sh.try_into().unwrap();
                 let shift = ImmShift::from((shift, shift_n));
@@ -266,7 +266,7 @@ impl ToOperation for A5_12 {
             }
             Self::Sbfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
-                let lsbit = combine!(imm3:imm2,2,u8);
+                let lsbit = combine!(imm3: imm2, 2, u8);
                 operation::SbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)
@@ -277,7 +277,7 @@ impl ToOperation for A5_12 {
             }
             Self::Ubfx(el) => {
                 let (imm3, imm2) = (el.imm3, el.imm2);
-                let lsbit = combine!(imm3:imm2,2,u8);
+                let lsbit = combine!(imm3: imm2, 2, u8);
                 operation::UbfxBuilder::new()
                     .set_rd(el.rd)
                     .set_rn(el.rn)

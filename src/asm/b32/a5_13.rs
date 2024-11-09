@@ -163,7 +163,7 @@ impl ToOperation for A5_13 {
             Self::SubtableA5_15(table) => table.encoding_specific_operations(),
             Self::Udf(udf) => {
                 let (imm4, imm12) = (udf.imm4, udf.imm12);
-                let imm = combine!(imm4:imm12,12,u32);
+                let imm = combine!(imm4: imm12, 12, u32);
                 operation::UdfBuilder::new().set_imm(imm).complete().into()
             }
         }

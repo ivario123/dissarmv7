@@ -212,7 +212,6 @@ impl Parse for A5_30 {
 }
 impl ToOperation for A5_30 {
     fn encoding_specific_operations(self) -> crate::operation::Operation {
-        println!("A5_30 : {self:?}");
         match self {
             Self::StcT1(stc) => Stc::builder()
                 .set_coproc(stc.coproc)

@@ -13,6 +13,7 @@ macro_rules! combine {
             #[allow(unused_assignments)]
             {
                 $(
+
                     counter -= 8 - $size;
                     sum |= (($id as $ret_ty) << counter) as $ret_ty;
                 )*
@@ -38,12 +39,13 @@ impl Imm12 {
         let zero = 0;
         if repr.mask::<10, 11>() == 0 {
             let bits = repr.mask::<0, 7>();
+            let mask = repr.mask::<8, 9>();
             return (
-                match repr.mask::<8, 9>() {
+                match mask {
                     0 => bits.into(),
-                    1 => combine!(zero:bits,8:zero,8:bits,8,u32),
-                    2 => combine!(bits:zero,8:bits,8:zero,8,u32),
-                    3 => combine!(bits:bits,8:bits,8:bits,8,u32),
+                    1 => combine!(zero: bits, 8: zero, 8: bits, 8, u32),
+                    2 => combine!(bits: zero, 8: bits, 8: zero, 8, u32),
+                    3 => combine!(bits: bits, 8: bits, 8: bits, 8, u32),
                     _ => unreachable!("Masking function broken"),
                 },
                 None,
@@ -53,6 +55,11 @@ impl Imm12 {
         let ret = to_rotate.rotate_right(repr.mask::<7, 11>() as u32);
         let c = ret.mask::<31, 31>() == 1;
         (ret, Some(c))
+    }
+
+    /// Returns the underlying representation of the value.
+    pub fn inner(self) -> u16 {
+        self.val
     }
 }
 

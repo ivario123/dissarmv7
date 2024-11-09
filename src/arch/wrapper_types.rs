@@ -14,7 +14,7 @@ macro_rules! combine {
             {
                 $(
 
-                    counter -= 8 - $size;
+                    counter -= $size;
                     sum |= (($id as $ret_ty) << counter) as $ret_ty;
                 )*
             }

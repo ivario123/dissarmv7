@@ -1,6 +1,6 @@
 [package]
 name = "disarmv7"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 authors = ["Ivar Jönsson <ivajns-9@student.ltu.se>"]
 repository = "https://github.com/ivario123/disarmv7"
@@ -14,5 +14,4 @@ readme = "README.md"
 
 [dependencies]
 paste = "1.0.14"
-builder_derive = "0.0.2"
-
+builder_derive = "0.0.1"

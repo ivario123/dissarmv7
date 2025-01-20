@@ -6,7 +6,7 @@ use builder_derive::{Builder, Consumer};
 use crate::arch::{
     condition::{Condition, ITCondition},
     coproc::CoProcessor,
-    register::{Register, RegisterList},
+    register::{F32Register, F64Register, Register, RegisterList},
     shift::ImmShift,
     wrapper_types::*,
     SetFlags,
@@ -464,10 +464,66 @@ operation!(
 
 
     // ==================================== V ====================================
-    //
-    // I will be omitting all of the floating point instructions for now.
-    // TODO! Add in floats
+    VselF32 {cond:Condition}, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
+    VselF64 {cond:Condition}, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
 
+    VmlF32<y:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
+    VmlF64<y:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
+
+    VnmlF32<y:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
+    VnmlF64<y:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
+
+    VnmulF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VnmulF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VmulF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VmulF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VaddF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VaddF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VsubF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VsubF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VdivF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VdivF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VmaxF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VmaxF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    VminF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
+    VminF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
+
+    //NOTE: Needs VFPExpandImm, imm is simply a binary representation of a float.
+    VmovImmediateF32 <sd:F32Register>, <imm:u32>
+    VmovImmediateF64 <dd:F64Register>, <imm:u32>
+
+    VmovRegisterF32 <sd:F32Register>, <dm:u32>
+    VmovRegisterF64 <dd:F64Register>, <dm:u32>
+
+    VabsF32 <sd:F32Register>, <sm:F32Register>
+    VabsF64 <dd:F64Register>, <dm:F64Register>
+
+    VnegF32 <sd:F32Register>, <sm:F32Register>
+    VnegF64 <dd:F64Register>, <dm:F64Register>
+
+    VsqrtF32 <sd:F32Register>, <sm:F32Register>
+    VsqrtF64 <dd:F64Register>, <dm:F64Register>
+
+    VcvtF32<y:bool>,  <sd:F32Register>, <sm: F32Register>
+    VcvtF64<y:bool>,  <dd:F64Register>, <dm: F64Register>
+
+    VcmpF32{y:bool},  <sd:F32Register>, <dm: F32Register>
+    VcmpZeroF32{y:bool},  <sd:F32Register>
+    VcmpZeroF64{y:bool},  <sd:F64Register>
+
+    VrintF32{r:bool},  <sd:F32Register>, <dm: F32Register>
+    VrintF64{r:bool},  <dd:F64Register>, <dm: F64Register>
+
+    VcvtF64F32 <sd:F32Register>, <dm: F64Register>
+    VcvtF32F64 <dd:F64Register>, <sm: F32Register>
+
+    Vcvt{r:bool}, <dest:ConversionArgument>, <sm: ConversionArgument>
 
     // ==================================== W ====================================
 
@@ -478,3 +534,11 @@ operation!(
 
     Yield <>
 );
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum ConversionArgument {
+    F32(F32Register),
+    F64(F64Register),
+    U32(Register),
+    I32(Register),
+}

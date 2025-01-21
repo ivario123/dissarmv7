@@ -18,6 +18,7 @@ pub mod a5_27;
 pub mod a5_28;
 pub mod a5_29;
 pub mod a5_30;
+pub mod float;
 
 use crate::{
     asm::{b32::a5_30::A5_30, Mask},

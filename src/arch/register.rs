@@ -172,7 +172,7 @@ pub enum FPSCR {
     IOC,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the roundning mode used.
 pub enum IEEE754RoundingMode {
     /// Rounds to nearest.

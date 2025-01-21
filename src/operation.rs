@@ -6,7 +6,7 @@ use builder_derive::{Builder, Consumer};
 use crate::arch::{
     condition::{Condition, ITCondition},
     coproc::CoProcessor,
-    register::{F32Register, F64Register, Register, RegisterList},
+    register::{F32Register, F64Register, IEEE754RoundingMode, Register, RegisterList},
     shift::ImmShift,
     wrapper_types::*,
     SetFlags,
@@ -523,7 +523,13 @@ operation!(
     VcvtF64F32 <sd:F32Register>, <dm: F64Register>
     VcvtF32F64 <dd:F64Register>, <sm: F32Register>
 
-    Vcvt{r:bool}, <dest:ConversionArgument>, <sm: ConversionArgument>
+    Vcvt{r:bool}, <dest:ConversionArgument>, <sm: ConversionArgument>, {fbits:u32}
+
+    VrintCustomRoundingF32<r:IEEE754RoundingMode>, <sd:F32Register>, <sm: F32Register>
+    VrintCustomRoundingF64<r:IEEE754RoundingMode>, <dd:F64Register>, <dm: F64Register>
+
+    VcvtCustomRoundingF64F32<r:IEEE754RoundingMode>, <sd:F32Register>, <dm: F64Register>
+    VcvtCustomRoundingF32F64<r:IEEE754RoundingMode>, <dd:F64Register>, <sm: F32Register>
 
     // ==================================== W ====================================
 

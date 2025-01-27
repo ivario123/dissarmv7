@@ -209,6 +209,14 @@ pub enum ParseError {
     /// Thrown when a target register does not exist.
     InvalidRegister(u8),
 
+    /// Thrown when a target register does not exist.
+    InvalidFloatingPointRegister(u8),
+
+    /// Thrown when a target
+    /// ([IEEE754RoundingMode](crate::arch::register::IEEE754RoundingMode)])
+    /// rounding mode does not exist.
+    InvalidRoundingMode(u8),
+
     /// Thrown when an unpredictable instruction is used
     Unpredictable,
 

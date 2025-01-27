@@ -34,6 +34,7 @@ impl From<ArchError> for ParseError {
 macro_rules! instruction {
     (size $size:ty;
      $(
+        $(#[$doc:tt])?
          $id:ident : {
             $(
                 $field_id:ident $(as $representation:ty)? : $type:ty : $start:literal -> $end:literal $($expr:ident)?
@@ -97,9 +98,12 @@ macro_rules! instruction {
     (
     size $size:ty; $table:ident contains
         $(
-            $($id:ident : {
+            $(
+            $(#[$($attrss:tt)*])*
+            $id:ident : {
                 $(
 
+                        $(#[$($attrss_field:tt)*])*
                         $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
 
 
@@ -114,13 +118,25 @@ macro_rules! instruction {
             #[derive(Debug)]
             pub enum $table{
                 $(
-                    $($id($id),)?
+                    $(
+                        $(#[$($attrss)*])*
+                        $id($id),
+                    )?
                     $(
                         #[doc = "Externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
                         [<Subtable $table_id>]($table_id),
                     )?
                 )+
             }
+
+                    impl $table {
+                        $($(
+                            #[allow(dead_code)]
+                            pub(crate) fn [<parse_ $id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::$id($id::parse(iter)?))
+                            }
+                        )?)+
+                    }
         }
         $(
 
@@ -131,10 +147,12 @@ macro_rules! instruction {
                     $(
                         #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
                     )*
+                    $(#[$($attrss)*])*
                     #[derive(Debug)]
                     pub struct $id {
                         $(
-                            #[doc = "bit " [<$start>] " to " [<$end>]]
+                            #[doc = "bit " [<$start>] " to " [<$end>] "\n\n"]
+                            $(#[$($attrss_field)*])*
                             pub(crate) $field_id:$type,
                         )*
                     }
@@ -213,10 +231,10 @@ mod test {
         let i: u8 = 1;
         let imm2: u8 = 2;
         let imm3: u8 = 4;
-        let res: u32 = combine!(i:imm2,2:imm3,3,u32);
+        let res: u32 = combine!(i: imm2, 2: imm3, 3, u32);
         assert_eq!(0b110100, res);
         let zero = 0;
-        let res: u32 = combine!(i:zero,2,u32);
+        let res: u32 = combine!(i: zero, 2, u32);
         assert_eq!(0b100, res)
     }
 }

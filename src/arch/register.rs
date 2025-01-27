@@ -1,6 +1,6 @@
 //! Defines the [`Register`]s that are available in the system.
 
-use crate::ArchError;
+use crate::{ArchError, ParseError};
 
 macro_rules! reg {
     (#[doc = $docs:tt] $name:ident,$($reg:ident),*) => {
@@ -196,6 +196,20 @@ impl IEEE754RoundingMode {
             Self::RM => 2,
             Self::RZ => 3,
         }
+    }
+}
+
+impl TryFrom<u8> for IEEE754RoundingMode {
+    type Error = ParseError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => Self::RN,
+            1 => Self::RP,
+            2 => Self::RM,
+            3 => Self::RZ,
+            _ => return Err(ParseError::InvalidRoundingMode(value)),
+        })
     }
 }
 

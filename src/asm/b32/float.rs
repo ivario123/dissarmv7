@@ -369,24 +369,46 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF32INT : {
+    VCVTF32INTROUND : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         opc2    as u8   : u8            : 16 -> 18,
+        /// TODO: This is incorrect according to the spec, see if this works or not.
+        rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF64INT: {
+    VCVTF64INTROUND: {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         opc2    as u8   : u8            : 16 -> 18,
+        /// TODO: This is incorrect according to the spec, see if this works or not.
+        rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
+    //VCVTF32INT : {
+    //    sm      as u8   : u8            : 0 -> 3 ,
+    //    m       as u8   : u8            : 5 -> 5 ,
+    //    op      as u8   : bool          : 7 -> 7 local_try_into,
+    //    sz      as u8   : bool          : 8 -> 8 local_try_into,
+    //    sd      as u8   : u8            : 12 -> 15 ,
+    //    opc2    as u8   : u8            : 16 -> 18,
+    //    d       as u8   : u8            : 22 -> 22
+    //},
+    //VCVTF64INT: {
+    //    dm      as u8   : u8            : 0 -> 3 ,
+    //    m       as u8   : u8            : 5 -> 5 ,
+    //    op      as u8   : bool          : 7 -> 7 local_try_into,
+    //    sz      as u8   : bool          : 8 -> 8 local_try_into,
+    //    dd      as u8   : u8            : 12 -> 15 ,
+    //    opc2    as u8   : u8            : 16 -> 18,
+    //    d       as u8   : u8            : 22 -> 22
+    //},
     VCVTFIXEDPOINT: {
         imm4    as u8   : u8            : 0 -> 3 ,
         i       as u8   : u8            : 1 -> 1,
@@ -495,10 +517,10 @@ impl Parse for A6_5 {
             }
 
             if compare!(opc2 == 11xx) && compare!(opc3 == x1) && sz == 0 {
-                return Self::parse_vcvtroundf32(iter);
+                return Self::parse_vcvtf32intround(iter);
             }
             if compare!(opc2 == 11xx) && compare!(opc3 == x1) && sz == 1 {
-                return Self::parse_vcvtroundf64(iter);
+                return Self::parse_vcvtf64intround(iter);
             }
             return Err(ParseError::Invalid32Bit(
                 "Invalid floating point operation, t1 == 1",
@@ -773,7 +795,7 @@ impl ToOperation for A6_5 {
                 cc,
                 d,
             }) => Operation::VselF64(VselF64 {
-                cond: Some(Condition::try_from(((cc >> 1) ^ (cc & 0b1)) << 1).unwrap()),
+                cond: Some(Condition::try_from((cc << 2) | ((cc >> 1) ^ (cc & 0b1)) << 1).unwrap()),
                 dd: F64Register::try_from(b!((d<0>), (dd; 4)))
                     .expect("Failed to parse f64 register in vmove"),
                 dn: F64Register::try_from(b!((n<0>), (dn; 4)))
@@ -1306,7 +1328,7 @@ impl ToOperation for A6_5 {
                 dm,
                 m,
                 op,
-                sz,
+                sz: _,
                 dd,
                 d,
             }) => Operation::VrintF64(operation::VrintF64 {
@@ -1425,7 +1447,6 @@ impl ToOperation for A6_5 {
                 dd: r64!(dd, d),
                 dm: r64!(dm, m),
             }),
-
             Self::VCVTF32INTROUND(VCVTF32INTROUND {
                 sm,
                 m,
@@ -1527,9 +1548,9 @@ impl ToOperation for A6_5 {
                 sm,
                 m,
                 op,
-                sz,
+                sz: _,
                 sd,
-                opc2,
+                opc2: _,
                 rm,
                 d,
             }) => Operation::VcvtCustomRoundingIntF32(operation::VcvtCustomRoundingIntF32 {
@@ -1544,9 +1565,9 @@ impl ToOperation for A6_5 {
                 dm,
                 m,
                 op,
-                sz,
+                sz: _,
                 sd,
-                opc2,
+                opc2: _,
                 rm,
                 d,
             }) => Operation::VcvtCustomRoundingIntF64(operation::VcvtCustomRoundingIntF64 {
@@ -1564,8 +1585,52 @@ impl ToOperation for A6_5 {
 #[cfg(test)]
 mod test {
 
-    use crate::prelude::*;
+    use macros::combine;
 
+    use crate::{arch::register::F32Register, asm::Mask, prelude::*};
+
+    #[test]
+    fn test_vsel_f32() {
+        let sm = u8::from(F32Register::S0) as u32;
+        let sd = u8::from(F32Register::S1) as u32;
+        let sn = u8::from(F32Register::S2) as u32;
+        let m = sm & 0b1;
+        let sm = sm >> 1;
+        let n = sn & 0b1;
+        let sn = sn >> 1;
+        let d = sd & 0b1;
+        let sd = sd >> 1;
+        let cc: u32 = u8::from(Condition::Eq) as u32;
+        let cc = cc >> 3;
+        let sz = 0u32;
+
+        let size = combine!(
+            1111 | 11100 | a | bb | cccc | dddd | 101 | e | f | 0 | g | 0 | hhhh,
+            d,
+            cc,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+        let mut size = size.to_le_bytes();
+        size.reverse();
+        print!("Size : ");
+        for size in size {
+            print!("{size:#08b} | ");
+        }
+        println!("");
+        let mut bin = vec![];
+        bin.extend([size[0], size[1]].into_iter().rev());
+        bin.extend([size[2], size[3]].into_iter().rev());
+        let mut stream = PeekableBuffer::from(bin.into_iter().into_iter());
+        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+        println!("instr : {instr:?}");
+
+        panic!()
+    }
     #[test]
     fn test_parse_ldrt3() {
         let mut bin = vec![];

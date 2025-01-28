@@ -27,6 +27,28 @@ macro_rules! reg {
                 Err(ArchError::InvalidRegister(value))
             }
         }
+        impl TryFrom<u16> for $name {
+            type Error = ArchError;
+            #[allow(unused_assignments)]
+            fn try_from(value: u16) -> Result<Self, Self::Error> {
+                let value: Result<u8,_> = value.try_into();
+                match  value {
+                    Ok(value) => Self::try_from(value),
+                    Err(_) => Err(ArchError::InvalidField("Tried to create a register from an invalid u16".to_string()))
+                }
+            }
+        }
+        impl TryFrom<u32> for $name {
+            type Error = ArchError;
+            #[allow(unused_assignments)]
+            fn try_from(value: u32) -> Result<Self, Self::Error> {
+                let value: Result<u8,_> = value.try_into();
+                match  value {
+                    Ok(value) => Self::try_from(value),
+                    Err(_) => Err(ArchError::InvalidField("Tried to create a register from an invalid u32".to_string()))
+                }
+            }
+        }
         impl From<$name> for u8 {
             #[allow(unused_assignments)]
             fn from(val:$name) -> u8 {
@@ -263,14 +285,6 @@ impl FPSCR {
 pub struct RegisterList {
     /// All of the registers in the register list.
     pub registers: Vec<Register>,
-}
-
-impl TryFrom<u16> for Register {
-    type Error = ArchError;
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        (value as u8).try_into()
-    }
 }
 
 impl IntoIterator for RegisterList {

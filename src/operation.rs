@@ -24,11 +24,17 @@ macro_rules! operation{
             $name:ident $(
                 // Optional field
                 $(
-                    { $field_name:ident : $field_type:ty }
+                    {
+                         $(#[doc = $field_comment:expr])*
+                        $field_name:ident : $field_type:ty
+                    }
                 )?
                 // Required field
                 $(
-                    < $field_name_must_exist:ident : $field_type_must_exist:ty >
+                    <
+                        $(#[doc = $mand_field_comment:expr])*
+                        $field_name_must_exist:ident : $field_type_must_exist:ty
+                    >
                 )?
                 // Denotes an empty set this is simply here to allow instructions with no
                 // arguments
@@ -44,9 +50,15 @@ macro_rules! operation{
             pub struct $name {
                 $(
                     $(
+                        $(
+                            #[doc = $field_comment]
+                        )*
                         pub $field_name : Option<$field_type>
                     )?
                     $(
+                        $(
+                            #[doc = $mand_field_comment]
+                        )*
                         pub $field_name_must_exist : $field_type_must_exist
                     )?
 
@@ -494,12 +506,11 @@ operation!(
     VminF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
     VminF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
 
-    //NOTE: Needs VFPExpandImm, imm is simply a binary representation of a float.
     VmovImmediateF32 <sd:F32Register>, <imm:u32>
-    VmovImmediateF64 <dd:F64Register>, <imm:u32>
+    VmovImmediateF64 <dd:F64Register>, <imm:u64>
 
-    VmovRegisterF32 <sd:F32Register>, <dm:u32>
-    VmovRegisterF64 <dd:F64Register>, <dm:u32>
+    VmovRegisterF32 <sd:F32Register>, <sm:F32Register>
+    VmovRegisterF64 <dd:F64Register>, <dm:F64Register>
 
     VabsF32 <sd:F32Register>, <sm:F32Register>
     VabsF64 <dd:F64Register>, <dm:F64Register>
@@ -510,26 +521,40 @@ operation!(
     VsqrtF32 <sd:F32Register>, <sm:F32Register>
     VsqrtF64 <dd:F64Register>, <dm:F64Register>
 
-    VcvtF32<y:bool>,  <sd:F32Register>, <sm: F32Register>
-    VcvtF64<y:bool>,  <dd:F64Register>, <dm: F64Register>
+    VcvtF32<y:bool>, <convert_from_half:bool>,  <sd:F32Register>, <sm: F32Register>
+    VcvtF64<y:bool>, <convert_from_half:bool>,  <dd:F32OrF64>, <dm: F32OrF64>
 
-    VcmpF32{y:bool},  <sd:F32Register>, <dm: F32Register>
-    VcmpZeroF32{y:bool},  <sd:F32Register>
-    VcmpZeroF64{y:bool},  <sd:F64Register>
 
-    VrintF32{r:bool},  <sd:F32Register>, <dm: F32Register>
-    VrintF64{r:bool},  <dd:F64Register>, <dm: F64Register>
+    VcmpF32{e:bool},  <sd:F32Register>, <sm: F32Register>
+    VcmpF64{e:bool},  <dd:F64Register>, <dm: F64Register>
+    VcmpZeroF32{e:bool},  <sd:F32Register>
+    VcmpZeroF64{e:bool},  <dd:F64Register>
 
-    VcvtF64F32 <sd:F32Register>, <dm: F64Register>
-    VcvtF32F64 <dd:F64Register>, <sm: F32Register>
+    VrintF32{
+        /// True => Round toward zero,
+        /// False => Use FPSCR rounding.
+        r:bool
+    },  <sd:F32Register>, <sm: F32Register>
+    VrintF64{
+        /// True => Round toward zero,
+        /// False => Use FPSCR rounding.
+        r:bool
+    },  <dd:F64Register>, <dm: F64Register>
 
-    Vcvt{r:bool}, <dest:ConversionArgument>, <sm: ConversionArgument>, {fbits:u32}
+    VcvtF64F32 <dd:F64Register>, <sm: F32Register>
+    VcvtF32F64 <sd:F32Register>, <dm: F64Register>
+
+    Vcvt{r:bool}, <dest:ConversionArgument>, <sm: ConversionArgument>, {
+        /// If this is specified it
+        /// means that the result is a fixed point value.
+        fbits:u32
+    }
 
     VrintCustomRoundingF32<r:IEEE754RoundingMode>, <sd:F32Register>, <sm: F32Register>
     VrintCustomRoundingF64<r:IEEE754RoundingMode>, <dd:F64Register>, <dm: F64Register>
 
-    VcvtCustomRoundingF64F32<r:IEEE754RoundingMode>, <sd:F32Register>, <dm: F64Register>
-    VcvtCustomRoundingF32F64<r:IEEE754RoundingMode>, <dd:F64Register>, <sm: F32Register>
+    VcvtCustomRoundingIntF32<r:IEEE754RoundingMode>, <sd:IntType>, <sm: F32Register>
+    VcvtCustomRoundingIntF64<r:IEEE754RoundingMode>, <sd:IntType>, <dm: F64Register>
 
     // ==================================== W ====================================
 
@@ -545,6 +570,24 @@ operation!(
 pub enum ConversionArgument {
     F32(F32Register),
     F64(F64Register),
-    U32(Register),
-    I32(Register),
+    U32(F32Register),
+    I32(F32Register),
+    I16(F32Register),
+    U16(F32Register),
+    U32F64(F64Register),
+    I32F64(F64Register),
+    I16F64(F64Register),
+    U16F64(F64Register),
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum IntType {
+    U32(F32Register),
+    I32(F32Register),
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum F32OrF64 {
+    F32(F32Register),
+    F64(F64Register),
 }

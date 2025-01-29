@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use arch::register::IEEE754RoundingMode;
-use macros::{compare, extract_fields};
+use macros::{combine, compare, extract_fields};
 use paste::paste;
 
 use crate::{
@@ -428,10 +428,28 @@ impl Parse for A6_5 {
         Self: Sized,
     {
         let word: u32 = iter.peek::<1>().ok_or(ParseError::IncompleteProgram)?;
-        let (t, opc1, opc2, sz, opc3, _opc4) =
-            extract_fields!(word => xxx|1|xxxx|2222|3333|xxxx|xxx|4|55|x|x|6666);
+        let (t, opc1, opc2, intermediate, sz, opc3, intermediate2, _opc4) =
+            extract_fields!(word => xxx|1|xxxx|2222|3333|4444|xxx|5|66|7|x|8888);
 
-        if opc1 >> 3 == 0 && t == 1 {
+        // TODO: Remove this.
+        {
+            let size = combine!(
+                111 | T | 1110 | aaaa | bbbb | eeee | 101 | c | dd | e | 0 | ffff,
+                t,
+                opc1,
+                opc2,
+                intermediate,
+                sz,
+                opc3,
+                intermediate2,
+                _opc4
+            );
+            println!("Word : {word:#32b}");
+            println!("Size : {size:#32b}");
+            assert!(size == word);
+        }
+        if ((opc1 & 8u32) == 0u32) && t == 1 {
+            //compare!(opc1 == 0xxx) && t == 1 {
             if sz == 0 {
                 return Ok(Self::VSELF32(VSELF32::parse(iter)?));
             }
@@ -443,7 +461,7 @@ impl Parse for A6_5 {
         }
 
         if compare!(opc1 == 0x00) && t == 0 && sz == 1 {
-            return Ok(Self::VMLXF32(VMLXF32::parse(iter)?));
+            return Ok(Self::VMLXF64(VMLXF64::parse(iter)?));
         }
 
         if compare!(opc1 == 0x01) && t == 0 && sz == 0 {
@@ -813,7 +831,7 @@ impl ToOperation for A6_5 {
                 sn,
                 d,
             }) => Operation::VmlF32(operation::VmlF32 {
-                y: op,
+                add: !op,
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))
                     .expect("Failed to parse f32 register in VMLXF32"),
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))
@@ -831,7 +849,7 @@ impl ToOperation for A6_5 {
                 dn,
                 d,
             }) => Operation::VmlF64(operation::VmlF64 {
-                y: op,
+                add: !op,
                 dd: F64Register::try_from(b!((d<0>),(dd; 4)))
                     .expect("Failed to parse f64 register in VMLXF64"),
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))
@@ -1587,23 +1605,51 @@ mod test {
 
     use macros::combine;
 
-    use crate::{arch::register::F32Register, asm::Mask, prelude::*};
+    use crate::{
+        arch::register::{F32Register, F64Register},
+        asm::Mask,
+        prelude::*,
+    };
+
+    macro_rules! r32 {
+        ($idx:ident) => {{
+            let s = u8::from(F32Register::$idx) as u32;
+            let bit = s & 0b1;
+            let s = s >> 1;
+            (F32Register::$idx, s, bit)
+        }};
+    }
+    #[allow(unused_macros)]
+    macro_rules! r64 {
+        ($idx:ident) => {{
+            let s = u8::from(F64Register::$idx) as u32;
+            let bit = s & 8;
+            let s = s & 0b0111;
+            (F64Register::$idx, s, bit)
+        }};
+    }
+    macro_rules! check_eq {
+        ($size:ident, $($expected:tt)+) => {{
+            let size = $size.to_be_bytes();
+            let mut bin = vec![];
+            bin.extend([size[0], size[1]].into_iter().rev());
+            bin.extend([size[2], size[3]].into_iter().rev());
+            let mut stream = PeekableBuffer::from(bin.into_iter().into_iter());
+            let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+            println!("instr : {instr:?}");
+
+            assert_eq!(instr,$($expected)+);
+        }};
+    }
 
     #[test]
     fn test_vsel_f32() {
-        let sm = u8::from(F32Register::S0) as u32;
-        let sd = u8::from(F32Register::S1) as u32;
-        let sn = u8::from(F32Register::S2) as u32;
-        let m = sm & 0b1;
-        let sm = sm >> 1;
-        let n = sn & 0b1;
-        let sn = sn >> 1;
-        let d = sd & 0b1;
-        let sd = sd >> 1;
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
         let cc: u32 = u8::from(Condition::Eq) as u32;
         let cc = cc >> 3;
         let sz = 0u32;
-
         let size = combine!(
             1111 | 11100 | a | bb | cccc | dddd | 101 | e | f | 0 | g | 0 | hhhh,
             d,
@@ -1615,118 +1661,106 @@ mod test {
             m,
             sm
         );
-        let mut size = size.to_le_bytes();
-        size.reverse();
-        print!("Size : ");
-        for size in size {
-            print!("{size:#08b} | ");
-        }
-        println!("");
-        let mut bin = vec![];
-        bin.extend([size[0], size[1]].into_iter().rev());
-        bin.extend([size[2], size[3]].into_iter().rev());
-        let mut stream = PeekableBuffer::from(bin.into_iter().into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-        println!("instr : {instr:?}");
 
-        panic!()
-    }
-    #[test]
-    fn test_parse_ldrt3() {
-        let mut bin = vec![];
-        bin.extend([0b11111000u8, 0b11010010u8].into_iter().rev());
-        bin.extend([0b00110011u8, 0b00101111u8].into_iter().rev());
-
-        let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-
-        let target: Operation = operation::LdrImmediate::builder()
-            .set_rn(Register::R2)
-            .set_rt(Register::R3)
-            .set_imm(0b001100101111)
-            .set_w(Some(false))
-            .set_add(true)
-            .set_index(true)
-            .complete()
-            .into();
-        assert_eq!(instr, target)
+        check_eq!(
+            size,
+            Operation::VselF32(operation::VselF32 {
+                cond: Some(Condition::Eq),
+                sd: rd,
+                sn: rn,
+                sm: rm
+            })
+        );
     }
 
     #[test]
-    fn test_parse_ldrt4() {
-        let mut bin = vec![];
-        bin.extend([0b1111_1000u8, 0b0101_0010u8].into_iter().rev());
-        bin.extend([0b0011_1111u8, 0b0010_1111u8].into_iter().rev());
+    fn test_vsel_f64() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let cc: u32 = u8::from(Condition::Ne) as u32;
+        let cc = cc >> 3;
+        let sz = 1u32;
+        let size = combine!(
+            1111 | 11100 | a | bb | cccc | dddd | 101 | e | f | 0 | g | 0 | hhhh,
+            d,
+            cc,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
 
-        let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-
-        let target: Operation = operation::LdrImmediate::builder()
-            .set_rn(Register::R2)
-            .set_rt(Register::R3)
-            .set_imm(0b0010_1111)
-            .set_w(Some(true))
-            .set_add(true)
-            .set_index(true)
-            .complete()
-            .into();
-        assert_eq!(instr, target)
+        check_eq!(
+            size,
+            Operation::VselF64(operation::VselF64 {
+                cond: Some(Condition::Eq),
+                dd: rd,
+                dn: rn,
+                dm: rm
+            })
+        );
     }
 
     #[test]
-    fn test_parse_ldrt() {
-        let mut bin = vec![];
-        bin.extend([0b1111_1000u8, 0b0101_0010u8].into_iter().rev());
-        bin.extend([0b0011_1110u8, 0b0010_1111u8].into_iter().rev());
+    fn test_vmlx_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
 
-        let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-
-        let target: Operation = operation::Ldrt::builder()
-            .set_rn(Register::R2)
-            .set_rt(Register::R3)
-            .set_imm(Some(0b0010_1111))
-            .complete()
-            .into();
-        assert_eq!(instr, target)
+        check_eq!(
+            size,
+            Operation::VmlF32(operation::VmlF32 {
+                add: op == 0,
+                sd: rd,
+                sn: rn,
+                sm: rm
+            })
+        );
     }
 
     #[test]
-    fn test_parse_ldr_reg() {
-        let mut bin = vec![];
-        bin.extend([0b1111_1000u8, 0b0101_0010u8].into_iter().rev());
-        bin.extend([0b0011_0000u8, 0b0010_0010u8].into_iter().rev());
+    fn test_vmlx_f64() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
 
-        let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-
-        let shift: ImmShift = ImmShift::from((Shift::Lsl, 0b10u8));
-        let target: Operation = operation::LdrRegister::builder()
-            .set_rn(Register::R2)
-            .set_rt(Register::R3)
-            .set_rm(Register::R2)
-            .set_w(None)
-            .set_shift(Some(shift))
-            .complete()
-            .into();
-        assert_eq!(instr, target)
-    }
-
-    #[test]
-    fn test_parse_ldr_litreal() {
-        let mut bin = vec![];
-        bin.extend([0b1111_1000u8, 0b1101_1111u8].into_iter().rev());
-        bin.extend([0b0011_0000u8, 0b0010_0010u8].into_iter().rev());
-
-        let mut stream = PeekableBuffer::from(bin.into_iter());
-        let instr = Operation::parse(&mut stream).expect("Parser broken").1;
-
-        let target: Operation = operation::LdrLiteral::builder()
-            .set_rt(Register::R3)
-            .set_add(true)
-            .set_imm(0b0000_0010_0010)
-            .complete()
-            .into();
-        assert_eq!(instr, target)
+        check_eq!(
+            size,
+            Operation::VmlF64(operation::VmlF64 {
+                add: op == 0,
+                dd: rd,
+                dn: rn,
+                dm: rm
+            })
+        );
     }
 }

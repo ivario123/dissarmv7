@@ -479,8 +479,8 @@ operation!(
     VselF32 {cond:Condition}, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
     VselF64 {cond:Condition}, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
 
-    VmlF32<y:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
-    VmlF64<y:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
+    VmlF32<add:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
+    VmlF64<add:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
 
     VnmlF32<y:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
     VnmlF64<y:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>

@@ -20,6 +20,8 @@ pub mod a5_29;
 pub mod a5_30;
 pub mod float;
 
+use macros::compare;
+
 use crate::{
     asm::{b32::a5_30::A5_30, Mask},
     Parse,
@@ -61,6 +63,10 @@ impl B32 {
             Some(value) => value,
             None => return Err(ParseError::IncompleteProgram),
         };
+
+        if compare!(word == 111 | x | 1110 | xxxx | xxxx | xxxx | 101 | x | xx | x | 0 | xxxx) {
+            return Ok(float::A6_5::parse(iter)?.encoding_specific_operations());
+        }
         let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
         let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
         let op = word.mask::<15, 15>();

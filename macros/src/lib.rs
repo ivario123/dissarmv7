@@ -1,4 +1,4 @@
-use std::{collections::HashMap, usize};
+use std::{collections::HashMap, fmt::format, usize};
 
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
@@ -6,7 +6,7 @@ use syn::{ext::IdentExt, parse::Parse, parse_macro_input, spanned::Spanned, Expr
 
 struct Mask {
     /// The fields to mask out.
-    fields: HashMap<char, (usize, Option<usize>)>,
+    fields: Vec<(char, (usize, Option<usize>))>,
     ident: Ident,
 }
 impl Parse for Mask {
@@ -32,8 +32,9 @@ impl Parse for Mask {
             ));
         }
 
-        let mut fields: HashMap<char, (usize, Option<usize>)> = HashMap::new();
+        let mut fields: Vec<(char, (usize, Option<usize>))> = Vec::new();
 
+        let mut parsing: Option<(char, (usize, Option<usize>))> = None;
         for (idx, char) in input_string.char_indices() {
             let idx = match 31usize.checked_sub(idx) {
                 Some(val) => val,
@@ -45,33 +46,42 @@ impl Parse for Mask {
             if char == 'x' {
                 continue;
             }
-            let value = fields.get_mut(&char);
-            match value {
-                Some((start, None)) => {
-                    let start = start.clone();
-                    let _ = fields.insert(char, (start, Some(idx)));
+            match parsing {
+                Some((c, (start, None))) if c == char => {
+                    parsing = Some((char, (start, Some(idx))));
                 }
                 None => {
-                    let _ = fields.insert(char, (idx, None));
+                    parsing = Some((char, (idx, None)));
                 }
-                Some((_start, Some(end))) => {
+                Some((c, (start, Some(end)))) if c == char => {
                     println!("{idx} => {char} {end}");
-                    if *end != idx + 1 {
+                    if end != idx + 1 {
                         return Err(syn::Error::new(
                             span,
                             format!("Field identifier {} is not contiguous", char),
                         ));
                     }
-                    *end = idx;
+                    parsing = Some((char, (start, Some(idx))));
+                }
+                val => {
+                    if let Some(parsing) = parsing {
+                        fields.push(parsing);
+                    }
+                    parsing = Some((char, (idx, None)));
                 }
             }
         }
+        if let Some(parsed) = parsing {
+            fields.push(parsed);
+        }
+
         Ok(Self { fields, ident })
     }
 }
 
 #[proc_macro]
 pub fn extract_fields(input: TokenStream) -> TokenStream {
+    println!("Input : {}", input.to_string());
     let mask = parse_macro_input!(input as Mask);
     println!("Constructed mask!");
     let mut idents = Vec::with_capacity(mask.fields.len());
@@ -90,6 +100,7 @@ pub fn extract_fields(input: TokenStream) -> TokenStream {
         ret_calls.push(quote!(#key));
         zero.push(quote!(#key: 0));
         mask_calls.push(quote!(self.#key = Self::mask::<#end, #start>(value)));
+        println!("{key} -> {end}:{start}");
     }
 
     let ident = mask.ident;
@@ -164,6 +175,8 @@ impl Parse for Comparison {
                 }
             }
         }
+        println!("str_input:{str_input}");
+        println!("Mask: {mask:#08b}, expected {expected:#08b}");
         Ok(Self {
             ident,
             mask,
@@ -177,10 +190,11 @@ pub fn compare(input: TokenStream) -> TokenStream {
     let mask = comparison.mask;
     let expected = comparison.expected;
     let ident = comparison.ident;
-    quote! {
-        #ident&#mask == #expected
-    }
-    .into()
+    let ret = quote! {
+        ((#ident&#mask) == #expected)
+    };
+    println!("Compare ret : {}", ret.to_string());
+    ret.into()
 }
 
 struct Combiner {
@@ -200,6 +214,12 @@ impl Parse for Combiner {
             .filter(|el| !IGNORED.contains(el))
             .collect::<String>();
         println!("bit_str: {}", bit_str);
+        if bit_str.len() != 32 {
+            return Err(syn::Error::new(
+                bit_str_e.span(),
+                &format!("Expected 32 chars got {} chars", bit_str.len()),
+            ));
+        }
         let _: Token![,] = input.parse()?;
 
         let idents = input

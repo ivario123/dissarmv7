@@ -293,7 +293,7 @@ pub fn combine(input: TokenStream) -> TokenStream {
         .map(|(id, (start, end))| {
             quote! {ret |= {
                 println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
-                (#id.mask::<0,{#end - #start}>() << #start)
+                (#id .mask::<0,{#end - #start}>() << #start )
             };}
         })
         .collect();

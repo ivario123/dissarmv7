@@ -1651,7 +1651,7 @@ mod test {
     use macros::combine;
 
     use crate::{
-        arch::register::{F32Register, F64Register},
+        arch::register::{F32Register, F64Register, IEEE754RoundingMode},
         asm::{
             b32::float::{vfpexpandimm32, vfpexpandimm64},
             Mask,
@@ -3046,6 +3046,278 @@ mod test {
             ),
         ] {
             test(opc2, op, round, operand, (sd, d), (sm, m), result)
+        }
+    }
+
+    #[test]
+    fn test_vrint_round_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S13);
+        let sz = 0u32;
+        let test = |rounding_mode: u32| {
+            let size = combine!(
+                1111|1110|1D11|10rr|dddd|101|z|01m0|llll,
+                d,
+                rounding_mode,
+                sd,
+                sz,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::VrintCustomRoundingF32(operation::VrintCustomRoundingF32 {
+                    r: IEEE754RoundingMode::try_from(rounding_mode as u8).unwrap(),
+                    sd: rd,
+                    sm: rm
+                })
+            );
+        };
+        for rounding_mode in [0b00, 0b01, 0b10, 0b11] {
+            test(rounding_mode)
+        }
+    }
+
+    #[test]
+    fn test_vrint_round_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D13);
+        let sz = 1u32;
+        let test = |rounding_mode: u32| {
+            let size = combine!(
+                1111|1110|1D11|10rr|dddd|101|z|01m0|llll,
+                d,
+                rounding_mode,
+                sd,
+                sz,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::VrintCustomRoundingF64(operation::VrintCustomRoundingF64 {
+                    r: IEEE754RoundingMode::try_from(rounding_mode as u8).unwrap(),
+                    dd: rd,
+                    dm: rm
+                })
+            );
+        };
+        for rounding_mode in [0b00, 0b01, 0b10, 0b11] {
+            test(rounding_mode)
+        }
+    }
+
+    #[test]
+    #[ignore = "The specification makes it nearly impossible to provide a meaningfull test here."]
+    fn test_vcvt_round_f32() {}
+
+    #[test]
+    #[ignore = "The specification makes it nearly impossible to provide a meaningfull test here."]
+    fn test_vcvt_round_f64() {}
+
+    #[test]
+    fn test_vcvt_fixed_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let sz = 0u32;
+        let test = |op: u32,
+                    u: u32,
+                    sx: u32,
+                    imm5: u32,
+                    source: ConversionArgument,
+                    dest: ConversionArgument| {
+            let size = combine!(
+                1110|1110|1D11|1o1u|dddd|101|s|x|1i0|llll,
+                d,
+                op,
+                u,
+                sd,
+                sz,
+                sx,
+                imm5 & 0b1u32,
+                imm5 >> 1u32
+            );
+
+            check_eq!(
+                size,
+                Operation::Vcvt(operation::Vcvt {
+                    r: None,
+                    dest,
+                    sm: source,
+                    fbits: Some(if sx == 0 { 16 } else { 32 } - imm5)
+                })
+            );
+        };
+        for (op, u, sx, imm5, source, dest) in [
+            (
+                0b0u32,
+                0b0u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::I16(rd.clone()),
+                ConversionArgument::F32(rd),
+            ),
+            (
+                0b1u32,
+                0b0u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::F32(rd.clone()),
+                ConversionArgument::I16(rd),
+            ),
+            (
+                0b0u32,
+                0b1u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::U16(rd.clone()),
+                ConversionArgument::F32(rd),
+            ),
+            (
+                0b1u32,
+                0b1u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::F32(rd.clone()),
+                ConversionArgument::U16(rd),
+            ),
+            (
+                0b0u32,
+                0b0u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::I32(rd.clone()),
+                ConversionArgument::F32(rd),
+            ),
+            (
+                0b1u32,
+                0b0u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::F32(rd.clone()),
+                ConversionArgument::I32(rd),
+            ),
+            (
+                0b0u32,
+                0b1u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::U32(rd.clone()),
+                ConversionArgument::F32(rd),
+            ),
+            (
+                0b1u32,
+                0b1u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::F32(rd.clone()),
+                ConversionArgument::U32(rd),
+            ),
+        ] {
+            test(op, u, sx, imm5, source, dest)
+        }
+    }
+
+    #[test]
+    fn test_vcvt_fixed_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let sz = 1u32;
+        let test = |op: u32,
+                    u: u32,
+                    sx: u32,
+                    imm5: u32,
+                    source: ConversionArgument,
+                    dest: ConversionArgument| {
+            let size = combine!(
+                1110|1110|1D11|1o1u|dddd|101|s|x|1i0|llll,
+                d,
+                op,
+                u,
+                sd,
+                sz,
+                sx,
+                imm5 & 0b1u32,
+                imm5 >> 1u32
+            );
+
+            check_eq!(
+                size,
+                Operation::Vcvt(operation::Vcvt {
+                    r: None,
+                    dest,
+                    sm: source,
+                    fbits: Some(if sx == 0 { 16 } else { 32 } - imm5)
+                })
+            );
+        };
+        for (op, u, sx, imm5, source, dest) in [
+            (
+                0b0u32,
+                0b0u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::I16F64(rd.clone()),
+                ConversionArgument::F64(rd),
+            ),
+            (
+                0b1u32,
+                0b0u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::F64(rd.clone()),
+                ConversionArgument::I16F64(rd),
+            ),
+            (
+                0b0u32,
+                0b1u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::U16F64(rd.clone()),
+                ConversionArgument::F64(rd),
+            ),
+            (
+                0b1u32,
+                0b1u32,
+                0b0u32,
+                0b10111u32,
+                ConversionArgument::F64(rd.clone()),
+                ConversionArgument::U16F64(rd),
+            ),
+            (
+                0b0u32,
+                0b0u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::I32F64(rd.clone()),
+                ConversionArgument::F64(rd),
+            ),
+            (
+                0b1u32,
+                0b0u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::F64(rd.clone()),
+                ConversionArgument::I32F64(rd),
+            ),
+            (
+                0b0u32,
+                0b1u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::U32F64(rd.clone()),
+                ConversionArgument::F64(rd),
+            ),
+            (
+                0b1u32,
+                0b1u32,
+                0b1u32,
+                0b10111u32,
+                ConversionArgument::F64(rd.clone()),
+                ConversionArgument::U32F64(rd),
+            ),
+        ] {
+            test(op, u, sx, imm5, source, dest)
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::format, usize};
+use std::{collections::HashMap, usize};
 
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
@@ -12,9 +12,7 @@ struct Mask {
 impl Parse for Mask {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let ident: Ident = input.parse()?;
-        println!("Input {}", input);
         let _: Token![=>] = input.parse()?;
-        println!("Input {}", input.to_string());
         let span = input.span();
         let input_string = input.to_string();
         let _: Expr = input.parse()?;
@@ -24,7 +22,6 @@ impl Parse for Mask {
             .chars()
             .filter(|el| !ignored.contains(el))
             .collect::<String>();
-        println!("Input {}", input_string);
         if input_string.len() != 32 {
             return Err(syn::Error::new(
                 span,
@@ -42,7 +39,6 @@ impl Parse for Mask {
                     return Err(syn::Error::new(span, "Input is longer than 32 bits"));
                 }
             };
-            println!("{idx} => {char}");
             if char == 'x' {
                 continue;
             }
@@ -54,7 +50,6 @@ impl Parse for Mask {
                     parsing = Some((char, (idx, None)));
                 }
                 Some((c, (start, Some(end)))) if c == char => {
-                    println!("{idx} => {char} {end}");
                     if end != idx + 1 {
                         return Err(syn::Error::new(
                             span,
@@ -81,9 +76,7 @@ impl Parse for Mask {
 
 #[proc_macro]
 pub fn extract_fields(input: TokenStream) -> TokenStream {
-    println!("Input : {}", input.to_string());
     let mask = parse_macro_input!(input as Mask);
-    println!("Constructed mask!");
     let mut idents = Vec::with_capacity(mask.fields.len());
     let mut zero = Vec::with_capacity(mask.fields.len());
     let mut mask_calls = Vec::with_capacity(mask.fields.len());
@@ -100,7 +93,6 @@ pub fn extract_fields(input: TokenStream) -> TokenStream {
         ret_calls.push(quote!(#key));
         zero.push(quote!(#key: 0));
         mask_calls.push(quote!(self.#key = Self::mask::<#end, #start>(value)));
-        println!("{key} -> {end}:{start}");
     }
 
     let ident = mask.ident;
@@ -132,7 +124,6 @@ pub fn extract_fields(input: TokenStream) -> TokenStream {
             Parsed::zero().parse(#ident)
         }
     };
-    println!("Ret : {}", ret.to_string());
     ret.into()
 }
 
@@ -175,8 +166,6 @@ impl Parse for Comparison {
                 }
             }
         }
-        println!("str_input:{str_input}");
-        println!("Mask: {mask:#08b}, expected {expected:#08b}");
         Ok(Self {
             ident,
             mask,
@@ -193,7 +182,6 @@ pub fn compare(input: TokenStream) -> TokenStream {
     let ret = quote! {
         ((#ident&#mask) == #expected)
     };
-    println!("Compare ret : {}", ret.to_string());
     ret.into()
 }
 
@@ -213,13 +201,6 @@ impl Parse for Combiner {
             .chars()
             .filter(|el| !IGNORED.contains(el))
             .collect::<String>();
-        println!("bit_str: {}", bit_str);
-        if bit_str.len() != 32 {
-            return Err(syn::Error::new(
-                bit_str_e.span(),
-                &format!("Expected 32 chars got {} chars", bit_str.len()),
-            ));
-        }
         let _: Token![,] = input.parse()?;
 
         let idents = input
@@ -268,10 +249,11 @@ impl Parse for Combiner {
         if let Some(val) = parsing {
             args.push(val);
         }
-        println!("Found {idents:?} {args:?} {accumulator:#32b}");
         if idents.len() != args.len() {
-            println!("Expected {} arguments got {}", args.len(), idents.len());
-            panic!()
+            return Err(syn::Error::new(
+                bit_str_e.span(),
+                &format!("Expected {} arguments got {}", args.len(), idents.len()),
+            ));
         }
         Ok(Self {
             args,
@@ -325,6 +307,5 @@ pub fn combine(input: TokenStream) -> TokenStream {
         }
     };
 
-    println!("Ret : {}", ret.to_string());
     ret.into()
 }

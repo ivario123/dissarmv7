@@ -64,6 +64,7 @@ instruction!(
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         sn      as u8   : u8            : 16 -> 19 ,
+        t2      as u8   : bool          : 21 -> 21 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
     VNMULF64 : {
@@ -74,6 +75,7 @@ instruction!(
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         dn      as u8   : u8            : 16 -> 19 ,
+        t2      as u8   : bool          : 21 -> 21 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
     VMULF32 : {
@@ -446,8 +448,10 @@ impl Parse for A6_5 {
             );
             println!("Word : {word:#32b}");
             println!("Size : {size:#32b}");
+            println!("opc1 : {opc1:#32b}");
             assert!(size == word);
         }
+
         if ((opc1 & 8u32) == 0u32) && t == 1 {
             //compare!(opc1 == 0xxx) && t == 1 {
             if sz == 0 {
@@ -477,7 +481,7 @@ impl Parse for A6_5 {
         }
 
         if compare!(opc1 == 0x10) && t == 0 && compare!(opc3 == x1) && sz == 1 {
-            return Self::parse_vnmulf32(iter);
+            return Self::parse_vnmulf64(iter);
         }
 
         if compare!(opc1 == 0x10) && t == 0 && compare!(opc3 == x0) && sz == 0 {
@@ -485,7 +489,7 @@ impl Parse for A6_5 {
         }
 
         if compare!(opc1 == 0x10) && t == 0 && compare!(opc3 == x0) && sz == 1 {
-            return Self::parse_vmulf32(iter);
+            return Self::parse_vmulf64(iter);
         }
 
         if compare!(opc1 == 0x11) && t == 0 && compare!(opc3 == x0) && sz == 0 {
@@ -512,11 +516,15 @@ impl Parse for A6_5 {
             return Self::parse_vdivf64(iter);
         }
 
-        if compare!(opc1 == 1x00) && t == 1 && compare!(opc3 == x0) && sz == 0 {
+        // NOTE: Spec is unclear whehter or not to disregard opc3 here, I will as it
+        // does not work if one conciders it.
+        if compare!(opc1 == 1x00) && t == 1 && sz == 0 {
             return Self::parse_vxnmf32(iter);
         }
 
-        if compare!(opc1 == 1x00) && t == 1 && compare!(opc3 == x0) && sz == 1 {
+        // NOTE: Spec is unclear whehter or not to disregard opc3 here, I will as it
+        // does not work if one conciders it.
+        if compare!(opc1 == 1x00) && t == 1 && sz == 1 {
             return Self::parse_vxnmf64(iter);
         }
 
@@ -758,15 +766,21 @@ fn vfpexpandimm64(imm8: u8) -> u64 {
 
 macro_rules! r32 {
     ($base:ident,$offset:ident) => {
+        {
+        println!("32_Register : {:#08b}, {},{}",b!(($base; 4), ($offset<0>)),$base,$offset);
         F32Register::try_from(b!(($base; 4), ($offset<0>)))
         .expect("Failed to parse f32 register")
+        }
     };
 }
 
 macro_rules! r64 {
     ($base:ident,$offset:ident) => {
+        {
+        println!("64_Register : {:#08b}, {},{}",b!(($offset<0>),($base; 4)),$base,$offset);
         F64Register::try_from(b!(($offset<0>),($base; 4)))
         .expect("Failed to parse f64 register")
+        }
     };
 }
 
@@ -865,9 +879,10 @@ impl ToOperation for A6_5 {
                 sz: _,
                 sd,
                 sn,
+                t2,
                 d,
-            }) => Operation::VnmlF32(operation::VnmlF32 {
-                y: op,
+            }) if !t2 => Operation::VnmlF32(operation::VnmlF32 {
+                add: op,
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))
                     .expect("Failed to parse f32 register in VNMULF32"),
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))
@@ -883,11 +898,52 @@ impl ToOperation for A6_5 {
                 sz: _,
                 dd,
                 dn,
+                t2,
                 d,
-            }) => Operation::VnmlF64(operation::VnmlF64 {
-                y: op,
+            }) if !t2 => Operation::VnmlF64(operation::VnmlF64 {
+                add: op,
                 dd: F64Register::try_from(b!((d<0>),(dd; 4)))
                     .expect("Failed to parse f64 register in VNMULF64"),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
+                    .expect("Failed to parse f32 register in VNMULF64"),
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
+                    .expect("Failed to parse f32 register in VNMULF64"),
+            }),
+            Self::VNMULF32(VNMULF32 {
+                sm,
+                m,
+                op: _,
+                n,
+                sz: _,
+                sd,
+                sn,
+                t2: _,
+                d,
+            }) => Operation::VnmulF32(operation::VnmulF32 {
+                sd: Some(
+                    F32Register::try_from(b!((sd; 4), (d<0>)))
+                        .expect("Failed to parse f32 register in VNMULF32"),
+                ),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))
+                    .expect("Failed to parse f32 register in VNMULF32"),
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
+                    .expect("Failed to parse f32 register in VNMULF32"),
+            }),
+            Self::VNMULF64(VNMULF64 {
+                dm,
+                m,
+                op: _,
+                n,
+                sz: _,
+                dd,
+                dn,
+                t2: _,
+                d,
+            }) => Operation::VnmulF64(operation::VnmulF64 {
+                dd: Some(
+                    F64Register::try_from(b!((d<0>),(dd; 4)))
+                        .expect("Failed to parse f64 register in VNMULF64"),
+                ),
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))
                     .expect("Failed to parse f32 register in VNMULF64"),
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))
@@ -1226,14 +1282,14 @@ impl ToOperation for A6_5 {
             Self::VCVTXF32(VCVTXF32 {
                 sm,
                 t,
-                op: _,
+                op,
                 m,
                 sz: _,
                 sd,
                 d,
             }) => Operation::VcvtF32(operation::VcvtF32 {
-                y: t,
-                convert_from_half: false,
+                top: t,
+                convert_from_half: !op,
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))
                     .expect("Failed to parse f32 register in VSQRTF32"),
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))
@@ -1249,28 +1305,16 @@ impl ToOperation for A6_5 {
                 d,
             }) => match op {
                 false => Operation::VcvtF64(operation::VcvtF64 {
-                    y: t,
+                    top: t,
                     convert_from_half: !op,
-                    dd: F32OrF64::F64(
-                        F64Register::try_from(b!((d<0>), (dd; 4)))
-                            .expect("Failed to parse f64 register in VCVTXF64"),
-                    ),
-                    dm: F32OrF64::F32(
-                        F32Register::try_from(b!((dm; 4), (m<0>)))
-                            .expect("Failed to parse f32 register in VCVTXF64"),
-                    ),
+                    dd: F32OrF64::F64(r64!(dd, d)),
+                    dm: F32OrF64::F32(r32!(dm, m)),
                 }),
                 true => Operation::VcvtF64(operation::VcvtF64 {
-                    y: t,
+                    top: t,
                     convert_from_half: !op,
-                    dd: F32OrF64::F32(
-                        F32Register::try_from(b!((dd; 4), (d<0>)))
-                            .expect("Failed to parse f32 register in VCVTXF64"),
-                    ),
-                    dm: F32OrF64::F64(
-                        F64Register::try_from(b!((m<0>), (dm; 4)))
-                            .expect("Failed to parse f64 register in VCVTXF64"),
-                    ),
+                    dd: F32OrF64::F32(r32!(dd, d)),
+                    dm: F32OrF64::F64(r64!(dm, m)),
                 }),
             },
             Self::VCMPREGF32(VCMPREGF32 {
@@ -1607,7 +1651,10 @@ mod test {
 
     use crate::{
         arch::register::{F32Register, F64Register},
-        asm::Mask,
+        asm::{
+            b32::float::{vfpexpandimm32, vfpexpandimm64},
+            Mask,
+        },
         prelude::*,
     };
 
@@ -1623,8 +1670,8 @@ mod test {
     macro_rules! r64 {
         ($idx:ident) => {{
             let s = u8::from(F64Register::$idx) as u32;
-            let bit = s & 8;
-            let s = s & 0b0111;
+            let bit = s & 0b10000;
+            let s = s & 0b1111;
             (F64Register::$idx, s, bit)
         }};
     }
@@ -1762,5 +1809,871 @@ mod test {
                 dm: rm
             })
         );
+    }
+
+    #[test]
+    fn test_vnmlx_f32_t1() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 01 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmlF32(operation::VnmlF32 {
+                add: true,
+                sd: rd,
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+    #[test]
+    fn test_vnmlx_f32_t1_2() {
+        let (rm, sm, m) = r32!(S1);
+        let (rd, sd, d) = r32!(S3);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let op = 0;
+        let size = combine!(
+            1110 | 11100 | a | 01 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmlF32(operation::VnmlF32 {
+                add: false,
+                sd: rd,
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+    #[test]
+    fn test_vnmlx_f32_t2() {
+        let (rm, sm, m) = r32!(S1);
+        let (rd, sd, d) = r32!(S3);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 10 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmulF32(operation::VnmulF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vnmlx_f64_t1() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 01 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmlF64(operation::VnmlF64 {
+                add: true,
+                dd: rd,
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+    #[test]
+    fn test_vnmlx_f64_t1_2() {
+        let (rm, sm, m) = r64!(D1);
+        let (rd, sd, d) = r64!(D3);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let op = 0;
+        let size = combine!(
+            1110 | 11100 | a | 01 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmlF64(operation::VnmlF64 {
+                add: false,
+                dd: rd,
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+    #[test]
+    fn test_vnmlx_f64_t2() {
+        let (rm, sm, m) = r64!(D1);
+        let (rd, sd, d) = r64!(D3);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let op = 1;
+        let size = combine!(
+            1110 | 11100 | a | 10 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnmulF64(operation::VnmulF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmul_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let size = combine!(
+            1110 | 11100 | a | 10 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmulF32(operation::VmulF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmul_f64() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110 | 11100 | a | 10 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmulF64(operation::VmulF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vadd_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let size = combine!(
+            1110 | 11100 | a | 11 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VaddF32(operation::VaddF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vadd_f64() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110 | 11100 | a | 11 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VaddF64(operation::VaddF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vsub_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let size = combine!(
+            1110 | 11100 | a | 11 | cccc | dddd | 101 | e | f | 1 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VsubF32(operation::VsubF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vsub_f64() {
+        let (rm, sm, m) = r64!(D5);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110 | 11100 | a | 11 | cccc | dddd | 101 | e | f | 1 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VsubF64(operation::VsubF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vdiv_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let size = combine!(
+            1110 | 11101 | a | 00 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VdivF32(operation::VdivF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vdiv_f64() {
+        let (rm, sm, m) = r64!(D5);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110 | 11101 | a | 00 | cccc | dddd | 101 | e | f | 0 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VdivF64(operation::VdivF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+    #[test]
+    #[should_panic]
+    /// This test contains a bitflip on index 6
+    fn test_vdiv_f32_invalid() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let sz = 0u32;
+        let size = combine!(
+            1110 | 11101 | a | 00 | cccc | dddd | 101 | e | f | 1 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VdivF32(operation::VdivF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    /// This test contains a bitflip on index 6
+    fn test_vdiv_f64_invalid() {
+        let (rm, sm, m) = r64!(D5);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110 | 11101 | a | 00 | cccc | dddd | 101 | e | f | 1 | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VdivF64(operation::VdivF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmin_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let op = 1;
+        let sz = 0u32;
+        let size = combine!(
+            1111 | 11101 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VminF32(operation::VminF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmax_f32() {
+        let (rm, sm, m) = r32!(S0);
+        let (rd, sd, d) = r32!(S1);
+        let (rn, sn, n) = r32!(S2);
+        let op = 0;
+        let sz = 0u32;
+        let size = combine!(
+            1111 | 11101 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmaxF32(operation::VmaxF32 {
+                sd: Some(rd),
+                sn: rn,
+                sm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmin_f64() {
+        let (rm, sm, m) = r64!(D0);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let op = 1;
+        let sz = 1u32;
+        let size = combine!(
+            1111 | 11101 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VminF64(operation::VminF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmax_f64() {
+        let (rm, sm, m) = r64!(D5);
+        let (rd, sd, d) = r64!(D1);
+        let (rn, sn, n) = r64!(D2);
+        let op = 0;
+        let sz = 1u32;
+        let size = combine!(
+            1111 | 11101 | a | 00 | cccc | dddd | 101 | e | f | g | h | 0 | iiii,
+            d,
+            sn,
+            sd,
+            sz,
+            n,
+            op,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmaxF64(operation::VmaxF64 {
+                dd: Some(rd),
+                dn: rn,
+                dm: rm
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmove_immediate_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let imm4l = 0b1101;
+        let imm4h = 0b1101;
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|hhhh|dddd|101|z|0000|llll,
+            d,
+            imm4h,
+            sd,
+            sz,
+            imm4l
+        );
+
+        check_eq!(
+            size,
+            Operation::VmovImmediateF32(operation::VmovImmediateF32 {
+                sd: rd,
+                imm: vfpexpandimm32(0b11011101)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmove_immediate_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let imm4l = 0b1101;
+        let imm4h = 0b1101;
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|hhhh|dddd|101|z|0000|llll,
+            d,
+            imm4h,
+            sd,
+            sz,
+            imm4l
+        );
+
+        check_eq!(
+            size,
+            Operation::VmovImmediateF64(operation::VmovImmediateF64 {
+                dd: rd,
+                imm: vfpexpandimm64(0b11011101)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vmove_register_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|0000|dddd|101|z|01m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmovRegisterF32(operation::VmovRegisterF32 { sd: rd, sm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vmove_register_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|0000|dddd|101|z|01m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VmovRegisterF64(operation::VmovRegisterF64 { dd: rd, dm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vabs_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|0000|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VabsF32(operation::VabsF32 { sd: rd, sm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vabs_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|0000|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VabsF64(operation::VabsF64 { dd: rd, dm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vneg_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|0001|dddd|101|z|01m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnegF32(operation::VnegF32 { sd: rd, sm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vneg_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|0001|dddd|101|z|01m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VnegF64(operation::VnegF64 { dd: rd, dm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vsqrt_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|0001|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VsqrtF32(operation::VsqrtF32 { sd: rd, sm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vsqrt_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D2);
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|0001|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VsqrtF64(operation::VsqrtF64 { dd: rd, dm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vcvt_y_f32() {
+        fn test(op: u32, t: u32) {
+            let (rd, sd, d) = r32!(S13);
+            let (rm, sm, m) = r32!(S1);
+
+            let sz = 0u32;
+            let size = combine!(
+                1110|1110|1D11|001o|dddd|101|z|t1m0|llll,
+                d,
+                op,
+                sd,
+                sz,
+                t,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::VcvtF32(operation::VcvtF32 {
+                    top: t == 1,
+                    convert_from_half: op == 0,
+                    sd: rd,
+                    sm: rm
+                })
+            );
+        }
+        for (op, t) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+            test(op, t)
+        }
+    }
+    #[test]
+    fn test_vcvt_y_f64() {
+        fn test(op: u32, t: u32) {
+            if op == 1 {
+                let (rm, sm, m) = r64!(D14);
+                let (rd, sd, d) = r32!(S13);
+
+                let sz = 1u32;
+                let size = combine!(
+                    1110|1110|1D11|001o|dddd|101|z|t1m0|llll,
+                    d,
+                    op,
+                    sd,
+                    sz,
+                    t,
+                    m,
+                    sm
+                );
+                println!("rm(64) : {:#08b},{},{}", u8::from(rm), sm, m);
+                println!("rd(32) : {:#08b},{},{}", u8::from(rd), sd, d);
+
+                check_eq!(
+                    size,
+                    Operation::VcvtF64(operation::VcvtF64 {
+                        top: t == 1,
+                        convert_from_half: op == 0,
+                        dm: operation::F32OrF64::F64(rm),
+                        dd: operation::F32OrF64::F32(rd)
+                    })
+                );
+            } else {
+                let (rm, sm, m) = r32!(S13);
+                let (rd, sd, d) = r64!(D1);
+                let sz = 1u32;
+                let size = combine!(
+                    1110|1110|1D11|001o|dddd|101|z|t1m0|llll,
+                    d,
+                    op,
+                    sd,
+                    sz,
+                    t,
+                    m,
+                    sm
+                );
+                println!("rm : {:#08b},{:#08b},{:#08b}", u8::from(rm), sm, m);
+                println!("rd : {:#08b},{:#08b},{:#08b}", u8::from(rd), sd, d);
+
+                check_eq!(
+                    size,
+                    Operation::VcvtF64(operation::VcvtF64 {
+                        top: t == 1,
+                        convert_from_half: op == 0,
+                        dm: operation::F32OrF64::F32(rm),
+                        dd: operation::F32OrF64::F64(rd)
+                    })
+                );
+            }
+        }
+        for (op, t) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+            test(op, t)
+        }
     }
 }

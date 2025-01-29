@@ -482,8 +482,8 @@ operation!(
     VmlF32<add:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
     VmlF64<add:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
 
-    VnmlF32<y:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
-    VnmlF64<y:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
+    VnmlF32<add:bool>, <sd:F32Register>, <sn:F32Register>, <sm:F32Register>
+    VnmlF64<add:bool>, <dd:F64Register>, <dn:F64Register>, <dm:F64Register>
 
     VnmulF32 {sd:F32Register}, <sn:F32Register>, <sm:F32Register>
     VnmulF64 {dd:F64Register}, <dn:F64Register>, <dm:F64Register>
@@ -521,8 +521,8 @@ operation!(
     VsqrtF32 <sd:F32Register>, <sm:F32Register>
     VsqrtF64 <dd:F64Register>, <dm:F64Register>
 
-    VcvtF32<y:bool>, <convert_from_half:bool>,  <sd:F32Register>, <sm: F32Register>
-    VcvtF64<y:bool>, <convert_from_half:bool>,  <dd:F32OrF64>, <dm: F32OrF64>
+    VcvtF32<top:bool>, <convert_from_half:bool>,  <sd:F32Register>, <sm: F32Register>
+    VcvtF64<top:bool>, <convert_from_half:bool>,  <dd:F32OrF64>, <dm: F32OrF64>
 
 
     VcmpF32{e:bool},  <sd:F32Register>, <sm: F32Register>

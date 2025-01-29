@@ -158,8 +158,8 @@ impl Parse for A5_24 {
 }
 
 impl ToOperation for A5_24 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Lsl(el) => operation::LslRegister::builder()
                 .set_s(Some(el.s.into()))
                 .set_rd(el.rd)
@@ -266,10 +266,10 @@ impl ToOperation for A5_24 {
                 .set_rotation(Some(<arch::Imm2 as Into<u32>>::into(el.rotate) << 3))
                 .complete()
                 .into(),
-            Self::SubtableA5_25(el) => el.encoding_specific_operations(),
-            Self::SubtableA5_26(el) => el.encoding_specific_operations(),
-            Self::SubtableA5_27(el) => el.encoding_specific_operations(),
-        }
+            Self::SubtableA5_25(el) => el.encoding_specific_operations()?,
+            Self::SubtableA5_26(el) => el.encoding_specific_operations()?,
+            Self::SubtableA5_27(el) => el.encoding_specific_operations()?,
+        })
     }
 }
 

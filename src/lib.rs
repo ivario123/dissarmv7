@@ -180,7 +180,7 @@ pub trait Parse {
 
 pub(crate) trait ToOperation {
     /// Translates the encoded value in to a [`Operation`] instruction
-    fn encoding_specific_operations(self) -> crate::operation::Operation;
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError>;
 }
 
 #[derive(Debug)]

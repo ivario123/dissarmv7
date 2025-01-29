@@ -87,8 +87,8 @@ impl Parse for A5_16 {
 }
 
 impl ToOperation for A5_16 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Stm(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
@@ -147,7 +147,7 @@ impl ToOperation for A5_16 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

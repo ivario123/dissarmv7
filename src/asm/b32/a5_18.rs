@@ -79,8 +79,8 @@ impl Parse for A5_18 {
 }
 
 impl ToOperation for A5_18 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::LdrImmediateT3(el) => operation::LdrImmediate::builder()
                 .set_w(Some(false))
                 .set_add(true)
@@ -123,7 +123,7 @@ impl ToOperation for A5_18 {
                 .set_imm(el.imm12.into())
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

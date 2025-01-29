@@ -103,8 +103,8 @@ impl Parse for A5_21 {
     }
 }
 impl ToOperation for A5_21 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::StrbT2(el) => operation::StrbImmediate::builder()
                 .set_w(Some(false))
                 .set_index(Some(true))
@@ -189,7 +189,7 @@ impl ToOperation for A5_21 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

@@ -44,8 +44,8 @@ impl Parse for A5_7 {
 }
 
 impl ToOperation for A5_7 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::It(it) => operation::It::builder()
                 .set_conds((it.firstcond, it.mask).into())
                 .complete()
@@ -55,7 +55,7 @@ impl ToOperation for A5_7 {
             Self::Wfe(_) => operation::Wfe::builder().complete().into(),
             Self::Wfi(_) => operation::Wfi::builder().complete().into(),
             Self::Sev(_) => operation::Sev::builder().complete().into(),
-        }
+        })
     }
 }
 

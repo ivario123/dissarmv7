@@ -119,8 +119,8 @@ instruction_5_3!(
 );
 
 impl ToOperation for A5_3 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::And(and) => operation::AndRegisterBuilder::new()
                 .set_s(Some(arch::SetFlags::InITBlock(false)))
                 .set_rd(None)
@@ -236,7 +236,7 @@ impl ToOperation for A5_3 {
                 .set_shift(None)
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

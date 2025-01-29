@@ -31,35 +31,35 @@ impl B16 {
         .mask::<10, 15>();
 
         match opcode {
-            0b010000 => return Ok(A5_3::parse(iter)?.encoding_specific_operations()),
-            0b010001 => return Ok(A5_4::parse(iter)?.encoding_specific_operations()),
+            0b010000 => return A5_3::parse(iter)?.encoding_specific_operations(),
+            0b010001 => return A5_4::parse(iter)?.encoding_specific_operations(),
             _ => {}
         };
 
         match opcode >> 1 {
-            0b01001 => return Ok(simply_defined::Ldr::parse(iter)?.encoding_specific_operations()),
-            0b10100 => return Ok(simply_defined::Adr::parse(iter)?.encoding_specific_operations()),
-            0b10101 => return Ok(simply_defined::Add::parse(iter)?.encoding_specific_operations()),
-            0b11000 => return Ok(simply_defined::Stm::parse(iter)?.encoding_specific_operations()),
-            0b11001 => return Ok(simply_defined::Ldm::parse(iter)?.encoding_specific_operations()),
-            0b11100 => return Ok(simply_defined::B::parse(iter)?.encoding_specific_operations()),
+            0b01001 => return simply_defined::Ldr::parse(iter)?.encoding_specific_operations(),
+            0b10100 => return simply_defined::Adr::parse(iter)?.encoding_specific_operations(),
+            0b10101 => return simply_defined::Add::parse(iter)?.encoding_specific_operations(),
+            0b11000 => return simply_defined::Stm::parse(iter)?.encoding_specific_operations(),
+            0b11001 => return simply_defined::Ldm::parse(iter)?.encoding_specific_operations(),
+            0b11100 => return simply_defined::B::parse(iter)?.encoding_specific_operations(),
 
             _ => {}
         };
 
         match opcode >> 2 {
-            0b0101 => return Ok(A5_5::parse(iter)?.encoding_specific_operations()),
-            0b1011 => return Ok(A5_6::parse(iter)?.encoding_specific_operations()),
-            0b1101 => return Ok(A5_8::parse(iter)?.encoding_specific_operations()),
+            0b0101 => return A5_5::parse(iter)?.encoding_specific_operations(),
+            0b1011 => return A5_6::parse(iter)?.encoding_specific_operations(),
+            0b1101 => return A5_8::parse(iter)?.encoding_specific_operations(),
             _ => {}
         };
 
         if opcode >> 3 == 0b011 || opcode >> 3 == 0b100 {
-            return Ok(A5_5::parse(iter)?.encoding_specific_operations());
+            return A5_5::parse(iter)?.encoding_specific_operations();
         }
 
         if opcode >> 4 == 0 {
-            return Ok(A5_2::parse(iter)?.encoding_specific_operations());
+            return A5_2::parse(iter)?.encoding_specific_operations();
         }
         Err(ParseError::Invalid16Bit("Half word"))
     }

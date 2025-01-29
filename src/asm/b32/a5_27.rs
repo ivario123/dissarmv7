@@ -98,10 +98,10 @@ impl Parse for A5_27 {
 }
 
 impl ToOperation for A5_27 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
         use A5_27::*;
 
-        match self {
+        Ok(match self {
             Qadd(el) => operation::QaddBuilder::new()
                 .set_rd(Some(el.rd))
                 .set_rm(el.rm)
@@ -157,7 +157,7 @@ impl ToOperation for A5_27 {
                 .set_rm(el.rm)
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

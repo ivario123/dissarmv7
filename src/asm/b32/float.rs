@@ -797,8 +797,8 @@ macro_rules! int{
 }
 
 impl ToOperation for A6_5 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::VSELF32(VSELF32 {
                 sm,
                 m,
@@ -809,13 +809,10 @@ impl ToOperation for A6_5 {
                 cc,
                 d,
             }) => Operation::VselF32(VselF32 {
-                cond: Some(Condition::try_from(((cc >> 1) ^ (cc & 0b1)) << 1).unwrap()),
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in vmove"),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in vmove"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in vmove"),
+                cond: Some(Condition::try_from(((cc >> 1) ^ (cc & 0b1)) << 1)?),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VSELF64(VSELF64 {
                 dm,
@@ -827,13 +824,12 @@ impl ToOperation for A6_5 {
                 cc,
                 d,
             }) => Operation::VselF64(VselF64 {
-                cond: Some(Condition::try_from((cc << 2) | ((cc >> 1) ^ (cc & 0b1)) << 1).unwrap()),
-                dd: F64Register::try_from(b!((d<0>), (dd; 4)))
-                    .expect("Failed to parse f64 register in vmove"),
-                dn: F64Register::try_from(b!((n<0>), (dn; 4)))
-                    .expect("Failed to parse f64 register in vmove"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f64 register in vmove"),
+                cond: Some(Condition::try_from(
+                    (cc << 2) | ((cc >> 1) ^ (cc & 0b1)) << 1,
+                )?),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4)))?,
+                dn: F64Register::try_from(b!((n<0>), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VMLXF32(VMLXF32 {
                 sm,
@@ -846,12 +842,9 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VmlF32(operation::VmlF32 {
                 add: !op,
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VMLXF32"),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VMLXF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VMLXF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VMLXF64(VMLXF64 {
                 dm,
@@ -864,12 +857,9 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VmlF64(operation::VmlF64 {
                 add: !op,
-                dd: F64Register::try_from(b!((d<0>),(dd; 4)))
-                    .expect("Failed to parse f64 register in VMLXF64"),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f32 register in VMLXF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f32 register in VMLXF64"),
+                dd: F64Register::try_from(b!((d<0>),(dd; 4)))?,
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VNMULF32(VNMULF32 {
                 sm,
@@ -883,12 +873,9 @@ impl ToOperation for A6_5 {
                 d,
             }) if !t2 => Operation::VnmlF32(operation::VnmlF32 {
                 add: op,
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VNMULF32"),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VNMULF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VNMULF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VNMULF64(VNMULF64 {
                 dm,
@@ -902,12 +889,9 @@ impl ToOperation for A6_5 {
                 d,
             }) if !t2 => Operation::VnmlF64(operation::VnmlF64 {
                 add: op,
-                dd: F64Register::try_from(b!((d<0>),(dd; 4)))
-                    .expect("Failed to parse f64 register in VNMULF64"),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f32 register in VNMULF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f32 register in VNMULF64"),
+                dd: F64Register::try_from(b!((d<0>),(dd; 4)))?,
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VNMULF32(VNMULF32 {
                 sm,
@@ -920,14 +904,9 @@ impl ToOperation for A6_5 {
                 t2: _,
                 d,
             }) => Operation::VnmulF32(operation::VnmulF32 {
-                sd: Some(
-                    F32Register::try_from(b!((sd; 4), (d<0>)))
-                        .expect("Failed to parse f32 register in VNMULF32"),
-                ),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VNMULF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VNMULF32"),
+                sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VNMULF64(VNMULF64 {
                 dm,
@@ -940,14 +919,9 @@ impl ToOperation for A6_5 {
                 t2: _,
                 d,
             }) => Operation::VnmulF64(operation::VnmulF64 {
-                dd: Some(
-                    F64Register::try_from(b!((d<0>),(dd; 4)))
-                        .expect("Failed to parse f64 register in VNMULF64"),
-                ),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f32 register in VNMULF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f32 register in VNMULF64"),
+                dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VMULF32(VMULF32 {
                 sm,
@@ -958,14 +932,9 @@ impl ToOperation for A6_5 {
                 sn,
                 d,
             }) => Operation::VmulF32(operation::VmulF32 {
-                sd: Some(
-                    F32Register::try_from(b!((sd; 4), (d<0>)))
-                        .expect("Failed to parse f32 register in VMULF32"),
-                ),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VMULF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VMULF32"),
+                sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VMULF64(VMULF64 {
                 dm,
@@ -976,14 +945,9 @@ impl ToOperation for A6_5 {
                 dn,
                 d,
             }) => Operation::VmulF64(operation::VmulF64 {
-                dd: Some(
-                    F64Register::try_from(b!((d<0>),(dd; 4)))
-                        .expect("Failed to parse f64 register in VMULF64"),
-                ),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f32 register in VMULF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f32 register in VMULF64"),
+                dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VADDF32(VADDF32 {
                 sm,
@@ -994,14 +958,9 @@ impl ToOperation for A6_5 {
                 sn,
                 d,
             }) => Operation::VaddF32(operation::VaddF32 {
-                sd: Some(
-                    F32Register::try_from(b!((sd; 4), (d<0>)))
-                        .expect("Failed to parse f32 register in VADDF32"),
-                ),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VADDF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VADDF32"),
+                sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VADDF64(VADDF64 {
                 dm,
@@ -1012,14 +971,9 @@ impl ToOperation for A6_5 {
                 dn,
                 d,
             }) => Operation::VaddF64(operation::VaddF64 {
-                dd: Some(
-                    F64Register::try_from(b!((d<0>),(dd; 4)))
-                        .expect("Failed to parse f64 register in VADDF64"),
-                ),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f32 register in VADDF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f32 register in VADDF64"),
+                dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VSUBF32(VSUBF32 {
                 sm,
@@ -1030,14 +984,9 @@ impl ToOperation for A6_5 {
                 sn,
                 d,
             }) => Operation::VsubF32(operation::VsubF32 {
-                sd: Some(
-                    F32Register::try_from(b!((sd; 4), (d<0>)))
-                        .expect("Failed to parse f32 register in VSUBF32"),
-                ),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VSUBF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VSUBF32"),
+                sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VSUBF64(VSUBF64 {
                 dm,
@@ -1048,14 +997,9 @@ impl ToOperation for A6_5 {
                 dn,
                 d,
             }) => Operation::VsubF64(operation::VsubF64 {
-                dd: Some(
-                    F64Register::try_from(b!((d<0>),(dd; 4)))
-                        .expect("Failed to parse f64 register in VSUBF64"),
-                ),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f64 register in VSUBF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f64 register in VSUBF64"),
+                dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VDIVF32(VDIVF32 {
                 sm,
@@ -1066,14 +1010,9 @@ impl ToOperation for A6_5 {
                 sn,
                 d,
             }) => Operation::VdivF32(operation::VdivF32 {
-                sd: Some(
-                    F32Register::try_from(b!((sd; 4), (d<0>)))
-                        .expect("Failed to parse f32 register in VDIVF32"),
-                ),
-                sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                    .expect("Failed to parse f32 register in VDIVF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VDIVF32"),
+                sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VDIVF64(VDIVF64 {
                 dm,
@@ -1084,14 +1023,9 @@ impl ToOperation for A6_5 {
                 dn,
                 d,
             }) => Operation::VdivF64(operation::VdivF64 {
-                dd: Some(
-                    F64Register::try_from(b!((d<0>),(dd; 4)))
-                        .expect("Failed to parse f64 register in VDIVF64"),
-                ),
-                dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                    .expect("Failed to parse f64 register in VDIVF64"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                    .expect("Failed to parse f64 register in VDIVF64"),
+                dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
             Self::VXNMF32(VXNMF32 {
                 sm,
@@ -1105,25 +1039,15 @@ impl ToOperation for A6_5 {
             }) => {
                 if op {
                     Operation::VminF32(operation::VminF32 {
-                        sd: Some(
-                            F32Register::try_from(b!((sd; 4), (d<0>)))
-                                .expect("Failed to parse f32 register in VminF32"),
-                        ),
-                        sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                            .expect("Failed to parse f32 register in VminF32"),
-                        sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                            .expect("Failed to parse f32 register in VminF32"),
+                        sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                        sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                        sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
                     })
                 } else {
                     Operation::VmaxF32(operation::VmaxF32 {
-                        sd: Some(
-                            F32Register::try_from(b!((sd; 4), (d<0>)))
-                                .expect("Failed to parse f32 register in VmaxF32"),
-                        ),
-                        sn: F32Register::try_from(b!((sn; 4), (n[0])))
-                            .expect("Failed to parse f32 register in VmaxF32"),
-                        sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                            .expect("Failed to parse f32 register in VmaxF32"),
+                        sd: Some(F32Register::try_from(b!((sd; 4), (d<0>)))?),
+                        sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
+                        sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
                     })
                 }
             }
@@ -1139,25 +1063,15 @@ impl ToOperation for A6_5 {
             }) => {
                 if op {
                     Operation::VminF64(operation::VminF64 {
-                        dd: Some(
-                            F64Register::try_from(b!((d<0>),(dd; 4)))
-                                .expect("Failed to parse f64 register in VminF64"),
-                        ),
-                        dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                            .expect("Failed to parse f64 register in VminF64"),
-                        dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                            .expect("Failed to parse f64 register in VminF64"),
+                        dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                        dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                        dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
                     })
                 } else {
                     Operation::VmaxF64(operation::VmaxF64 {
-                        dd: Some(
-                            F64Register::try_from(b!((d<0>),(dd; 4)))
-                                .expect("Failed to parse f64 register in VmaxF64"),
-                        ),
-                        dn: F64Register::try_from(b!((n[0]), (dn; 4)))
-                            .expect("Failed to parse f64 register in VmaxF64"),
-                        dm: F64Register::try_from(b!((m<0>), (dm; 4)))
-                            .expect("Failed to parse f64 register in VmaxF64"),
+                        dd: Some(F64Register::try_from(b!((d<0>),(dd; 4)))?),
+                        dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
+                        dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
                     })
                 }
             }
@@ -1168,8 +1082,7 @@ impl ToOperation for A6_5 {
                 imm4h,
                 d,
             }) => Operation::VmovImmediateF32(operation::VmovImmediateF32 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VMOVIMMF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 imm: vfpexpandimm32(b!((imm4h;4),(imm4l;4)) as u8),
             }),
             Self::VMOVIMMF64(VMOVIMMF64 {
@@ -1179,8 +1092,7 @@ impl ToOperation for A6_5 {
                 imm4h,
                 d,
             }) => Operation::VmovImmediateF64(operation::VmovImmediateF64 {
-                dd: F64Register::try_from(b!((d<0>),(dd; 4)))
-                    .expect("Failed to parse f64 register in VMOVIMMF64"),
+                dd: F64Register::try_from(b!((d<0>),(dd; 4)))?,
                 imm: vfpexpandimm64(b!((imm4h;4),(imm4l;4)) as u8),
             }),
             Self::VMOVREGF32(VMOVREGF32 {
@@ -1190,10 +1102,8 @@ impl ToOperation for A6_5 {
                 sd,
                 d,
             }) => Operation::VmovRegisterF32(operation::VmovRegisterF32 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VMOVREGF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VMOVREGF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VMOVREGF64(VMOVREGF64 {
                 dm,
@@ -1202,10 +1112,8 @@ impl ToOperation for A6_5 {
                 dd,
                 d,
             }) => Operation::VmovRegisterF64(operation::VmovRegisterF64 {
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VMOVREGF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VMOVREGF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
             Self::VABSF32(VABSF32 {
                 sm,
@@ -1214,10 +1122,8 @@ impl ToOperation for A6_5 {
                 sd,
                 d,
             }) => Operation::VabsF32(operation::VabsF32 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VABSF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VABSF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VABSF64(VABSF64 {
                 dm,
@@ -1226,10 +1132,8 @@ impl ToOperation for A6_5 {
                 dd,
                 d,
             }) => Operation::VabsF64(operation::VabsF64 {
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VABSF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VABSF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
             Self::VNEGF32(VNEGF32 {
                 sm,
@@ -1238,10 +1142,8 @@ impl ToOperation for A6_5 {
                 sd,
                 d,
             }) => Operation::VnegF32(operation::VnegF32 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VMOVREGF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VMOVREGF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VNEGF64(VNEGF64 {
                 dm,
@@ -1250,10 +1152,8 @@ impl ToOperation for A6_5 {
                 dd,
                 d,
             }) => Operation::VnegF64(operation::VnegF64 {
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VMOVREGF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VMOVREGF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
             Self::VSQRTF32(VSQRTF32 {
                 sm,
@@ -1262,10 +1162,8 @@ impl ToOperation for A6_5 {
                 sd,
                 d,
             }) => Operation::VsqrtF32(operation::VsqrtF32 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VSQRTF64(VSQRTF64 {
                 dm,
@@ -1274,10 +1172,8 @@ impl ToOperation for A6_5 {
                 dd,
                 d,
             }) => Operation::VsqrtF64(operation::VsqrtF64 {
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VSQRTF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VSQRTF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
             Self::VCVTXF32(VCVTXF32 {
                 sm,
@@ -1290,10 +1186,8 @@ impl ToOperation for A6_5 {
             }) => Operation::VcvtF32(operation::VcvtF32 {
                 top: t,
                 convert_from_half: !op,
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VCVTXF64(VCVTXF64 {
                 dm,
@@ -1327,10 +1221,8 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VcmpF32(operation::VcmpF32 {
                 e: Some(e),
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VSQRTF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
 
             Self::VCMPREGF64(VCMPREGF64 {
@@ -1343,10 +1235,8 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VcmpF64(operation::VcmpF64 {
                 e: Some(e),
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VCMPREGF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VCMPREGF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
 
             Self::VCMPZEROF32(VCMPZEROF32 {
@@ -1357,8 +1247,7 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VcmpZeroF32(operation::VcmpZeroF32 {
                 e: Some(e),
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VCMPZEROF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
             }),
 
             Self::VCMPZEROF64(VCMPZEROF64 {
@@ -1369,8 +1258,7 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VcmpZeroF64(operation::VcmpZeroF64 {
                 e: Some(e),
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VCMPZEROF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
             }),
             Self::VRINTF32(VRINTF32 {
                 sm,
@@ -1381,10 +1269,8 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VrintF32(operation::VrintF32 {
                 r: Some(op),
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VRINTF32"),
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VRINTF32"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
             Self::VRINTF64(VRINTF64 {
                 dm,
@@ -1395,10 +1281,8 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VrintF64(operation::VrintF64 {
                 r: Some(op),
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VRINTF64"),
-                dm: F64Register::try_from(b!((m<0>),(dm; 4)))
-                    .expect("Failed to parse f64 register in VRINTF64"),
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
+                dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
             Self::VCVTF32F64(VCVTF32F64 {
                 dm,
@@ -1407,10 +1291,8 @@ impl ToOperation for A6_5 {
                 sd,
                 d,
             }) => Operation::VcvtF32F64(operation::VcvtF32F64 {
-                sd: F32Register::try_from(b!((sd; 4), (d<0>)))
-                    .expect("Failed to parse f32 register in VRINTF32"),
-                dm: F64Register::try_from(b!((m<0>), (dm; 4) ))
-                    .expect("Failed to parse f64 register in VRINTF64"),
+                sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
+                dm: F64Register::try_from(b!((m<0>), (dm; 4) ))?,
             }),
             Self::VCVTF64F32(VCVTF64F32 {
                 sm,
@@ -1419,10 +1301,9 @@ impl ToOperation for A6_5 {
                 dd,
                 d,
             }) => Operation::VcvtF64F32(operation::VcvtF64F32 {
-                sm: F32Register::try_from(b!((sm; 4), (m<0>)))
-                    .expect("Failed to parse f32 register in VRINTF32"),
-                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))
-                    .expect("Failed to parse f64 register in VRINTF64"),
+                sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
+
+                dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
             }),
             Self::VCVTINTXINTXFLOAT(VCVTINTXINTXFLOAT {
                 vm,
@@ -1438,7 +1319,7 @@ impl ToOperation for A6_5 {
                     true => conv!(I32, r32!(vm, m)),
                 };
                 if opc2 == 0 && sz {
-                    return Operation::Vcvt(operation::Vcvt {
+                    return Ok(Operation::Vcvt(operation::Vcvt {
                         r: Some(true),
                         dest: operation::ConversionArgument::F64(
                             F64Register::try_from(b!((d<0>), (vd; 4) ))
@@ -1446,15 +1327,15 @@ impl ToOperation for A6_5 {
                         ),
                         sm: source,
                         fbits: None,
-                    });
+                    }));
                 }
                 if opc2 == 0 {
-                    return Operation::Vcvt(operation::Vcvt {
+                    return Ok(Operation::Vcvt(operation::Vcvt {
                         r: Some(true),
                         dest: conv!(F32, r32!(vd, d)),
                         sm: source,
                         fbits: None,
-                    });
+                    }));
                 }
                 match (opc2, sz) {
                     (0b101, false) => Operation::Vcvt(operation::Vcvt {
@@ -1481,7 +1362,11 @@ impl ToOperation for A6_5 {
                         sm: conv!(F64, r64!(vm, m)),
                         fbits: None,
                     }),
-                    _ => panic!("Invalid encoding for vcvt instruction"),
+                    _ => {
+                        return Err(ParseError::Invalid32Bit(
+                            "Invalid encoding for vcvt instruction",
+                        ))
+                    }
                 }
             }
             Self::VRINTROUNDF32(VRINTROUNDF32 {
@@ -1641,7 +1526,7 @@ impl ToOperation for A6_5 {
                 },
                 dm: r64!(dm, m),
             }),
-        }
+        })
     }
 }
 

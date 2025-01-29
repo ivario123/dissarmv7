@@ -107,8 +107,8 @@ impl Parse for A5_17 {
     }
 }
 impl ToOperation for A5_17 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Strex(el) => {
                 let imm = (el.imm as u32) << 2;
                 operation::Strex::builder()
@@ -176,7 +176,7 @@ impl ToOperation for A5_17 {
                 .set_rn(el.rn)
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

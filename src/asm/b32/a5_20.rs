@@ -204,8 +204,8 @@ impl Parse for A5_20 {
 }
 
 impl ToOperation for A5_20 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::LdrbLiteral(el) => operation::LdrbLiteral::builder()
                 .set_add(Some(el.u))
                 .set_rt(el.rt)
@@ -327,7 +327,7 @@ impl ToOperation for A5_20 {
                 .into(),
             Self::PliImmediateT3(el) => operation::PliImmediate::builder()
                 .set_add(Some(el.u))
-                .set_rn(Some(Register::try_from(15_u8).unwrap()))
+                .set_rn(Some(Register::try_from(15_u8)?))
                 .set_imm(el.imm12.into())
                 .complete()
                 .into(),
@@ -340,7 +340,7 @@ impl ToOperation for A5_20 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

@@ -79,17 +79,15 @@ impl Parse for A5_23 {
     }
 }
 macro_rules! imm {
-    ($el:ident) => {
-        {
-            let (imm3,imm2) = ($el.imm3,$el.imm2);
-            combine!(imm3:imm2,2,u8)
-        }
-    };
+    ($el:ident) => {{
+        let (imm3, imm2) = ($el.imm3, $el.imm2);
+        combine!(imm3: imm2, 2, u8)
+    }};
 }
 
 impl ToOperation for A5_23 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Mov(el) => operation::MovRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(el.rd)
@@ -142,7 +140,7 @@ impl ToOperation for A5_23 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

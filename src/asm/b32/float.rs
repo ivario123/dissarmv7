@@ -617,20 +617,20 @@ impl Parse for A6_5 {
             return Self::parse_vcmpzerof64(iter);
         }
 
-        if compare!(opc2 == 011x) && compare!(opc3 == x1) && sz == 0 {
-            return Self::parse_vrintf32(iter);
-        }
-
-        if compare!(opc2 == 011x) && compare!(opc3 == x1) && sz == 1 {
-            return Self::parse_vrintf64(iter);
-        }
-
         if compare!(opc2 == 0111) && compare!(opc3 == 11) && sz == 0 {
             return Self::parse_vcvtf64f32(iter);
         }
 
         if compare!(opc2 == 0111) && compare!(opc3 == 11) && sz == 1 {
             return Self::parse_vcvtf32f64(iter);
+        }
+
+        if compare!(opc2 == 011x) && compare!(opc3 == x1) && sz == 0 {
+            return Self::parse_vrintf32(iter);
+        }
+
+        if compare!(opc2 == 011x) && compare!(opc3 == x1) && sz == 1 {
+            return Self::parse_vrintf64(iter);
         }
 
         // Handles both last and first case on page a6-166
@@ -1433,25 +1433,26 @@ impl ToOperation for A6_5 {
                 opc2,
                 d,
             }) => {
+                let source = match op {
+                    false => conv!(U32, r32!(vm, m)),
+                    true => conv!(I32, r32!(vm, m)),
+                };
                 if opc2 == 0 && sz {
                     return Operation::Vcvt(operation::Vcvt {
-                        r: Some(false),
+                        r: Some(true),
                         dest: operation::ConversionArgument::F64(
                             F64Register::try_from(b!((d<0>), (vd; 4) ))
                                 .expect("Failed to parse f64 register in Vcvt"),
                         ),
-                        sm: operation::ConversionArgument::F64(
-                            F64Register::try_from(b!((m<0>), (vm; 4) ))
-                                .expect("Failed to parse f64 register in Vcvt"),
-                        ),
+                        sm: source,
                         fbits: None,
                     });
                 }
                 if opc2 == 0 {
                     return Operation::Vcvt(operation::Vcvt {
-                        r: Some(false),
+                        r: Some(true),
                         dest: conv!(F32, r32!(vd, d)),
-                        sm: conv!(F32, r32!(vm, m)),
+                        sm: source,
                         fbits: None,
                     });
                 }
@@ -1655,6 +1656,7 @@ mod test {
             b32::float::{vfpexpandimm32, vfpexpandimm64},
             Mask,
         },
+        operation::ConversionArgument,
         prelude::*,
     };
 
@@ -2674,6 +2676,376 @@ mod test {
         }
         for (op, t) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
             test(op, t)
+        }
+    }
+
+    #[test]
+    fn test_vcmp_t1_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let e = 0;
+        let size = combine!(
+            1110|1110|1D11|0100|dddd|101|z|e1m0|llll,
+            d,
+            sd,
+            sz,
+            e,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VcmpF32(operation::VcmpF32 {
+                sd: rd,
+                sm: rm,
+                e: Some(e == 1)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vcmp_t2_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let sz = 0u32;
+        let e = 0;
+        let size = combine!(
+            1110|1110|1D11|0101|dddd|101|z|e100|0000,
+            d,
+            sd,
+            sz,
+            e,
+        );
+
+        check_eq!(
+            size,
+            Operation::VcmpZeroF32(operation::VcmpZeroF32 {
+                sd: rd,
+                e: Some(e == 1)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vcmp_t1_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D1);
+        let sz = 1u32;
+        let e = 0;
+        let size = combine!(
+            1110|1110|1D11|0100|dddd|101|z|e1m0|llll,
+            d,
+            sd,
+            sz,
+            e,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VcmpF64(operation::VcmpF64 {
+                dd: rd,
+                dm: rm,
+                e: Some(e == 1)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vcmp_t2_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let sz = 1u32;
+        let e = 0;
+        let size = combine!(
+            1110|1110|1D11|0101|dddd|101|z|e100|0000,
+            d,
+            sd,
+            sz,
+            e,
+        );
+
+        check_eq!(
+            size,
+            Operation::VcmpZeroF64(operation::VcmpZeroF64 {
+                dd: rd,
+                e: Some(e == 1)
+            })
+        );
+    }
+
+    #[test]
+    fn test_vrint_f32() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let test = |r: u32| {
+            let size = combine!(
+                1110|1110|1D11|0110|dddd|101|z|e1m0|llll,
+                d,
+                sd,
+                sz,
+                r,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::VrintF32(operation::VrintF32 {
+                    sd: rd,
+                    sm: rm,
+                    r: Some(r == 1)
+                })
+            );
+        };
+        test(0);
+        test(1);
+    }
+
+    #[test]
+    fn test_vrint_f64() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r64!(D0);
+        let sz = 1u32;
+        let test = |r: u32| {
+            let size = combine!(
+                1110|1110|1D11|0110|dddd|101|z|e1m0|llll,
+                d,
+                sd,
+                sz,
+                r,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::VrintF64(operation::VrintF64 {
+                    dd: rd,
+                    dm: rm,
+                    r: Some(r == 1)
+                })
+            );
+        };
+        test(0);
+        test(1);
+    }
+
+    #[test]
+    fn test_vcvt_f32_f64() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r64!(D13);
+        let sz = 1u32;
+        let size = combine!(
+            1110|1110|1D11|0111|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VcvtF32F64(operation::VcvtF32F64 { sd: rd, dm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vcvt_f64_f32() {
+        let (rd, sd, d) = r64!(D1);
+        let (rm, sm, m) = r32!(S13);
+        let sz = 0u32;
+        let size = combine!(
+            1110|1110|1D11|0111|dddd|101|z|11m0|llll,
+            d,
+            sd,
+            sz,
+            m,
+            sm
+        );
+
+        check_eq!(
+            size,
+            Operation::VcvtF64F32(operation::VcvtF64F32 { dd: rd, sm: rm })
+        );
+    }
+
+    #[test]
+    fn test_vcvt_f32_int() {
+        let (rd, sd, d) = r32!(S1);
+        let (rm, sm, m) = r32!(S1);
+        let sz = 0u32;
+        let test = |opc2: u32,
+                    op: u32,
+                    round: Option<bool>,
+                    operand: ConversionArgument,
+                    result: ConversionArgument| {
+            let size = combine!(
+                1110|1110|1D11|1ccc|dddd|101|z|o1m0|llll,
+
+                d,
+                opc2,
+                sd,
+                sz,
+                op,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::Vcvt(operation::Vcvt {
+                    r: Some(round.unwrap_or(op == 0)),
+                    dest: result,
+                    sm: operand,
+                    fbits: None
+                })
+            );
+        };
+
+        for (opc2, op, round, operand, result) in [
+            (
+                0b101,
+                0,
+                None,
+                ConversionArgument::F32(rm),
+                ConversionArgument::I32(rd),
+            ),
+            (
+                0b101,
+                0,
+                None,
+                ConversionArgument::F32(rm),
+                ConversionArgument::I32(rd),
+            ),
+            (
+                0b100,
+                1,
+                None,
+                ConversionArgument::F32(rm),
+                ConversionArgument::U32(rd),
+            ),
+            (
+                0b100,
+                1,
+                None,
+                ConversionArgument::F32(rm),
+                ConversionArgument::U32(rd),
+            ),
+            (
+                0b000,
+                1,
+                Some(true),
+                ConversionArgument::I32(rm),
+                ConversionArgument::F32(rd),
+            ),
+            (
+                0b000,
+                0,
+                Some(true),
+                ConversionArgument::U32(rm),
+                ConversionArgument::F32(rd),
+            ),
+        ] {
+            test(opc2, op, round, operand, result)
+        }
+    }
+
+    #[test]
+    fn test_vcvt_f64_int() {
+        let sz = 1u32;
+        let test = |opc2: u32,
+                    op: u32,
+                    round: Option<bool>,
+                    operand: ConversionArgument,
+                    (sd, d): (u32, u32),
+                    (sm, m): (u32, u32),
+                    result: ConversionArgument| {
+            let size = combine!(
+                1110|1110|1D11|1ccc|dddd|101|z|o1m0|llll,
+                d,
+                opc2,
+                sd,
+                sz,
+                op,
+                m,
+                sm
+            );
+
+            check_eq!(
+                size,
+                Operation::Vcvt(operation::Vcvt {
+                    r: Some(round.unwrap_or(op == 0)),
+                    dest: result,
+                    sm: operand,
+                    fbits: None
+                })
+            );
+        };
+
+        fn remove_first<T1, T2, T3>(t: (T1, T2, T3)) -> (T2, T3) {
+            (t.1, t.2)
+        }
+        for (opc2, op, round, operand, (sm, m), (sd, d), result) in [
+            (
+                0b101,
+                0,
+                None,
+                ConversionArgument::F64(F64Register::D1),
+                remove_first(r64!(D1)),
+                remove_first(r32!(S10)),
+                ConversionArgument::I32(F32Register::S10),
+            ),
+            (
+                0b101,
+                0,
+                None,
+                ConversionArgument::F64(F64Register::D1),
+                remove_first(r64!(D1)),
+                remove_first(r32!(S10)),
+                ConversionArgument::I32(F32Register::S10),
+            ),
+            (
+                0b100,
+                1,
+                None,
+                ConversionArgument::F64(F64Register::D1),
+                remove_first(r64!(D1)),
+                remove_first(r32!(S10)),
+                ConversionArgument::U32(F32Register::S10),
+            ),
+            (
+                0b100,
+                1,
+                None,
+                ConversionArgument::F64(F64Register::D1),
+                remove_first(r64!(D1)),
+                remove_first(r32!(S10)),
+                ConversionArgument::U32(F32Register::S10),
+            ),
+            (
+                0b000,
+                1,
+                Some(true),
+                ConversionArgument::I32(F32Register::S1),
+                remove_first(r32!(S1)),
+                remove_first(r64!(D10)),
+                ConversionArgument::F64(F64Register::D10),
+            ),
+            (
+                0b000,
+                0,
+                Some(true),
+                ConversionArgument::U32(F32Register::S1),
+                remove_first(r32!(S1)),
+                remove_first(r64!(D10)),
+                ConversionArgument::F64(F64Register::D10),
+            ),
+        ] {
+            test(opc2, op, round, operand, (sd, d), (sm, m), result)
         }
     }
 }

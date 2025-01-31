@@ -15,3 +15,4 @@ readme = "README.md"
 [dependencies]
 paste = "1.0.14"
 builder_derive = "0.0.1"
+macros = {path = "./macros/"}

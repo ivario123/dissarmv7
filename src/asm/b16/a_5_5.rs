@@ -152,8 +152,8 @@ impl Parse for A5_5 {
 }
 
 impl ToOperation for A5_5 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Str(el) => operation::StrRegister::builder()
                 .set_rt(el.rt)
                 .set_rn(el.rn)
@@ -284,7 +284,7 @@ impl ToOperation for A5_5 {
                 .set_imm((el.imm8 as u32) << 2)
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 #[cfg(test)]

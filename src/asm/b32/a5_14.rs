@@ -54,8 +54,8 @@ impl Parse for A5_14 {
 }
 
 impl ToOperation for A5_14 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Nop => operation::NopBuilder::new().complete().into(),
             Self::Yield => operation::YieldBuilder::new().complete().into(),
             Self::Wfe => operation::WfeBuilder::new().complete().into(),
@@ -65,7 +65,7 @@ impl ToOperation for A5_14 {
                 .set_option(el)
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

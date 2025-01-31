@@ -144,11 +144,11 @@ macro_rules! translate {
     };
 }
 impl ToOperation for A5_26 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        translate!(
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(translate!(
             self, Uadd16, Uasx, Usax, Usub16, Uadd8, Usub8, Uqadd16, Uqasx, Uqsax, Uqsub16, Uqadd8,
             Uqsub8, Uhadd16, Uhasx, Uhsax, Uhsub16, Uhadd8, Uhsub8
-        )
+        ))
     }
 }
 

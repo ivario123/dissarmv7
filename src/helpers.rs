@@ -22,8 +22,7 @@ impl From<ArchError> for ParseError {
 ///         SomeInstructionIdent : {
 ///              some_field_name as intermediateType (u8) : SomeFinalType : {start_bit} -> {end_bit} optional_conversion_method (try_into),
 ///         },
-///         PossiblyMoreInstructions : .....
-///         
+///         PossiblyMoreInstructions :
 ///     }
 /// };
 /// ```
@@ -34,6 +33,7 @@ impl From<ArchError> for ParseError {
 macro_rules! instruction {
     (size $size:ty;
      $(
+        $(#[$doc:tt])?
          $id:ident : {
             $(
                 $field_id:ident $(as $representation:ty)? : $type:ty : $start:literal -> $end:literal $($expr:ident)?
@@ -97,9 +97,12 @@ macro_rules! instruction {
     (
     size $size:ty; $table:ident contains
         $(
-            $($id:ident : {
+            $(
+            $(#[$($attrss:tt)*])*
+            $id:ident : {
                 $(
 
+                        $(#[$($attrss_field:tt)*])*
                         $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
 
 
@@ -114,13 +117,25 @@ macro_rules! instruction {
             #[derive(Debug)]
             pub enum $table{
                 $(
-                    $($id($id),)?
+                    $(
+                        $(#[$($attrss)*])*
+                        $id($id),
+                    )?
                     $(
                         #[doc = "Externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
                         [<Subtable $table_id>]($table_id),
                     )?
                 )+
             }
+
+                    impl $table {
+                        $($(
+                            #[allow(dead_code)]
+                            pub(crate) fn [<parse_ $id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::$id($id::parse(iter)?))
+                            }
+                        )?)+
+                    }
         }
         $(
 
@@ -131,10 +146,132 @@ macro_rules! instruction {
                     $(
                         #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
                     )*
+                    $(#[$($attrss)*])*
                     #[derive(Debug)]
                     pub struct $id {
                         $(
-                            #[doc = "bit " [<$start>] " to " [<$end>]]
+                            #[doc = "bit " [<$start>] " to " [<$end>] "\n\n"]
+                            $(#[$($attrss_field)*])*
+                            pub(crate) $field_id:$type,
+                        )*
+                    }
+                }
+
+
+                impl Parse for $id{
+                    type Target = Self;
+                    #[allow(unused_variables)]
+                    fn parse<T: $crate::Stream>(iter: &mut T) -> Result<Self::Target, $crate::ParseError>
+                    where
+                        Self: Sized {
+                        // Consume a word from the buffer
+                        let word:$size = match iter.peek::<1>(){
+                            Some(buff) => Ok(buff),
+                            None => Err(ParseError::Invalid16Bit(stringify!($id))),
+                        }?;
+                        $(
+                            let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
+                        )*
+                        let ret = Self{
+                            $(
+                                $field_id,
+                            )*
+                        };
+                        Ok(ret)
+                    }
+                }
+            )?
+        )*
+    };
+    (
+    size $size:ty; $table:ident contains
+        $(
+            $(
+            $(#[$($attrss:tt)*])*
+            [$($bit_str:tt)*]
+            $id:ident : {
+                $(
+
+                        $(#[$($attrss_field:tt)*])*
+                        $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
+
+
+                ),*
+            })?
+            $(
+                -> $table_id:ident
+            )?
+        ),*
+    ) => {
+        paste!{
+            #[derive(Debug,PartialEq)]
+            pub enum $table{
+                $(
+                    $(
+                        $(#[$($attrss)*])*
+                        $id($id),
+                    )?
+                    $(
+                        #[doc = "Externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
+                        [<Subtable $table_id>]($table_id),
+                    )?
+                )+
+            }
+
+                    impl $table {
+
+                        $($(
+                            #[doc = "Parses externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
+                            pub(crate) fn [<parse_subtable_ $table_id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::[<Subtable $table_id>]($table_id::parse(iter)?))
+                            }
+                        )?)*
+
+                        $($(
+                            #[allow(dead_code)]
+                            pub(crate) fn [<parse_ $id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::$id($id::parse(iter)?))
+                            }
+                            #[allow(dead_code)]
+                            #[allow(clippy::too_many_arguments)]
+                            pub(crate) fn [<encode_ $id:lower>]($($field_id:$type),*) -> u32 {
+                                let ret = macros::combine_reverse_order!(
+                                    $($bit_str)*,
+                                    $($field_id),*
+                                );
+                                #[cfg(test)]
+                                {
+                                    let target = Self::$id($id {$($field_id),*});
+                                    let size = ret.to_be_bytes();
+                                    let mut bin = vec![];
+                                    bin.extend([size[0], size[1]].into_iter().rev());
+                                    bin.extend([size[2], size[3]].into_iter().rev());
+                                    let mut stream = $crate::prelude::PeekableBuffer::from(bin.into_iter().into_iter());
+                                    let instr = Self::parse(&mut stream).expect("Parser broken");
+
+                                    println!("{instr:?} == {target:?}");
+                                    assert!(instr == target);
+                                }
+                                ret
+                            }
+                        )?)+
+                    }
+        }
+        $(
+
+            $(
+                paste!{
+                    #[doc = "Instruction " [<$id>] " from table " [<$table>] "\n\n"]
+                    #[doc = "Contains the following fields:\n"]
+                    $(
+                        #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
+                    )*
+                    $(#[$($attrss)*])*
+                    #[derive(Debug,PartialEq)]
+                    pub struct $id {
+                        $(
+                            #[doc = "bit " [<$start>] " to " [<$end>] "\n\n"]
+                            $(#[$($attrss_field)*])*
                             pub(crate) $field_id:$type,
                         )*
                     }
@@ -166,6 +303,7 @@ macro_rules! instruction {
             )?
         )*
     }
+
 }
 
 #[macro_export]
@@ -213,10 +351,10 @@ mod test {
         let i: u8 = 1;
         let imm2: u8 = 2;
         let imm3: u8 = 4;
-        let res: u32 = combine!(i:imm2,2:imm3,3,u32);
+        let res: u32 = combine!(i: imm2, 2: imm3, 3, u32);
         assert_eq!(0b110100, res);
         let zero = 0;
-        let res: u32 = combine!(i:zero,2,u32);
+        let res: u32 = combine!(i: zero, 2, u32);
         assert_eq!(0b100, res)
     }
 }

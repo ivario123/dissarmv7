@@ -226,9 +226,9 @@ macro_rules! combine_wrapper {
 }
 
 impl ToOperation for A5_10 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
         use A5_10::*;
-        match self {
+        Ok(match self {
             And(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.expand_imm_c();
@@ -242,8 +242,7 @@ impl ToOperation for A5_10 {
                     .into()
             }
             Tst(el) => {
-                let imm = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
-                let imm: Imm12 = Imm12::try_into(imm).unwrap();
+                let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 let (imm, carry) = imm.expand_imm_c();
                 operation::TstImmediateBuilder::new()
                     .set_rn(el.rn)
@@ -405,7 +404,7 @@ impl ToOperation for A5_10 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

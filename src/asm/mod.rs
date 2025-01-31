@@ -33,6 +33,16 @@ impl LocalTryInto<bool> for u32 {
         Ok(self != 0)
     }
 }
+impl Mask for u8 {
+    fn mask<const START: usize, const END: usize>(&self) -> Self {
+        let intermediate = self >> START;
+        let mask = ((1 << (END - START + 1) as u8) as u8) - 1u8;
+
+        let ret = intermediate & mask;
+        assert!(ret <= mask);
+        ret
+    }
+}
 impl Mask for u16 {
     fn mask<const START: usize, const END: usize>(&self) -> u16 {
         let intermediate = self >> START;

@@ -39,69 +39,69 @@ instruction!(
 );
 
 impl ToOperation for Ldr {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        operation::LdrLiteral::builder()
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(operation::LdrLiteral::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
             .set_rt(self.rt)
             .complete()
-            .into()
+            .into())
     }
 }
 
 impl ToOperation for Adr {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        operation::Adr::builder()
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(operation::Adr::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_add(true)
             .set_rd(self.rd)
             .complete()
-            .into()
+            .into())
     }
 }
 
 impl ToOperation for Add {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        operation::AddSPImmediate::builder()
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(operation::AddSPImmediate::builder()
             .set_imm((self.imm8 as u32) << 2)
             .set_rd(Some(self.rd))
             .set_s(Some(false))
             .complete()
-            .into()
+            .into())
     }
 }
 
 impl ToOperation for Stm {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        operation::Stm::builder()
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(operation::Stm::builder()
             .set_w(Some(true))
             .set_rn(self.rn)
             .set_registers(self.register_list)
             .complete()
-            .into()
+            .into())
     }
 }
 
 impl ToOperation for Ldm {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        operation::Ldm::builder()
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(operation::Ldm::builder()
             .set_w(Some(!self.register_list.registers.contains(&self.rn)))
             .set_rn(self.rn)
             .set_registers(self.register_list)
             .complete()
-            .into()
+            .into())
     }
 }
 
 impl ToOperation for B {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        let mut imm: Imm12 = ((self.imm11) << 1).try_into().unwrap();
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        let mut imm: Imm12 = ((self.imm11) << 1).try_into()?;
 
-        operation::B::builder()
+        Ok(operation::B::builder()
             .set_condition(Condition::None)
             .set_imm(imm.sign_extend())
             .complete()
-            .into()
+            .into())
     }
 }
 

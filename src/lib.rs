@@ -180,7 +180,7 @@ pub trait Parse {
 
 pub(crate) trait ToOperation {
     /// Translates the encoded value in to a [`Operation`] instruction
-    fn encoding_specific_operations(self) -> crate::operation::Operation;
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError>;
 }
 
 #[derive(Debug)]
@@ -208,6 +208,14 @@ pub enum ParseError {
 
     /// Thrown when a target register does not exist.
     InvalidRegister(u8),
+
+    /// Thrown when a target register does not exist.
+    InvalidFloatingPointRegister(u8),
+
+    /// Thrown when a target
+    /// ([IEEE754RoundingMode](crate::arch::register::IEEE754RoundingMode)])
+    /// rounding mode does not exist.
+    InvalidRoundingMode(u8),
 
     /// Thrown when an unpredictable instruction is used
     Unpredictable,

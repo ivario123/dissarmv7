@@ -40,7 +40,7 @@
 //! assert!(value == target);
 //! ```
 
-use std::{fmt::Debug, usize};
+use std::fmt::Debug;
 
 use crate::{Consume, Peek, Stream};
 

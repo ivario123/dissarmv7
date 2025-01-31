@@ -43,14 +43,12 @@ impl Parse for A5_8 {
     }
 }
 impl ToOperation for A5_8 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::B(el) => {
                 let intermediate: u16 = el.imm8.into();
 
-                let value: u32 = Imm9::try_from(intermediate << 1)
-                    .expect("Imm9 is broken")
-                    .sign_extend();
+                let value: u32 = Imm9::try_from(intermediate << 1)?.sign_extend();
                 operation::B::builder()
                     .set_condition(el.cond)
                     .set_imm(value)
@@ -58,7 +56,7 @@ impl ToOperation for A5_8 {
                     .into()
             }
             Self::Svc(el) => operation::Svc::builder().set_imm(el.imm8).complete().into(),
-        }
+        })
     }
 }
 

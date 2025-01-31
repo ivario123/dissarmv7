@@ -102,13 +102,11 @@ impl Parse for A5_13 {
 }
 
 impl ToOperation for A5_13 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::BT3(el) => {
                 let (s, j2, j1, imm6, imm11) = (el.s, el.j2, el.j1, el.imm6, el.imm11);
-                let mut imm: Imm21 = combine!(s:j2,1:j1,1:imm6,6:imm11,11:0,1,u32)
-                    .try_into()
-                    .unwrap();
+                let mut imm: Imm21 = combine!(s:j2,1:j1,1:imm6,6:imm11,11:0,1,u32).try_into()?;
 
                 operation::BBuilder::new()
                     .set_condition(el.cond)
@@ -120,9 +118,7 @@ impl ToOperation for A5_13 {
                 let (s, j2, j1, imm10, imm11) = (el.s, el.j2, el.j1, el.imm10, el.imm11);
                 let i1 = !(j1 ^ s);
                 let i2 = !(j2 ^ s);
-                let mut imm: Imm25 = combine!(s:i1,1:i2,1:imm10,10:imm11,11:0,1,u32)
-                    .try_into()
-                    .unwrap();
+                let mut imm: Imm25 = combine!(s:i1,1:i2,1:imm10,10:imm11,11:0,1,u32).try_into()?;
 
                 operation::BBuilder::new()
                     .set_condition(Condition::None)
@@ -146,27 +142,21 @@ impl ToOperation for A5_13 {
                 let (i1, i2) = (!(j1 ^ s), !(j2 ^ s));
                 let num = combine!(s:i1,1:i2,1:imm10,10:imm11,11:0,1,u32);
 
-                let mut imm: Imm25 = num
-                    .try_into()
-                    .map_err(|e| {
-                        println!("tried to fit {num} into Imm25");
-                        e
-                    })
-                    .unwrap();
+                let mut imm: Imm25 = num.try_into()?;
 
                 operation::BlBuilder::new()
                     .set_imm(imm.sign_extend())
                     .complete()
                     .into()
             }
-            Self::SubtableA5_14(table) => table.encoding_specific_operations(),
-            Self::SubtableA5_15(table) => table.encoding_specific_operations(),
+            Self::SubtableA5_14(table) => table.encoding_specific_operations()?,
+            Self::SubtableA5_15(table) => table.encoding_specific_operations()?,
             Self::Udf(udf) => {
                 let (imm4, imm12) = (udf.imm4, udf.imm12);
                 let imm = combine!(imm4: imm12, 12, u32);
                 operation::UdfBuilder::new().set_imm(imm).complete().into()
             }
-        }
+        })
     }
 }
 

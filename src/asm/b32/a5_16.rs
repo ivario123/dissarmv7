@@ -63,7 +63,7 @@ impl Parse for A5_16 {
         let l = (word.mask::<20, 20>() as u8).local_try_into()?;
         let w = word.mask::<21, 21>();
         let rn = word.mask::<16, 19>();
-        let wrn = w << 4 | rn;
+        let wrn = (w << 4) | rn;
         if op == 1 {
             if !l {
                 return Ok(Self::Stm(Stm::parse(iter)?));
@@ -87,8 +87,8 @@ impl Parse for A5_16 {
 }
 
 impl ToOperation for A5_16 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Stm(el) => {
                 let (m, registers) = (el.m, el.register_list);
                 let registers = combine!(m:0,1:registers,13,u16);
@@ -147,7 +147,7 @@ impl ToOperation for A5_16 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

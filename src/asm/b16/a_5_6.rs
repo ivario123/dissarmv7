@@ -153,8 +153,8 @@ impl Parse for A5_6 {
 }
 
 impl ToOperation for A5_6 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Cps(el) => operation::Cps::builder()
                 .set_enable(el.im == 0)
                 .set_disable(el.im == 1)
@@ -248,8 +248,8 @@ impl ToOperation for A5_6 {
                 .set_imm(el.imm8 as u32)
                 .complete()
                 .into(),
-            Self::SubtableA5_7(el) => el.encoding_specific_operations(),
-        }
+            Self::SubtableA5_7(el) => el.encoding_specific_operations()?,
+        })
     }
 }
 

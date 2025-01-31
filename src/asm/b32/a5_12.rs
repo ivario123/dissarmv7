@@ -165,8 +165,8 @@ macro_rules! combine_wrapper {
     };
 }
 impl ToOperation for A5_12 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::Add(el) => {
                 let imm: Imm12 = combine_wrapper!(el : {i:imm3,3:imm8,8,u32});
                 operation::AddImmediateBuilder::new()
@@ -253,8 +253,7 @@ impl ToOperation for A5_12 {
             Self::Usat(el) => {
                 let (imm3, imm2, sh) = (el.imm3, el.imm2, el.sh << 1);
                 let shift_n: u8 = combine!(imm3: imm2, 2, u8);
-                // TODO! Remove this unwrap
-                let shift: Shift = sh.try_into().unwrap();
+                let shift: Shift = sh.try_into()?;
                 let shift = ImmShift::from((shift, shift_n));
                 operation::UsatBuilder::new()
                     .set_rd(el.rd)
@@ -304,7 +303,7 @@ impl ToOperation for A5_12 {
                     .complete()
                     .into()
             }
-        }
+        })
     }
 }
 

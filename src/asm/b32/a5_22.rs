@@ -254,8 +254,8 @@ macro_rules! shift {
     }};
 }
 impl ToOperation for A5_22 {
-    fn encoding_specific_operations(self) -> crate::operation::Operation {
-        match self {
+    fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        Ok(match self {
             Self::And(el) => {
                 let (ty, imm3, imm2) = (el.ty, el.imm3, el.imm2);
                 let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
@@ -305,7 +305,7 @@ impl ToOperation for A5_22 {
                     .complete()
                     .into()
             }
-            Self::SubtableA5_23(el) => el.encoding_specific_operations(),
+            Self::SubtableA5_23(el) => el.encoding_specific_operations()?,
             Self::Orn(el) => operation::OrnRegister::builder()
                 .set_s(Some(el.s))
                 .set_rd(Some(el.rd))
@@ -337,7 +337,7 @@ impl ToOperation for A5_22 {
                 .into(),
             Self::Pkh(el) => {
                 let (tb, _t, imm3, imm2) = (el.tb, el.t, el.imm3, el.imm2);
-                let ty = Shift::try_from((tb as u8) << 1).unwrap();
+                let ty = Shift::try_from((tb as u8) << 1)?;
                 let shift = Some(ImmShift::from((ty, combine!(imm3: imm2, 2, u8))));
 
                 operation::Pkh::builder()
@@ -401,7 +401,7 @@ impl ToOperation for A5_22 {
                 .set_shift(shift!(el))
                 .complete()
                 .into(),
-        }
+        })
     }
 }
 

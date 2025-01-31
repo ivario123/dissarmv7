@@ -223,6 +223,7 @@ pub enum IEEE754RoundingMode {
 }
 
 impl IEEE754RoundingMode {
+    #[allow(clippy::wrong_self_convention)]
     const fn to_u32(&self) -> u32 {
         match self {
             Self::RN => 0,
@@ -252,7 +253,7 @@ impl FPSCR {
     pub const fn set(&self, previous_value: u32) -> u32 {
         if let Self::RMode(mode) = self {
             let mode = mode.to_u32();
-            return previous_value & !self.mask() | mode << 22;
+            return previous_value & !self.mask() | (mode << 22);
         }
         self.mask() | previous_value
     }
@@ -287,7 +288,7 @@ impl FPSCR {
 
     /// Creates a u32 bitmask.
     const fn bitmask<const START: u32, const END: u32>() -> u32 {
-        (((1 << (END - START + 1) as u32) as u32) - 1_u32) << START
+        ((1 << (END - START + 1)) - 1_u32) << START
     }
 }
 

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use macros::{compare, extract_fields};
 use paste::paste;
 

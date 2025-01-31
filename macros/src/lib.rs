@@ -1,17 +1,8 @@
-use std::{collections::HashMap, usize};
+use std::usize;
 
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{
-    ext::IdentExt,
-    parse::Parse,
-    parse_macro_input,
-    spanned::Spanned,
-    BinOp,
-    Expr,
-    Ident,
-    Token,
-};
+use syn::{parse::Parse, parse_macro_input, spanned::Spanned, BinOp, Expr, Ident, Token};
 
 struct Mask {
     /// The fields to mask out.
@@ -67,7 +58,7 @@ impl Parse for Mask {
                     }
                     parsing = Some((char, (start, Some(idx))));
                 }
-                val => {
+                _ => {
                     if let Some(parsing) = parsing {
                         fields.push(parsing);
                     }
@@ -313,7 +304,6 @@ pub fn combine(input: TokenStream) -> TokenStream {
         .iter()
         .map(|(id, (start, end))| {
             quote! {ret |= {
-                //println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
                 (u32::from(#id) .mask::<0,{#end - #start}>() << #start )
             };}
         })
@@ -347,7 +337,6 @@ pub fn combine(input: TokenStream) -> TokenStream {
 /// The macro will replace chars in the order they occur with the expressions
 /// passed in the same order.
 pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
-    println!("Inp : {}", input.to_string());
     let input = parse_macro_input!(input as Combiner);
 
     let ret: Vec<(&Expr, (usize, usize))> = input
@@ -361,8 +350,6 @@ pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
         .iter()
         .map(|(id, (start, end))| {
             quote! {ret |= {
-                println!("RET : {:#32b}",ret);
-                println!("(id {}) {:?}.mask<{},{}>() << {} => {:?}",stringify!(#id),#id,1,#end- #start,#start,(#id as u32).mask::<0,{#end-#start}>() << #start);
                 (u32::from(#id) .mask::<0,{#end - #start}>() << #start )
             };}
         })
@@ -373,7 +360,6 @@ pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
         {
             let mut ret:u32 = #ret;
             #(#masks)*
-            println!("RET : {:#32b}",ret);
 
             ret
         }

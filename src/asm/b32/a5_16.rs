@@ -63,7 +63,7 @@ impl Parse for A5_16 {
         let l = (word.mask::<20, 20>() as u8).local_try_into()?;
         let w = word.mask::<21, 21>();
         let rn = word.mask::<16, 19>();
-        let wrn = w << 4 | rn;
+        let wrn = (w << 4) | rn;
         if op == 1 {
             if !l {
                 return Ok(Self::Stm(Stm::parse(iter)?));

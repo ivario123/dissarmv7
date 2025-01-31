@@ -219,12 +219,21 @@ macro_rules! instruction {
             }
 
                     impl $table {
+
+                        $($(
+                            #[doc = "Parses externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
+                            pub(crate) fn [<parse_subtable_ $table_id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::[<Subtable $table_id>]($table_id::parse(iter)?))
+                            }
+                        )?)*
+
                         $($(
                             #[allow(dead_code)]
                             pub(crate) fn [<parse_ $id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
                                 Ok(Self::$id($id::parse(iter)?))
                             }
                             #[allow(dead_code)]
+                            #[allow(clippy::too_many_arguments)]
                             pub(crate) fn [<encode_ $id:lower>]($($field_id:$type),*) -> u32 {
                                 let ret = macros::combine_reverse_order!(
                                     $($bit_str)*,
@@ -237,7 +246,7 @@ macro_rules! instruction {
                                     let mut bin = vec![];
                                     bin.extend([size[0], size[1]].into_iter().rev());
                                     bin.extend([size[2], size[3]].into_iter().rev());
-                                    let mut stream = crate::prelude::PeekableBuffer::from(bin.into_iter().into_iter());
+                                    let mut stream = $crate::prelude::PeekableBuffer::from(bin.into_iter().into_iter());
                                     let instr = Self::parse(&mut stream).expect("Parser broken");
 
                                     println!("{instr:?} == {target:?}");

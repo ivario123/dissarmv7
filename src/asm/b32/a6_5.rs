@@ -16,7 +16,7 @@ use crate::{
 
 instruction!(
     size u32; A6_5 contains
-    VSELF32 : {
+    VSelF32 : {
         sm      as u8   : u8            : 0 -> 3,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -26,7 +26,7 @@ instruction!(
         cc      as u8   : u8            : 20 -> 21,
         d       as u8   : u8            : 22 -> 22
     },
-    VSELF64 : {
+    VSelF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -36,7 +36,7 @@ instruction!(
         cc      as u8   : u8            : 20 -> 21,
         d       as u8   : u8            : 22 -> 22
     },
-    VMLXF32 : {
+    VMlxF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -46,7 +46,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VMLXF64 : {
+    VMlxF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -56,7 +56,7 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VNMULF32 : {
+    VnmulF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -67,7 +67,7 @@ instruction!(
         t2      as u8   : bool          : 21 -> 21 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VNMULF64 : {
+    VnmulF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -78,7 +78,7 @@ instruction!(
         t2      as u8   : bool          : 21 -> 21 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VMULF32 : {
+    VmulF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -87,7 +87,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VMULF64 : {
+    VmulF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -96,7 +96,7 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VADDF32 : {
+    VAddF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -105,7 +105,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VADDF64 : {
+    VAddF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -114,7 +114,7 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VSUBF32 : {
+    VSubF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -123,7 +123,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VSUBF64 : {
+    VSubF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -132,7 +132,7 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VDIVF32 : {
+    VDivF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -141,7 +141,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VDIVF64 : {
+    VDivF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         n       as u8   : u8            : 7 -> 7 ,
@@ -150,7 +150,7 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VXNMF32 : {
+    VXnmF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -160,7 +160,7 @@ instruction!(
         sn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VXNMF64 : {
+    VXnmF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 6 -> 6 local_try_into,
@@ -170,77 +170,77 @@ instruction!(
         dn      as u8   : u8            : 16 -> 19 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VMOVIMMF32 : {
+    VMovImmF32 : {
         imm4l   as u8   : u8            : 0 -> 3,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         imm4h   as u8   : u8            : 16 -> 19,
         d       as u8   : u8            : 22 -> 22
     },
-    VMOVIMMF64 : {
+    VMovImmF64 : {
         imm4l   as u8   : u8            : 0 -> 3 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         imm4h   as u8   : u8            : 16 -> 19,
         d       as u8   : u8            : 22 -> 22
     },
-    VMOVREGF32 : {
+    VMovRegF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VMOVREGF64 : {
+    VMovRegF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VABSF32 : {
+    VAbsF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VABSF64 : {
+    VAbsF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VNEGF32 : {
+    VNegF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VNEGF64 : {
+    VNegF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VSQRTF32 : {
+    VSqrtF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VSQRTF64 : {
+    VSqrtF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTXF32 : {
+    VcvtxF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         t       as u8   : bool          : 7 -> 7 local_try_into,
@@ -249,7 +249,7 @@ instruction!(
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTXF64 : {
+    VcvtxF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         t       as u8   : bool          : 7 -> 7 local_try_into,
@@ -258,7 +258,7 @@ instruction!(
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCMPREGF32 : {
+    VCmpRegF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         e       as u8   : bool          : 7 -> 7 local_try_into,
@@ -267,7 +267,7 @@ instruction!(
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCMPREGF64 : {
+    VCmpRegF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         e       as u8   : bool          : 7 -> 7 local_try_into,
@@ -276,21 +276,21 @@ instruction!(
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCMPZEROF32 : {
+    VCmpZeroF32 : {
         e       as u8   : bool          : 7 -> 7 local_try_into,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCMPZEROF64 : {
+    VCmpZeroF64 : {
         e       as u8   : bool          : 7 -> 7 local_try_into,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         op      as u8   : bool          : 16 -> 16 local_try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VRINTF32 : {
+    VRintF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -298,7 +298,7 @@ instruction!(
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VRINTF64 : {
+    VRintF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -306,21 +306,21 @@ instruction!(
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF32F64 : {
+    VcvtF32F64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         sd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF64F32 : {
+    VcvtF64F32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         sz      as u8   : bool          : 8 -> 8 local_try_into,
         dd      as u8   : u8            : 12 -> 15 ,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTINTXINTXFLOAT : {
+    VcvtIntXIntXFloat : {
         vm      as u8   : u8            : 0 -> 3,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -329,7 +329,7 @@ instruction!(
         opc2    as u8   : u8            : 16 -> 18,
         d       as u8   : u8            : 22 -> 22
     },
-    VRINTROUNDF32 : {
+    VRIntRoundF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -339,7 +339,7 @@ instruction!(
         d       as u8   : u8            : 22 -> 22
     },
     /// TODO: This is incorrect according to the spec, see if this works or not.
-    VRINTROUNDF64 : {
+    VRIntRoundF64 : {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -349,7 +349,7 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTROUNDF32 : {
+    VcvtRoundF32 : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -360,7 +360,7 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTROUNDF64: {
+    VcvtRoundF64: {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -371,7 +371,7 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF32INTROUND : {
+    VcvtF32IntRound : {
         sm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -382,7 +382,7 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    VCVTF64INTROUND: {
+    VcvtF64IntRound: {
         dm      as u8   : u8            : 0 -> 3 ,
         m       as u8   : u8            : 5 -> 5 ,
         op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -393,7 +393,7 @@ instruction!(
         rm      as u8   : IEEE754RoundingMode : 16 -> 17 try_into,
         d       as u8   : u8            : 22 -> 22
     },
-    //VCVTF32INT : {
+    //VcvtF32INT : {
     //    sm      as u8   : u8            : 0 -> 3 ,
     //    m       as u8   : u8            : 5 -> 5 ,
     //    op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -402,7 +402,7 @@ instruction!(
     //    opc2    as u8   : u8            : 16 -> 18,
     //    d       as u8   : u8            : 22 -> 22
     //},
-    //VCVTF64INT: {
+    //VcvtF64INT: {
     //    dm      as u8   : u8            : 0 -> 3 ,
     //    m       as u8   : u8            : 5 -> 5 ,
     //    op      as u8   : bool          : 7 -> 7 local_try_into,
@@ -411,7 +411,7 @@ instruction!(
     //    opc2    as u8   : u8            : 16 -> 18,
     //    d       as u8   : u8            : 22 -> 22
     //},
-    VCVTFIXEDPOINT: {
+    VcvtFixedPoint: {
         imm4    as u8   : u8            : 0 -> 3 ,
         i       as u8   : u8            : 1 -> 1,
         sx      as u8   : bool          : 7 -> 7 local_try_into,
@@ -455,17 +455,17 @@ impl Parse for A6_5 {
         if ((opc1 & 8u32) == 0u32) && t == 1 {
             //compare!(opc1 == 0xxx) && t == 1 {
             if sz == 0 {
-                return Ok(Self::VSELF32(VSELF32::parse(iter)?));
+                return Ok(Self::VSelF32(VSelF32::parse(iter)?));
             }
-            return Ok(Self::VSELF64(VSELF64::parse(iter)?));
+            return Ok(Self::VSelF64(VSelF64::parse(iter)?));
         }
 
         if compare!(opc1 == 0x00) && t == 0 && sz == 0 {
-            return Ok(Self::VMLXF32(VMLXF32::parse(iter)?));
+            return Ok(Self::VMlxF32(VMlxF32::parse(iter)?));
         }
 
         if compare!(opc1 == 0x00) && t == 0 && sz == 1 {
-            return Ok(Self::VMLXF64(VMLXF64::parse(iter)?));
+            return Ok(Self::VMlxF64(VMlxF64::parse(iter)?));
         }
 
         if compare!(opc1 == 0x01) && t == 0 && sz == 0 {
@@ -535,10 +535,10 @@ impl Parse for A6_5 {
         }
 
         if t == 1 {
-            if compare!(opc2 == 10xx) && opc3 == 01 && sz == 0 {
+            if compare!(opc2 == 10xx) && opc3 == 1 && sz == 0 {
                 return Self::parse_vrintroundf32(iter);
             }
-            if compare!(opc2 == 10xx) && opc3 == 01 && sz == 1 {
+            if compare!(opc2 == 10xx) && opc3 == 1 && sz == 1 {
                 return Self::parse_vrintroundf64(iter);
             }
 
@@ -642,9 +642,9 @@ impl Parse for A6_5 {
             return Self::parse_vcvtfixedpoint(iter);
         }
 
-        return Err(ParseError::Invalid32Bit(
+        Err(ParseError::Invalid32Bit(
             "Invalid data processing floating point instruction.",
-        ));
+        ))
     }
 }
 
@@ -740,7 +740,7 @@ fn vfpexpandimm32(imm8: u8) -> u32 {
     }
     let (exp,exp_size) = b!(sized : ((((!imm8) >> 6) & 0b1);1),(replicate((imm8 >> 6) & 0b1,e - 3); e-3),(imm8.mask::<4,5>();2));
     let (frac, frac_size) = b!(sized : (imm8.mask::<0,3>();4),(f-4;0));
-    return b!((sign;1),(exp;exp_size), (frac;frac_size));
+    b!((sign;1),(exp;exp_size), (frac;frac_size))
 }
 
 fn vfpexpandimm64(imm8: u8) -> u64 {
@@ -761,7 +761,7 @@ fn vfpexpandimm64(imm8: u8) -> u64 {
     }
     let (exp,exp_size) = b!(sized (u64) : ((((!imm8) >> 6) & 0b1);1),(replicate((imm8 >> 6) & 0b1,e - 3); e-3),(imm8.mask::<4,5>();2));
     let (frac, frac_size) = b!(sized (u64) : (imm8.mask::<0,3>();4),(f-4;0));
-    return b!((u64) : (sign;1),(exp;exp_size), (frac;frac_size));
+    b!((u64) : (sign;1),(exp;exp_size), (frac;frac_size))
 }
 
 macro_rules! r32 {
@@ -799,7 +799,7 @@ macro_rules! int{
 impl ToOperation for A6_5 {
     fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
         Ok(match self {
-            Self::VSELF32(VSELF32 {
+            Self::VSelF32(VSelF32 {
                 sm,
                 m,
                 n,
@@ -814,7 +814,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VSELF64(VSELF64 {
+            Self::VSelF64(VSelF64 {
                 dm,
                 m,
                 n,
@@ -825,13 +825,13 @@ impl ToOperation for A6_5 {
                 d,
             }) => Operation::VselF64(VselF64 {
                 cond: Some(Condition::try_from(
-                    (cc << 2) | ((cc >> 1) ^ (cc & 0b1)) << 1,
+                    (cc << 2) | (((cc >> 1) ^ (cc & 0b1)) << 1),
                 )?),
                 dd: F64Register::try_from(b!((d<0>), (dd; 4)))?,
                 dn: F64Register::try_from(b!((n<0>), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VMLXF32(VMLXF32 {
+            Self::VMlxF32(VMlxF32 {
                 sm,
                 m,
                 op,
@@ -846,7 +846,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VMLXF64(VMLXF64 {
+            Self::VMlxF64(VMlxF64 {
                 dm,
                 m,
                 op,
@@ -861,7 +861,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VNMULF32(VNMULF32 {
+            Self::VnmulF32(VnmulF32 {
                 sm,
                 m,
                 op,
@@ -877,7 +877,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VNMULF64(VNMULF64 {
+            Self::VnmulF64(VnmulF64 {
                 dm,
                 m,
                 op,
@@ -893,7 +893,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VNMULF32(VNMULF32 {
+            Self::VnmulF32(VnmulF32 {
                 sm,
                 m,
                 op: _,
@@ -908,7 +908,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VNMULF64(VNMULF64 {
+            Self::VnmulF64(VnmulF64 {
                 dm,
                 m,
                 op: _,
@@ -923,7 +923,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VMULF32(VMULF32 {
+            Self::VmulF32(VmulF32 {
                 sm,
                 m,
                 n,
@@ -936,7 +936,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VMULF64(VMULF64 {
+            Self::VmulF64(VmulF64 {
                 dm,
                 m,
                 n,
@@ -949,7 +949,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VADDF32(VADDF32 {
+            Self::VAddF32(VAddF32 {
                 sm,
                 m,
                 n,
@@ -962,7 +962,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VADDF64(VADDF64 {
+            Self::VAddF64(VAddF64 {
                 dm,
                 m,
                 n,
@@ -975,7 +975,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VSUBF32(VSUBF32 {
+            Self::VSubF32(VSubF32 {
                 sm,
                 m,
                 n,
@@ -988,7 +988,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VSUBF64(VSUBF64 {
+            Self::VSubF64(VSubF64 {
                 dm,
                 m,
                 n,
@@ -1001,7 +1001,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VDIVF32(VDIVF32 {
+            Self::VDivF32(VDivF32 {
                 sm,
                 m,
                 n,
@@ -1014,7 +1014,7 @@ impl ToOperation for A6_5 {
                 sn: F32Register::try_from(b!((sn; 4), (n[0])))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VDIVF64(VDIVF64 {
+            Self::VDivF64(VDivF64 {
                 dm,
                 m,
                 n,
@@ -1027,7 +1027,7 @@ impl ToOperation for A6_5 {
                 dn: F64Register::try_from(b!((n[0]), (dn; 4)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4)))?,
             }),
-            Self::VXNMF32(VXNMF32 {
+            Self::VXnmF32(VXnmF32 {
                 sm,
                 m,
                 op,
@@ -1051,7 +1051,7 @@ impl ToOperation for A6_5 {
                     })
                 }
             }
-            Self::VXNMF64(VXNMF64 {
+            Self::VXnmF64(VXnmF64 {
                 dm,
                 m,
                 op,
@@ -1075,7 +1075,7 @@ impl ToOperation for A6_5 {
                     })
                 }
             }
-            Self::VMOVIMMF32(VMOVIMMF32 {
+            Self::VMovImmF32(VMovImmF32 {
                 imm4l,
                 sz: _,
                 sd,
@@ -1085,7 +1085,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 imm: vfpexpandimm32(b!((imm4h;4),(imm4l;4)) as u8),
             }),
-            Self::VMOVIMMF64(VMOVIMMF64 {
+            Self::VMovImmF64(VMovImmF64 {
                 imm4l,
                 sz: _,
                 dd,
@@ -1095,7 +1095,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>),(dd; 4)))?,
                 imm: vfpexpandimm64(b!((imm4h;4),(imm4l;4)) as u8),
             }),
-            Self::VMOVREGF32(VMOVREGF32 {
+            Self::VMovRegF32(VMovRegF32 {
                 sm,
                 m,
                 sz: _,
@@ -1105,7 +1105,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VMOVREGF64(VMOVREGF64 {
+            Self::VMovRegF64(VMovRegF64 {
                 dm,
                 m,
                 sz: _,
@@ -1115,7 +1115,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
-            Self::VABSF32(VABSF32 {
+            Self::VAbsF32(VAbsF32 {
                 sm,
                 m,
                 sz: _,
@@ -1125,7 +1125,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VABSF64(VABSF64 {
+            Self::VAbsF64(VAbsF64 {
                 dm,
                 m,
                 sz: _,
@@ -1135,7 +1135,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
-            Self::VNEGF32(VNEGF32 {
+            Self::VNegF32(VNegF32 {
                 sm,
                 m,
                 sz: _,
@@ -1145,7 +1145,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VNEGF64(VNEGF64 {
+            Self::VNegF64(VNegF64 {
                 dm,
                 m,
                 sz: _,
@@ -1155,7 +1155,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
-            Self::VSQRTF32(VSQRTF32 {
+            Self::VSqrtF32(VSqrtF32 {
                 sm,
                 m,
                 sz: _,
@@ -1165,7 +1165,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VSQRTF64(VSQRTF64 {
+            Self::VSqrtF64(VSqrtF64 {
                 dm,
                 m,
                 sz: _,
@@ -1175,7 +1175,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
-            Self::VCVTXF32(VCVTXF32 {
+            Self::VcvtxF32(VcvtxF32 {
                 sm,
                 t,
                 op,
@@ -1189,7 +1189,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VCVTXF64(VCVTXF64 {
+            Self::VcvtxF64(VcvtxF64 {
                 dm,
                 t,
                 op,
@@ -1211,7 +1211,7 @@ impl ToOperation for A6_5 {
                     dm: F32OrF64::F64(r64!(dm, m)),
                 }),
             },
-            Self::VCMPREGF32(VCMPREGF32 {
+            Self::VCmpRegF32(VCmpRegF32 {
                 sm,
                 m,
                 e,
@@ -1225,7 +1225,7 @@ impl ToOperation for A6_5 {
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
 
-            Self::VCMPREGF64(VCMPREGF64 {
+            Self::VCmpRegF64(VCmpRegF64 {
                 dm,
                 m,
                 e,
@@ -1239,7 +1239,7 @@ impl ToOperation for A6_5 {
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
 
-            Self::VCMPZEROF32(VCMPZEROF32 {
+            Self::VCmpZeroF32(VCmpZeroF32 {
                 e,
                 sz: _,
                 sd,
@@ -1250,7 +1250,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
             }),
 
-            Self::VCMPZEROF64(VCMPZEROF64 {
+            Self::VCmpZeroF64(VCmpZeroF64 {
                 e,
                 sz: _,
                 dd,
@@ -1260,7 +1260,7 @@ impl ToOperation for A6_5 {
                 e: Some(e),
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
             }),
-            Self::VRINTF32(VRINTF32 {
+            Self::VRintF32(VRintF32 {
                 sm,
                 m,
                 op,
@@ -1272,7 +1272,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 sm: F32Register::try_from(b!((sm; 4), (m<0>)))?,
             }),
-            Self::VRINTF64(VRINTF64 {
+            Self::VRintF64(VRintF64 {
                 dm,
                 m,
                 op,
@@ -1284,7 +1284,7 @@ impl ToOperation for A6_5 {
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
                 dm: F64Register::try_from(b!((m<0>),(dm; 4)))?,
             }),
-            Self::VCVTF32F64(VCVTF32F64 {
+            Self::VcvtF32F64(VcvtF32F64 {
                 dm,
                 m,
                 sz: _,
@@ -1294,7 +1294,7 @@ impl ToOperation for A6_5 {
                 sd: F32Register::try_from(b!((sd; 4), (d<0>)))?,
                 dm: F64Register::try_from(b!((m<0>), (dm; 4) ))?,
             }),
-            Self::VCVTF64F32(VCVTF64F32 {
+            Self::VcvtF64F32(VcvtF64F32 {
                 sm,
                 m,
                 sz: _,
@@ -1305,7 +1305,7 @@ impl ToOperation for A6_5 {
 
                 dd: F64Register::try_from(b!((d<0>), (dd; 4) ))?,
             }),
-            Self::VCVTINTXINTXFLOAT(VCVTINTXINTXFLOAT {
+            Self::VcvtIntXIntXFloat(VcvtIntXIntXFloat {
                 vm,
                 m,
                 op,
@@ -1369,7 +1369,7 @@ impl ToOperation for A6_5 {
                     }
                 }
             }
-            Self::VRINTROUNDF32(VRINTROUNDF32 {
+            Self::VRIntRoundF32(VRIntRoundF32 {
                 sm,
                 m,
                 op: _,
@@ -1382,7 +1382,7 @@ impl ToOperation for A6_5 {
                 sd: r32!(sd, d),
                 sm: r32!(sm, m),
             }),
-            Self::VRINTROUNDF64(VRINTROUNDF64 {
+            Self::VRIntRoundF64(VRIntRoundF64 {
                 dm,
                 m,
                 op: _,
@@ -1395,7 +1395,7 @@ impl ToOperation for A6_5 {
                 dd: r64!(dd, d),
                 dm: r64!(dm, m),
             }),
-            Self::VCVTF32INTROUND(VCVTF32INTROUND {
+            Self::VcvtF32IntRound(VcvtF32IntRound {
                 sm,
                 m,
                 op,
@@ -1414,7 +1414,7 @@ impl ToOperation for A6_5 {
                 sm: r32!(sm, m),
             }),
 
-            Self::VCVTF64INTROUND(VCVTF64INTROUND {
+            Self::VcvtF64IntRound(VcvtF64IntRound {
                 dm,
                 m,
                 op,
@@ -1432,7 +1432,7 @@ impl ToOperation for A6_5 {
                 },
                 dm: r64!(dm, m),
             }),
-            Self::VCVTFIXEDPOINT(VCVTFIXEDPOINT {
+            Self::VcvtFixedPoint(VcvtFixedPoint {
                 imm4,
                 i,
                 sx,
@@ -1496,7 +1496,7 @@ impl ToOperation for A6_5 {
                     }),
                 }
             }
-            Self::VCVTROUNDF32(VCVTROUNDF32 {
+            Self::VcvtRoundF32(VcvtRoundF32 {
                 sm,
                 m,
                 op,
@@ -1513,7 +1513,7 @@ impl ToOperation for A6_5 {
                 },
                 sm: r32!(sm, m),
             }),
-            Self::VCVTROUNDF64(VCVTROUNDF64 {
+            Self::VcvtRoundF64(VcvtRoundF64 {
                 dm,
                 m,
                 op,

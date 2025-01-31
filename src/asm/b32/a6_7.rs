@@ -3,6 +3,7 @@
 use macros::{compare, extract_fields};
 use paste::paste;
 
+use super::a6_9::A6_9;
 use crate::{
     arch::register::{F32Register, F64Register, Register},
     asm::{LocalTryInto, Mask},
@@ -81,6 +82,7 @@ instruction!(
         d       as u8 : u8          : 22 -> 22,
         u       as u8 : bool        : 23 -> 23 local_try_into
     },
+    -> A6_9,
 );
 impl Parse for A6_7 {
     type Target = Self;
@@ -98,7 +100,7 @@ impl Parse for A6_7 {
             return Err(ParseError::Undefined);
         }
         if compare!(opcode == 0010x) {
-            todo!("Subtable 64 bit");
+            return Self::parse_subtable_a6_9(iter);
         }
 
         if compare!(opcode == 01x00) {
@@ -198,6 +200,7 @@ macro_rules! b {
         }
     };
 }
+
 macro_rules! e {
     ($id:ident<$idx:literal>) => {
         (1,($id>>$idx) & 0b1)
@@ -408,6 +411,7 @@ impl ToOperation for A6_7 {
                 rn,
                 sd: r32!(vd, d),
             }),
+            Self::SubtableA6_9(table) => return table.encoding_specific_operations(),
         })
     }
 }

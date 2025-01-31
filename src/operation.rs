@@ -583,6 +583,10 @@ operation!(
     Vmsr <rt:Register>
     Vmrs <rt:Register>
 
+    VmoveDoubleF32 <to_core:bool>, <rt:Register>, <rt2:Register>, <sm:F32Register>, <sm1:F32Register>
+
+    VmoveF64 <to_core:bool>, <rt:Register>, <rt2:Register>, <dm:F64Register>
+
 
     // ==================================== W ====================================
 

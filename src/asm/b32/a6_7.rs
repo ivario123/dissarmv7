@@ -216,49 +216,6 @@ macro_rules! e {
     };
 }
 
-fn vfpexpandimm32(imm8: u8) -> u32 {
-    const N: u32 = 32;
-    assert!((32..=64).contains(&N));
-    let e = if N == 32 { 8 } else { 11 };
-
-    let f = N - e - 1;
-    let sign = imm8 >> 7;
-    // Assumes that imm is a single bit.
-    const fn replicate(imm: u8, mut n: u32) -> u32 {
-        let mut ret: u32 = 0;
-        while n != 0 {
-            n -= 1;
-            ret <<= 1;
-            ret |= imm as u32;
-        }
-        ret
-    }
-    let (exp,exp_size) = b!(sized : ((((!imm8) >> 6) & 0b1);1),(replicate((imm8 >> 6) & 0b1,e - 3); e-3),(imm8.mask::<4,5>();2));
-    let (frac, frac_size) = b!(sized : (imm8.mask::<0,3>();4),(f-4;0));
-    return b!((sign;1),(exp;exp_size), (frac;frac_size));
-}
-
-fn vfpexpandimm64(imm8: u8) -> u64 {
-    const N: u64 = 64;
-    let e = if N == 32 { 8 } else { 11 };
-
-    let f = N - e - 1;
-    let sign = imm8 >> 7;
-    // Assumes that imm is a single bit.
-    const fn replicate(imm: u8, mut n: u64) -> u64 {
-        let mut ret: u64 = 0;
-        while n != 0 {
-            n -= 1;
-            ret <<= 1;
-            ret |= imm as u64;
-        }
-        ret
-    }
-    let (exp,exp_size) = b!(sized (u64) : ((((!imm8) >> 6) & 0b1);1),(replicate((imm8 >> 6) & 0b1,e - 3); e-3),(imm8.mask::<4,5>();2));
-    let (frac, frac_size) = b!(sized (u64) : (imm8.mask::<0,3>();4),(f-4;0));
-    return b!((u64) : (sign;1),(exp;exp_size), (frac;frac_size));
-}
-
 macro_rules! r32 {
     ($base:ident,$offset:ident) => {
         {
@@ -489,6 +446,14 @@ mod test {
             assert_eq!(instr,$($expected)+);
         }};
     }
+
+    fn split(t1: bool, register: u8) -> (u8, u8) {
+        if t1 {
+            (register & 0b1111, register & 0b10000)
+        } else {
+            (register >> 1, register & 0b1)
+        }
+    }
     #[test]
     fn test_vstm_t1() {
         let split = |t1: bool, register: u8| -> (u8, u8) {
@@ -561,13 +526,6 @@ mod test {
     }
     #[test]
     fn test_vstm_2() {
-        let split = |t1: bool, register: u8| -> (u8, u8) {
-            if t1 {
-                (register & 0b1111, register & 0b10000)
-            } else {
-                (register >> 1, register & 0b1)
-            }
-        };
         let enc = |imm8: u8,
                    register: u8,
                    add: bool,
@@ -636,6 +594,388 @@ mod test {
                         wback,
                         imm32: (imm8 as u32) << 2,
                         rn,
+                        registers
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vldm_t1() {
+        let enc = |imm8: u8,
+                   register: u8,
+                   add: bool,
+                   wback: bool,
+                   t1: bool,
+                   rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            let p = match (add, wback) {
+                (true, false) => false,
+                (true, true) => false,
+                (false, true) => true,
+                _ => panic!("Not a valid encoding"),
+            };
+            A6_7::encode_vldm(imm8, t1, vd, rn, wback, d, add, p)
+        };
+
+        for (imm8, register, add, wback, rn, registers) in [
+            (
+                0b110,
+                u8::from(F64Register::D1),
+                true,
+                true,
+                Register::R0,
+                vec![F64Register::D1, F64Register::D2],
+            ),
+            (
+                0b110,
+                u8::from(F64Register::D1),
+                false,
+                true,
+                Register::R0,
+                vec![F64Register::D1, F64Register::D2],
+            ),
+            (
+                0b1110,
+                u8::from(F64Register::D1),
+                true,
+                false,
+                Register::R1,
+                vec![
+                    F64Register::D1,
+                    F64Register::D2,
+                    F64Register::D3,
+                    F64Register::D4,
+                    F64Register::D5,
+                    F64Register::D6,
+                ],
+            ),
+        ] {
+            check_eq!(
+                [enc(imm8, register, add, wback, true, rn)]
+                    == Operation::VLdmF64(crate::operation::VLdmF64 {
+                        add,
+                        wback,
+                        imm32: (imm8 as u32) << 2,
+                        rn,
+                        registers
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vldm_2() {
+        let enc = |imm8: u8,
+                   register: u8,
+                   add: bool,
+                   wback: bool,
+                   t1: bool,
+                   rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            let p = match (add, wback) {
+                (true, false) => false,
+                (true, true) => false,
+                (false, true) => true,
+                _ => panic!("Not a valid encoding"),
+            };
+            A6_7::encode_vldm(imm8, t1, vd, rn, wback, d, add, p)
+        };
+
+        for (imm8, register, add, wback, rn, registers) in [
+            (
+                0b110,
+                u8::from(F32Register::S1),
+                true,
+                true,
+                Register::R0,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                ],
+            ),
+            (
+                0b110,
+                u8::from(F32Register::S1),
+                false,
+                true,
+                Register::R0,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                ],
+            ),
+            (
+                0b0111,
+                u8::from(F32Register::S1),
+                true,
+                false,
+                Register::R1,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                    F32Register::S6,
+                ],
+            ),
+        ] {
+            check_eq!(
+                [enc(imm8, register, add, wback, false, rn)]
+                    == Operation::VLdmF32(crate::operation::VLdmF32 {
+                        add,
+                        wback,
+                        imm32: (imm8 as u32) << 2,
+                        rn,
+                        registers
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vstr_t1() {
+        let enc = |imm8: u8, register: u8, add: bool, t1: bool, rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vstr(imm8, t1, vd, rn, d, add)
+        };
+
+        for (imm8, register, add, rn) in [
+            (0b110, F64Register::D1, true, Register::R0),
+            (0b110, F64Register::D13, false, Register::R0),
+            (0b0111, F64Register::D0, true, Register::R1),
+        ] {
+            check_eq!(
+                [enc(imm8, u8::from(register), add, true, rn)]
+                    == Operation::VStrF64(crate::operation::VStrF64 {
+                        add,
+                        imm32: (imm8 as u32) << 2,
+                        dd: register,
+                        rn,
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vstr_t2() {
+        let enc = |imm8: u8, register: u8, add: bool, t1: bool, rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vstr(imm8, t1, vd, rn, d, add)
+        };
+
+        for (imm8, register, add, rn) in [
+            (0b110, F32Register::S1, true, Register::R0),
+            (0b110, F32Register::S13, false, Register::R0),
+            (0b0111, F32Register::S0, true, Register::R1),
+        ] {
+            check_eq!(
+                [enc(imm8, u8::from(register), add, false, rn)]
+                    == Operation::VStrF32(crate::operation::VStrF32 {
+                        add,
+                        imm32: (imm8 as u32) << 2,
+                        sd: register,
+                        rn,
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vldr_t1() {
+        let enc = |imm8: u8, register: u8, add: bool, t1: bool, rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vldr(imm8, t1, vd, rn, d, add)
+        };
+
+        for (imm8, register, add, rn) in [
+            (0b110, F64Register::D1, true, Register::R0),
+            (0b110, F64Register::D13, false, Register::R0),
+            (0b0111, F64Register::D0, true, Register::R1),
+        ] {
+            check_eq!(
+                [enc(imm8, u8::from(register), add, true, rn)]
+                    == Operation::VLdrF64(crate::operation::VLdrF64 {
+                        add,
+                        imm32: (imm8 as u32) << 2,
+                        dd: register,
+                        rn,
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vldr_t2() {
+        let enc = |imm8: u8, register: u8, add: bool, t1: bool, rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vldr(imm8, t1, vd, rn, d, add)
+        };
+
+        for (imm8, register, add, rn) in [
+            (0b110, F32Register::S1, true, Register::R0),
+            (0b110, F32Register::S13, false, Register::R0),
+            (0b0111, F32Register::S0, true, Register::R1),
+        ] {
+            check_eq!(
+                [enc(imm8, u8::from(register), add, false, rn)]
+                    == Operation::VLdrF32(crate::operation::VLdrF32 {
+                        add,
+                        imm32: (imm8 as u32) << 2,
+                        sd: register,
+                        rn,
+                    })
+            );
+        }
+    }
+
+    #[test]
+    fn test_vpush_t1() {
+        let enc = |imm8: u8, register: u8, t1: bool| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vpush(imm8, t1, vd, d)
+        };
+
+        for (imm8, register, registers) in [
+            (0b110, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+            ]),
+            (0b111, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+            ]),
+            (0b1110, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+                F64Register::D3,
+                F64Register::D4,
+                F64Register::D5,
+                F64Register::D6,
+            ]),
+        ] {
+            check_eq!(
+                [enc(imm8, register, true)]
+                    == Operation::VPushF64(crate::operation::VPushF64 {
+                        imm32: (imm8 as u32) << 2,
+                        registers
+                    })
+            );
+        }
+    }
+
+    #[test]
+    fn test_vpush_t2() {
+        let enc = |imm8: u8, register: u8, t1: bool| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vpush(imm8, t1, vd, d)
+        };
+
+        for (imm8, register, registers) in [
+            (0b110, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+            ]),
+            (0b110, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+            ]),
+            (0b0111, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+                F32Register::S6,
+            ]),
+        ] {
+            check_eq!(
+                [enc(imm8, register, false)]
+                    == Operation::VPushF32(crate::operation::VPushF32 {
+                        imm32: (imm8 as u32) << 2,
+                        registers
+                    })
+            );
+        }
+    }
+
+    #[test]
+    fn test_vpop_t1() {
+        let enc = |imm8: u8, register: u8, t1: bool| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vpop(imm8, t1, vd, d)
+        };
+
+        for (imm8, register, registers) in [
+            (0b110, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+            ]),
+            (0b111, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+            ]),
+            (0b1110, u8::from(F64Register::D1), vec![
+                F64Register::D1,
+                F64Register::D2,
+                F64Register::D3,
+                F64Register::D4,
+                F64Register::D5,
+                F64Register::D6,
+            ]),
+        ] {
+            check_eq!(
+                [enc(imm8, register, true)]
+                    == Operation::VPopF64(crate::operation::VPopF64 {
+                        imm32: (imm8 as u32) << 2,
+                        registers
+                    })
+            );
+        }
+    }
+
+    #[test]
+    fn test_vpop_t2() {
+        let enc = |imm8: u8, register: u8, t1: bool| {
+            let (vd, d) = split(t1, register);
+            A6_7::encode_vpop(imm8, t1, vd, d)
+        };
+
+        for (imm8, register, registers) in [
+            (0b110, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+            ]),
+            (0b110, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+            ]),
+            (0b0111, u8::from(F32Register::S1), vec![
+                F32Register::S1,
+                F32Register::S2,
+                F32Register::S3,
+                F32Register::S4,
+                F32Register::S5,
+                F32Register::S6,
+            ]),
+        ] {
+            check_eq!(
+                [enc(imm8, register, false)]
+                    == Operation::VPopF32(crate::operation::VPopF32 {
+                        imm32: (imm8 as u32) << 2,
                         registers
                     })
             );

@@ -361,7 +361,8 @@ pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
         .iter()
         .map(|(id, (start, end))| {
             quote! {ret |= {
-                //println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
+                println!("RET : {:#32b}",ret);
+                println!("(id {}) {:?}.mask<{},{}>() << {} => {:?}",stringify!(#id),#id,1,#end- #start,#start,(#id as u32).mask::<0,{#end-#start}>() << #start);
                 (u32::from(#id) .mask::<0,{#end - #start}>() << #start )
             };}
         })
@@ -372,6 +373,8 @@ pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
         {
             let mut ret:u32 = #ret;
             #(#masks)*
+            println!("RET : {:#32b}",ret);
+
             ret
         }
     };

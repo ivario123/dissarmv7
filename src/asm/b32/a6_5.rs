@@ -1464,6 +1464,10 @@ impl ToOperation for A6_5 {
                 let imm4: u32 = imm4 as u32;
                 let i: u32 = i as u32;
                 let comb: u32 = b!((imm4;4),(i<0>));
+                if comb > size {
+                    return Err(ParseError::Unpredictable);
+                }
+                println!("{size} - {comb}");
                 let fbits = size - comb;
                 match (op, sf) {
                     (true, true) => Operation::Vcvt(operation::Vcvt {
@@ -3039,7 +3043,7 @@ mod test {
                 0b0u32,
                 0b0u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::I16(rd.clone()),
                 ConversionArgument::F32(rd),
             ),
@@ -3047,7 +3051,7 @@ mod test {
                 0b1u32,
                 0b0u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::F32(rd.clone()),
                 ConversionArgument::I16(rd),
             ),
@@ -3055,7 +3059,7 @@ mod test {
                 0b0u32,
                 0b1u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::U16(rd.clone()),
                 ConversionArgument::F32(rd),
             ),
@@ -3063,7 +3067,7 @@ mod test {
                 0b1u32,
                 0b1u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::F32(rd.clone()),
                 ConversionArgument::U16(rd),
             ),
@@ -3071,7 +3075,7 @@ mod test {
                 0b0u32,
                 0b0u32,
                 0b1u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::I32(rd.clone()),
                 ConversionArgument::F32(rd),
             ),
@@ -3141,7 +3145,7 @@ mod test {
                 0b0u32,
                 0b0u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::I16F64(rd.clone()),
                 ConversionArgument::F64(rd),
             ),
@@ -3149,7 +3153,7 @@ mod test {
                 0b1u32,
                 0b0u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::F64(rd.clone()),
                 ConversionArgument::I16F64(rd),
             ),
@@ -3157,7 +3161,7 @@ mod test {
                 0b0u32,
                 0b1u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::U16F64(rd.clone()),
                 ConversionArgument::F64(rd),
             ),
@@ -3165,7 +3169,7 @@ mod test {
                 0b1u32,
                 0b1u32,
                 0b0u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::F64(rd.clone()),
                 ConversionArgument::U16F64(rd),
             ),
@@ -3173,7 +3177,7 @@ mod test {
                 0b0u32,
                 0b0u32,
                 0b1u32,
-                0b10111u32,
+                0b00111u32,
                 ConversionArgument::I32F64(rd.clone()),
                 ConversionArgument::F64(rd),
             ),

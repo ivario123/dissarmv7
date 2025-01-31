@@ -204,7 +204,7 @@ macro_rules! instruction {
         ),*
     ) => {
         paste!{
-            #[derive(Debug)]
+            #[derive(Debug,PartialEq)]
             pub enum $table{
                 $(
                     $(
@@ -225,11 +225,25 @@ macro_rules! instruction {
                                 Ok(Self::$id($id::parse(iter)?))
                             }
                             #[allow(dead_code)]
-                            pub(crate) fn [<encode_ $id:lower>]<T: $crate::Stream>($($field_id:$type),*) -> u32 {
-                                macros::combine_reverse_order!(
+                            pub(crate) fn [<encode_ $id:lower>]($($field_id:$type),*) -> u32 {
+                                let ret = macros::combine_reverse_order!(
                                     $($bit_str)*,
                                     $($field_id),*
-                                )
+                                );
+                                #[cfg(test)]
+                                {
+                                    let target = Self::$id($id {$($field_id),*});
+                                    let size = ret.to_be_bytes();
+                                    let mut bin = vec![];
+                                    bin.extend([size[0], size[1]].into_iter().rev());
+                                    bin.extend([size[2], size[3]].into_iter().rev());
+                                    let mut stream = crate::prelude::PeekableBuffer::from(bin.into_iter().into_iter());
+                                    let instr = Self::parse(&mut stream).expect("Parser broken");
+
+                                    println!("{instr:?} == {target:?}");
+                                    assert!(instr == target);
+                                }
+                                ret
                             }
                         )?)+
                     }
@@ -244,7 +258,7 @@ macro_rules! instruction {
                         #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
                     )*
                     $(#[$($attrss)*])*
-                    #[derive(Debug)]
+                    #[derive(Debug,PartialEq)]
                     pub struct $id {
                         $(
                             #[doc = "bit " [<$start>] " to " [<$end>] "\n\n"]

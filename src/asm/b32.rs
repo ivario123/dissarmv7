@@ -69,6 +69,9 @@ impl B32 {
         if compare!(word == 111 | x | 1110 | xxxx | xxxx | xxxx | 101 | x | xx | x | 0 | xxxx) {
             return a6_5::A6_5::parse(iter)?.encoding_specific_operations();
         }
+        if compare!(word == 111 | 0 | 110 | xxxxx | xxxx | xxxx | 101 | x | xx | x | x | xxxx) {
+            return a6_7::A6_7::parse(iter)?.encoding_specific_operations();
+        }
         let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
         let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
         let op = word.mask::<15, 15>();

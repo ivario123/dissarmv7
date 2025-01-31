@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::iter::Map;
-
 use macros::{compare, extract_fields};
 use paste::paste;
 
@@ -24,10 +22,10 @@ instruction!(
         t1      as u8 : bool        : 8 -> 8 local_try_into,
         vd      as u8 : u8          : 12 -> 15,
         rn      as u8 : Register    : 16 -> 19 try_into,
-        w       as u8 : bool        : 20 -> 20 local_try_into,
-        d       as u8 : u8          : 21 -> 21,
-        u       as u8 : bool        : 22 -> 22 local_try_into,
-        p       as u8 : bool        : 23 -> 23 local_try_into
+        w       as u8 : bool        : 21 -> 21 local_try_into,
+        d       as u8 : u8          : 22 -> 22,
+        u       as u8 : bool        : 23 -> 23 local_try_into,
+        p       as u8 : bool        : 24 -> 24 local_try_into
     },
 
     /// Stores a single double registers at an address based on rn.
@@ -58,10 +56,10 @@ instruction!(
         t1      as u8 : bool        : 8 -> 8 local_try_into,
         vd      as u8 : u8          : 12 -> 15,
         rn      as u8 : Register    : 16 -> 19 try_into,
-        w       as u8 : bool        : 20 -> 20 local_try_into,
-        d       as u8 : u8          : 21 -> 21,
-        u       as u8 : bool        : 22 -> 22 local_try_into,
-        p       as u8 : bool        : 23 -> 23 local_try_into
+        w       as u8 : bool        : 21 -> 21 local_try_into,
+        d       as u8 : u8          : 22 -> 22,
+        u       as u8 : bool        : 23 -> 23 local_try_into,
+        p       as u8 : bool        : 24 -> 24 local_try_into
     },
 
     /// Pops a single double registers on the stack.
@@ -281,26 +279,24 @@ macro_rules! r64 {
     };
 }
 
-macro_rules! conv {
-    ($t:ident,$($e:tt)*) => {
-        operation::ConversionArgument::$t($($e)*)
-    };
-}
-
-macro_rules! int{
-    ($t:ident,$($e:tt)*) => {
-        operation::IntType::$t($($e)*)
-    };
-}
-
 macro_rules! regs64 {
     ($vd:ident,$offset:ident,$imm8:ident) => {
         forcibly_collect((b!(($offset<0>),($vd as u32; 4))..($imm8 as u32 / 2)).map(|idx| F64Register::try_from(idx)))?
     };
 }
+macro_rules! regs32{
+    ($vd:ident,$offset:ident,$imm8:ident) => {
+        {
+        let val = b!(($vd as u32; 4),($offset<0>))..($imm8 as u32);
+        println!("ITERATOR : {:?}",val);
+        forcibly_collect((val).map(|idx| F32Register::try_from(idx)))?
+        }
+    };
+}
 
 impl ToOperation for A6_7 {
     fn encoding_specific_operations(self) -> Result<crate::operation::Operation, ParseError> {
+        println!("encoding specific operations for {:?}", self);
         Ok(match self {
             Self::VStm(VStm {
                 imm8,
@@ -320,19 +316,20 @@ impl ToOperation for A6_7 {
             }),
             Self::VStm(VStm {
                 imm8,
-                t1,
+                t1: _,
                 vd,
                 rn,
                 w,
                 d,
                 u,
-                p,
+                // Does not atcually do anything.
+                p: _,
             }) => Operation::VStmF32(operation::VStmF32 {
                 add: u,
                 wback: w,
                 imm32: b!((imm8;8),(00;2)),
                 rn,
-                registers: forcibly_collect((0..(imm8)).map(|idx| F32Register::try_from(idx)))?,
+                registers: regs32!(vd, d, imm8),
             }),
             Self::VStr(VStr {
                 imm8,
@@ -349,7 +346,8 @@ impl ToOperation for A6_7 {
             }),
             Self::VStr(VStr {
                 imm8,
-                t1,
+                // Covered by previous case.
+                t1: _,
                 vd,
                 rn,
                 d,
@@ -368,49 +366,63 @@ impl ToOperation for A6_7 {
                 w,
                 d,
                 u,
-                p,
+                // Does nothing.
+                p: _,
             }) if t1 => Operation::VLdmF64(operation::VLdmF64 {
                 add: u,
                 imm32: b!((imm8;8),(0;2)),
                 rn,
                 wback: w,
-                registers: forcibly_collect((0..(imm8 / 2)).map(|idx| F64Register::try_from(idx)))?,
+                registers: regs64!(vd, d, imm8),
             }),
             Self::VLdm(VLdm {
                 imm8,
-                t1,
+                // Handled by previous case.
+                t1: _,
                 vd,
                 rn,
                 w,
                 d,
                 u,
-                p,
+                p: _,
             }) => Operation::VLdmF32(operation::VLdmF32 {
                 add: u,
                 imm32: b!((imm8;8),(0;2)),
                 rn,
                 wback: w,
-                registers: forcibly_collect((0..(imm8)).map(|idx| F32Register::try_from(idx)))?,
+                registers: regs32!(vd, d, imm8),
             }),
             Self::VPop(VPop { imm8, t1, vd, d }) if t1 => Operation::VPopF64(operation::VPopF64 {
                 imm32: b!((imm8;8),(0;2)),
-                registers: forcibly_collect((0..(imm8 / 2)).map(|idx| F64Register::try_from(idx)))?,
+                registers: regs64!(vd, d, imm8),
             }),
-            Self::VPop(VPop { imm8, t1, vd, d }) => Operation::VPopF32(operation::VPopF32 {
+
+            Self::VPop(VPop {
+                imm8,
+                // Handled by previous case.
+                t1: _,
+                vd,
+                d,
+            }) => Operation::VPopF32(operation::VPopF32 {
                 imm32: b!((imm8;8),(0;2)),
-                registers: forcibly_collect((0..(imm8)).map(|idx| F32Register::try_from(idx)))?,
+                registers: regs32!(vd, d, imm8),
             }),
             Self::VPush(VPush { imm8, t1, vd, d }) if t1 => {
                 Operation::VPushF64(operation::VPushF64 {
                     imm32: b!((imm8;8),(0;2)),
-                    registers: forcibly_collect(
-                        (0..(imm8 / 2)).map(|idx| F64Register::try_from(idx)),
-                    )?,
+                    registers: regs64!(vd, d, imm8),
                 })
             }
-            Self::VPush(VPush { imm8, t1, vd, d }) => Operation::VPushF32(operation::VPushF32 {
+            Self::VPush(VPush {
+                imm8,
+                // Handled by previous case.
+                t1: _,
+                vd,
+                d,
+            }) => Operation::VPushF32(operation::VPushF32 {
                 imm32: b!((imm8;8),(0;2)),
-                registers: forcibly_collect((0..(imm8)).map(|idx| F32Register::try_from(idx)))?,
+
+                registers: regs32!(vd, d, imm8),
             }),
             Self::VLdr(VLdr {
                 imm8,
@@ -427,7 +439,8 @@ impl ToOperation for A6_7 {
             }),
             Self::VLdr(VLdr {
                 imm8,
-                t1,
+                // Handled by previous case.
+                t1: _,
                 vd,
                 rn,
                 d,
@@ -448,4 +461,184 @@ fn forcibly_collect<E, Item, I: Iterator<Item = Result<Item, E>>>(i: I) -> Resul
         ret.push(el?);
     }
     Ok(ret)
+}
+
+#[cfg(test)]
+mod test {
+    use std::vec;
+
+    use super::A6_7;
+    use crate::{
+        arch::{
+            register::{F32Register, F64Register},
+            Register,
+        },
+        prelude::*,
+    };
+
+    macro_rules! check_eq {
+        ([$($size:tt)*]== $($expected:tt)+) => {{
+            let size = ($($size)*).to_be_bytes();
+            let mut bin = vec![];
+            bin.extend([size[0], size[1]].into_iter().rev());
+            bin.extend([size[2], size[3]].into_iter().rev());
+            let mut stream = PeekableBuffer::from(bin.into_iter().into_iter());
+            let instr = Operation::parse(&mut stream).expect("Parser broken").1;
+            println!("instr : {instr:?}");
+
+            assert_eq!(instr,$($expected)+);
+        }};
+    }
+    #[test]
+    fn test_vstm_t1() {
+        let split = |t1: bool, register: u8| -> (u8, u8) {
+            if t1 {
+                (register & 0b1111, register & 0b10000)
+            } else {
+                (register >> 1, register & 0b1)
+            }
+        };
+        let enc = |imm8: u8,
+                   register: u8,
+                   add: bool,
+                   wback: bool,
+                   t1: bool,
+                   rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            let p = match (add, wback) {
+                (true, false) => false,
+                (true, true) => false,
+                (false, true) => true,
+                _ => panic!("Not a valid encoding"),
+            };
+            A6_7::encode_vstm(imm8, t1, vd, rn, wback, d, add, p)
+        };
+
+        for (imm8, register, add, wback, rn, registers) in [
+            (
+                0b110,
+                u8::from(F64Register::D1),
+                true,
+                true,
+                Register::R0,
+                vec![F64Register::D1, F64Register::D2],
+            ),
+            (
+                0b110,
+                u8::from(F64Register::D1),
+                false,
+                true,
+                Register::R0,
+                vec![F64Register::D1, F64Register::D2],
+            ),
+            (
+                0b1110,
+                u8::from(F64Register::D1),
+                true,
+                false,
+                Register::R1,
+                vec![
+                    F64Register::D1,
+                    F64Register::D2,
+                    F64Register::D3,
+                    F64Register::D4,
+                    F64Register::D5,
+                    F64Register::D6,
+                ],
+            ),
+        ] {
+            check_eq!(
+                [enc(imm8, register, add, wback, true, rn)]
+                    == Operation::VStmF64(crate::operation::VStmF64 {
+                        add,
+                        wback,
+                        imm32: (imm8 as u32) << 2,
+                        rn,
+                        registers
+                    })
+            );
+        }
+    }
+    #[test]
+    fn test_vstm_2() {
+        let split = |t1: bool, register: u8| -> (u8, u8) {
+            if t1 {
+                (register & 0b1111, register & 0b10000)
+            } else {
+                (register >> 1, register & 0b1)
+            }
+        };
+        let enc = |imm8: u8,
+                   register: u8,
+                   add: bool,
+                   wback: bool,
+                   t1: bool,
+                   rn: crate::prelude::Register| {
+            let (vd, d) = split(t1, register);
+            let p = match (add, wback) {
+                (true, false) => false,
+                (true, true) => false,
+                (false, true) => true,
+                _ => panic!("Not a valid encoding"),
+            };
+            A6_7::encode_vstm(imm8, t1, vd, rn, wback, d, add, p)
+        };
+
+        for (imm8, register, add, wback, rn, registers) in [
+            (
+                0b110,
+                u8::from(F32Register::S1),
+                true,
+                true,
+                Register::R0,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                ],
+            ),
+            (
+                0b110,
+                u8::from(F32Register::S1),
+                false,
+                true,
+                Register::R0,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                ],
+            ),
+            (
+                0b0111,
+                u8::from(F32Register::S1),
+                true,
+                false,
+                Register::R1,
+                vec![
+                    F32Register::S1,
+                    F32Register::S2,
+                    F32Register::S3,
+                    F32Register::S4,
+                    F32Register::S5,
+                    F32Register::S6,
+                ],
+            ),
+        ] {
+            check_eq!(
+                [enc(imm8, register, add, wback, false, rn)]
+                    == Operation::VStmF32(crate::operation::VStmF32 {
+                        add,
+                        wback,
+                        imm32: (imm8 as u32) << 2,
+                        rn,
+                        registers
+                    })
+            );
+        }
+    }
 }

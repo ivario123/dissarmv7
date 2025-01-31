@@ -22,8 +22,7 @@ impl From<ArchError> for ParseError {
 ///         SomeInstructionIdent : {
 ///              some_field_name as intermediateType (u8) : SomeFinalType : {start_bit} -> {end_bit} optional_conversion_method (try_into),
 ///         },
-///         PossiblyMoreInstructions : .....
-///         
+///         PossiblyMoreInstructions :
 ///     }
 /// };
 /// ```
@@ -183,7 +182,105 @@ macro_rules! instruction {
                 }
             )?
         )*
+    };
+    (
+    size $size:ty; $table:ident contains
+        $(
+            $(
+            $(#[$($attrss:tt)*])*
+            [$($bit_str:tt)*]
+            $id:ident : {
+                $(
+
+                        $(#[$($attrss_field:tt)*])*
+                        $field_id:ident $(as $representation:ty)?: $type:ty : $start:literal -> $end:literal $($expr:ident)?
+
+
+                ),*
+            })?
+            $(
+                -> $table_id:ident
+            )?
+        ),*
+    ) => {
+        paste!{
+            #[derive(Debug)]
+            pub enum $table{
+                $(
+                    $(
+                        $(#[$($attrss)*])*
+                        $id($id),
+                    )?
+                    $(
+                        #[doc = "Externally defined instruction or set of instructions [`"  [<$table_id>]  "`]"]
+                        [<Subtable $table_id>]($table_id),
+                    )?
+                )+
+            }
+
+                    impl $table {
+                        $($(
+                            #[allow(dead_code)]
+                            pub(crate) fn [<parse_ $id:lower>]<T: $crate::Stream>(iter: &mut T) -> Result<Self, $crate::ParseError> {
+                                Ok(Self::$id($id::parse(iter)?))
+                            }
+                            #[allow(dead_code)]
+                            pub(crate) fn [<encode_ $id:lower>]<T: $crate::Stream>($($field_id:$type),*) -> u32 {
+                                macros::combine_reverse_order!(
+                                    $($bit_str)*,
+                                    $($field_id),*
+                                )
+                            }
+                        )?)+
+                    }
+        }
+        $(
+
+            $(
+                paste!{
+                    #[doc = "Instruction " [<$id>] " from table " [<$table>] "\n\n"]
+                    #[doc = "Contains the following fields:\n"]
+                    $(
+                        #[doc = "- " [<$field_id>] " of type " [<$type>] " from bit " [<$start>] " to bit " [<$end>] "\n"]
+                    )*
+                    $(#[$($attrss)*])*
+                    #[derive(Debug)]
+                    pub struct $id {
+                        $(
+                            #[doc = "bit " [<$start>] " to " [<$end>] "\n\n"]
+                            $(#[$($attrss_field)*])*
+                            pub(crate) $field_id:$type,
+                        )*
+                    }
+                }
+
+
+                impl Parse for $id{
+                    type Target = Self;
+                    #[allow(unused_variables)]
+                    fn parse<T: $crate::Stream>(iter: &mut T) -> Result<Self::Target, $crate::ParseError>
+                    where
+                        Self: Sized {
+                        // Consume a word from the buffer
+                        let word:$size = match iter.peek::<1>(){
+                            Some(buff) => Ok(buff),
+                            None => Err(ParseError::Invalid16Bit(stringify!($id))),
+                        }?;
+                        $(
+                            let $field_id:$type = instruction!($size; word $(as $representation)?; $start -> $end $($expr)?);
+                        )*
+                        let ret = Self{
+                            $(
+                                $field_id,
+                            )*
+                        };
+                        Ok(ret)
+                    }
+                }
+            )?
+        )*
     }
+
 }
 
 #[macro_export]

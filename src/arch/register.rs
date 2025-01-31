@@ -62,6 +62,18 @@ macro_rules! reg {
                 unreachable!();
             }
         }
+        impl From<$name> for u16 {
+            #[allow(unused_assignments)]
+            fn from(val:$name) -> u16 {
+                u8::from(val) as u16
+            }
+        }
+        impl From<$name> for u32 {
+            #[allow(unused_assignments)]
+            fn from(val:$name) -> u32 {
+                u8::from(val) as u32
+            }
+        }
     };
 }
 reg!(

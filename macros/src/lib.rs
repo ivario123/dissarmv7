@@ -2,7 +2,16 @@ use std::{collections::HashMap, usize};
 
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{ext::IdentExt, parse::Parse, parse_macro_input, spanned::Spanned, Expr, Ident, Token};
+use syn::{
+    ext::IdentExt,
+    parse::Parse,
+    parse_macro_input,
+    spanned::Spanned,
+    BinOp,
+    Expr,
+    Ident,
+    Token,
+};
 
 struct Mask {
     /// The fields to mask out.
@@ -131,12 +140,13 @@ struct Comparison {
     ident: Ident,
     mask: u32,
     expected: u32,
+    op: BinOp,
 }
 
 impl Parse for Comparison {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let ident = input.parse()?;
-        let _: Token![==] = input.parse()?;
+        let op: BinOp = input.parse()?;
         let str_input = input.to_string();
         let span = input.span();
         let _: syn::Expr = input.parse()?;
@@ -170,6 +180,7 @@ impl Parse for Comparison {
             ident,
             mask,
             expected,
+            op,
         })
     }
 }
@@ -179,8 +190,9 @@ pub fn compare(input: TokenStream) -> TokenStream {
     let mask = comparison.mask;
     let expected = comparison.expected;
     let ident = comparison.ident;
+    let op = comparison.op;
     let ret = quote! {
-        ((#ident&#mask) == #expected)
+        ((#ident&#mask) #op #expected)
     };
     ret.into()
 }
@@ -212,6 +224,15 @@ impl Parse for Combiner {
         let mut accumulator: u32 = 0;
         let mut args: Vec<(char, (usize, Option<usize>))> = Vec::new();
         let mut parsing: Option<(char, (usize, Option<usize>))> = None;
+        if bit_str.len() > 32 {
+            return Err(syn::Error::new(
+                bit_str_e.span(),
+                &format!(
+                    "Expected a bitstring of 32 elements, got {} elements",
+                    bit_str.len()
+                ),
+            ));
+        }
         for (idx, char) in bit_str.chars().enumerate() {
             let idx = 31 - idx;
             accumulator <<= 1;
@@ -292,8 +313,56 @@ pub fn combine(input: TokenStream) -> TokenStream {
         .iter()
         .map(|(id, (start, end))| {
             quote! {ret |= {
-                println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
-                (#id .mask::<0,{#end - #start}>() << #start )
+                //println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
+                (u32::from(#id) .mask::<0,{#end - #start}>() << #start )
+            };}
+        })
+        .collect();
+
+    let ret = input.bit_vector;
+    let ret = quote! {
+        {
+            let mut ret:u32 = #ret;
+            #(#masks)*
+            ret
+        }
+    };
+
+    ret.into()
+}
+
+#[proc_macro]
+/// Combines a bitstring with in scope variables.
+///
+/// ```no_run
+/// 
+/// use macros::combine;
+///
+/// let a:u32 = 111;
+/// let b:u32 = 11;
+/// let comb = combine!(1100110xxx111000ccc,a,b);
+/// assert!(comb ==     1100110011111000111);
+/// ```
+///
+/// The macro will replace chars in the order they occur with the expressions
+/// passed in the same order.
+pub fn combine_reverse_order(input: TokenStream) -> TokenStream {
+    println!("Inp : {}", input.to_string());
+    let input = parse_macro_input!(input as Combiner);
+
+    let ret: Vec<(&Expr, (usize, usize))> = input
+        .args
+        .iter()
+        .zip(input.identifiers.iter().rev())
+        .map(|((_c, (start, end)), id)| (id, (end.unwrap_or(*start), *start)))
+        .collect();
+
+    let masks: Vec<proc_macro2::TokenStream> = ret
+        .iter()
+        .map(|(id, (start, end))| {
+            quote! {ret |= {
+                //println!("(id {}) {:#32b}.mask<{},{}>() << {} => {:#32b}",stringify!(#id),#id,0,#end- #start,#start,#id.mask::<0,{#end-#start}>() << #start);
+                (u32::from(#id) .mask::<0,{#end - #start}>() << #start )
             };}
         })
         .collect();

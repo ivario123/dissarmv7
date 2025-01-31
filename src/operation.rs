@@ -556,6 +556,25 @@ operation!(
     VcvtCustomRoundingIntF32<r:IEEE754RoundingMode>, <sd:IntType>, <sm: F32Register>
     VcvtCustomRoundingIntF64<r:IEEE754RoundingMode>, <sd:IntType>, <dm: F64Register>
 
+
+    VStmF32<add:bool>, <wback:bool>, <imm32:u32>, <rn:Register>, <registers:Vec<F32Register>>
+    VStmF64<add:bool>, <wback:bool>, <imm32:u32>, <rn:Register>, <registers:Vec<F64Register>>
+
+    VStrF32<add:bool>, <imm32:u32>, <rn:Register>, <sd:F32Register>
+    VStrF64<add:bool>, <imm32:u32>, <rn:Register>, <dd:F64Register>
+
+    VPushF32 <imm32:u32>, <registers:Vec<F32Register>>
+    VPushF64 <imm32:u32>, <registers:Vec<F64Register>>
+
+    VLdrF32<add:bool>, <imm32:u32>, <rn:Register>, <sd:F32Register>
+    VLdrF64<add:bool>, <imm32:u32>, <rn:Register>, <dd:F64Register>
+
+    VPopF32 <imm32:u32>, <registers:Vec<F32Register>>
+    VPopF64 <imm32:u32>, <registers:Vec<F64Register>>
+
+    VLdmF32<add:bool>, <wback:bool>, <imm32:u32>, <rn:Register>, <registers:Vec<F32Register>>
+    VLdmF64<add:bool>, <wback:bool>, <imm32:u32>, <rn:Register>, <registers:Vec<F64Register>>
+
     // ==================================== W ====================================
 
     Wfe <>

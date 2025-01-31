@@ -18,7 +18,9 @@ pub mod a5_27;
 pub mod a5_28;
 pub mod a5_29;
 pub mod a5_30;
-pub mod float;
+pub mod a6_5;
+pub mod a6_7;
+pub mod a6_8;
 
 use macros::compare;
 
@@ -65,7 +67,7 @@ impl B32 {
         };
 
         if compare!(word == 111 | x | 1110 | xxxx | xxxx | xxxx | 101 | x | xx | x | 0 | xxxx) {
-            return float::A6_5::parse(iter)?.encoding_specific_operations();
+            return a6_5::A6_5::parse(iter)?.encoding_specific_operations();
         }
         let op1 = word.mask::<{ 16 + 11 }, { 16 + 12 }>();
         let op2 = word.mask::<{ 16 + 4 }, { 16 + 10 }>();
